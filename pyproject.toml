@@ -1,0 +1,19 @@
+[project]
+name = "my-project"
+version = "0.1.0"
+dependencies = [
+    "fastparquet>=2024.11.0",
+    "h5py>=3.13.0",
+    "ipdb>=0.13.13",
+    "ipykernel>=6.29.5",
+    "matplotlib>=3.10.3",
+    "netcdf4>=1.7.2",
+    "pillow>=11.2.1",
+    "pip>=25.1.1",
+    "pyarrow>=20.0.0",
+    "pyproj>=3.7.1",
+    "scikit-learn>=1.6.1",
+    "torch>=2.7.0",
+    "tqdm>=4.67.1",
+    "xarray>=2025.4.0",
+]
