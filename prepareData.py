@@ -48,6 +48,7 @@ class PrepareData:
             norm_row = []
             for idx, var in enumerate(var_order):
                 val = row[idx]
+                # print dole gre000z0 values
                 if var == angle_var:
                     angle_rad = np.deg2rad(val)
                     norm_row.append(np.cos(angle_rad))
@@ -62,12 +63,14 @@ class PrepareData:
                 if np.isnan(norm_row[-1]):
                     norm_row[-1] = 0
             x_norm.append(norm_row)
-        return np.array(x_norm)
+        
+        return np.array(x_norm), stats
             
     def prepare_data(self,loaded, filtered_datatimes=None):
         x_images = []
         y = []
         x_meteo = []
+        dt_to_idx = {dt: i for i, dt in enumerate(loaded["datetime"])}
         for i, dt in enumerate(loaded["datetime"]):
             
             if filtered_datatimes is not None and dt not in filtered_datatimes:
@@ -88,27 +91,37 @@ class PrepareData:
                 loaded["SU"][i], #  sunshine duration
                 loaded["DD"][i], #  wind direction
             ]
+            
             # Remove datetimes where any corresponding input data row has a NaN
 
             if not any(np.isnan(meteo_row)):
                 x_meteo.append(meteo_row)
                 x_images.append(self.get_image_for_datetime(dt))
-                temp = [loaded["gre000z0_nyon"][i], loaded["gre000z0_dole"][i]]
-                y.append(temp)
+                from datetime import datetime, timedelta
+                dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=10)).isoformat()
 
-   
+                if dt_next in dt_to_idx:
+                    idx_next = dt_to_idx[dt_next]
+                    temp = [loaded["gre000z0_nyon"][idx_next], loaded["gre000z0_dole"][idx_next]]
+                    y.append(temp)
+                else:
+                    x_meteo.pop()
+                    x_images.pop()
+
            
         x_meteo = np.array(x_meteo)
         x_images = np.array(x_images)
         y = np.array(y)
         return x_meteo, x_images, y
     # filter data for hour and days
-    def filter_data(self, data, start_date, end_date, start_hour, end_hour):
+    def filter_data(self, data, start_date, end_date, start_hour, end_hour, take_all_seasons=True):
+        months_to_take = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] if take_all_seasons else [1, 2,3,4,9,10,11,12]
         filtered_data = []
         for dt in data["datetime"]:
             date_part, time_part = dt.split('T')
             hour = int(time_part.split(':')[0])
-            if start_date <= date_part <= end_date and start_hour <= hour <= end_hour:
+            month = int(date_part.split('-')[1])
+            if start_date <= date_part <= end_date and start_hour <= hour <= end_hour and month in months_to_take:
                 filtered_data.append(dt)
         # delete all row input data wich have a row nan
       
@@ -137,18 +150,17 @@ class PrepareData:
         data = dict(data)
         
         # Filter data
-        filtered_data = self.filter_data(data, "2023-01-01", "2023-12-31", 9, 19)
+        filtered_data = self.filter_data(data, "2023-01-01", "2023-12-31", 9, 19, take_all_seasons=True)
         
         # Prepare the final datasets
         x_meteo, x_images, y = self.prepare_data(data, filtered_datatimes=filtered_data)
-        
         print(f"Data Prepared: {fp_weather}")
         
         # Normalize data
-        x_meteo = self.normalize_data(x_meteo, var_order=[
+        x_meteo, _ = self.normalize_data(x_meteo, var_order=[
             "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", 
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"
         ])
-        y = self.normalize_data(y)
+        y, stats = self.normalize_data(y, var_order=["gre000z0_nyon", "gre000z0_dole"])
         
-        return x_meteo, x_images, y
+        return x_meteo, x_images, y, stats

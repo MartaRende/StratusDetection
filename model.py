@@ -10,23 +10,27 @@ class StratusModel(nn.Module):
         output_mlp_meteo_size = 64
         output_ccn_size = 64
         self.cnn = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.AdaptiveAvgPool2d((1, 1)),  # Adjust the output size to (64, 4, 4)
-        )
+        nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(2, 2),
+        nn.Conv2d(32, output_ccn_size, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(2, 2),
+        nn.AdaptiveAvgPool2d((1, 1))
+    )
+
         self.mlp_meteo = nn.Sequential(
             nn.Linear(input_data_size, 32),
             nn.ReLU(),
             nn.Linear(32, output_mlp_meteo_size),
             nn.ReLU(),
+            nn.Linear(64, output_mlp_meteo_size),
+            nn.ReLU(),
         )
         self.mlp_head = nn.Sequential(
         nn.Linear(output_ccn_size+output_mlp_meteo_size, 64),
         nn.ReLU(),
+        nn.Dropout(0.3),
         nn.Linear(64, output_size)  # Predicting rayonnement for Nyon and La Dôle
     )
 

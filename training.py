@@ -8,6 +8,7 @@ from multiprocessing import Pool
 
 from model import StratusModel
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
@@ -15,119 +16,55 @@ print(f"Device is : {device}")
 train_files = glob.glob("data/train/*.npz")
 test_files = glob.glob("data/test/*.npz")
 
-from torch.utils.data import Dataset
-import numpy as np
-
-class MeteoImageDataset(Dataset):
-    def __init__(self, file_list, prepare_data):
-        self.file_list = file_list
-        self.prepare_data = prepare_data
-        self.index_map = []
-        self.file_data = []
-        # Precompute index mapping: (file_idx, sample_idx)
-        for file_idx, file in enumerate(file_list):
-            x_meteo, x_images, y = prepare_data.load_data(file)
-    
-            self.file_data.append((x_meteo, x_images, y))
-            for sample_idx in range(len(y)):
-                self.index_map.append((file_idx, sample_idx))
-
-    def __len__(self):
-        return len(self.index_map)
-
-    def __getitem__(self, idx):
-        file_idx, sample_idx = self.index_map[idx]
-        x_meteo, x_images, y = self.file_data[file_idx]
-        # print("x_meteo", x_meteo.shape)
-        # # print("x_images", x_images.shape)
-        # print("y", y.shape)
-        
-        img = torch.tensor(x_images[sample_idx], dtype=torch.float32)
-        if img.ndim == 3:
-            img = img.permute(2, 0, 1)  # HWC -> CHW
-        
-        # Ensure y[sample_idx] is shape (2,)
-        label = y[sample_idx]
-        label = torch.tensor(label, dtype=torch.float32)
-        if label.ndim == 0:
-            raise ValueError(f"Label for sample {sample_idx} is scalar, expected 2-element vector")
-
-        return (
-            torch.tensor(x_meteo[sample_idx], dtype=torch.float32),
-            img,
-            label
-    )
-
+all_weatherX = []
+all_imagesX = []
+allY = []
 prepare_data = PrepareData()
-# for file_idx, file in enumerate(train_files):
-#     x_meteo, x_images, y = prepare_data.load_data(file)
-#     print(f"{file}: {len(y)} samples")
-train_weatherX = []
-train_imagesX = []
-trainY = []
-test_source_weather_x = []
-test_imagesX = []
-testY = []
-# give train file randomly from
+for file in train_files + test_files:
+    x_meteo, x_images, y,_ = prepare_data.load_data(file)
+    all_weatherX.append(x_meteo)
+    all_imagesX.append(x_images)
+    allY.append(y)
 
+all_weatherX = np.concatenate(all_weatherX)
+all_imagesX = np.concatenate(all_imagesX)
+allY = np.concatenate(allY)
 
-# # Load training data sequentially
-# for file in train_files:
-#     x_weather, x_img, y = prepare_data.load_data(file)
-#     train_weatherX.append(x_weather)
-#     train_imagesX.append(x_img)
-#     trainY.append(y)
-#     print("here")
+print("Data after filter:", all_weatherX.shape, all_imagesX.shape, allY.shape)
 
-# train_weatherX = np.concatenate(train_weatherX)
-# print("Training data loaded")
+weather_train, weather_test, images_train, images_test, y_train, y_test = train_test_split(
+    all_weatherX, all_imagesX, allY, test_size=0.2, random_state=42
+)
 
-# train_imagesX = np.concatenate(train_imagesX)
+class SimpleDataset(torch.utils.data.Dataset):
+    def __init__(self, weather, images, y):
+        self.weather = weather
+        self.images = images
+        self.y = y
+    def __len__(self):
+        return len(self.y)
+    def __getitem__(self, idx):
+        img = torch.tensor(self.images[idx], dtype=torch.float32)
+        if img.ndim == 3:
+            img = img.permute(2, 0, 1)
+        return (
+            torch.tensor(self.weather[idx], dtype=torch.float32),
+            img,
+            torch.tensor(self.y[idx], dtype=torch.float32)
+        )
 
-# trainY = np.concatenate(trainY)
-train_dataset = MeteoImageDataset(train_files, prepare_data)
-test_dataset = MeteoImageDataset(test_files, prepare_data)
+train_dataset = SimpleDataset(weather_train, images_train, y_train)
+test_dataset = SimpleDataset(weather_test, images_test, y_test)
 print("train_dataset", len(train_dataset))
 print("test_dataset", len(test_dataset))
-if len(train_dataset) == 0:
-    raise ValueError("Training dataset is empty")
-if len(test_dataset) == 0:
-    raise ValueError("Testing dataset is empty")
-print("Training data loaded")
-for i in range(5):
-    _, _, label = train_dataset[i]
-    print("Sample label shape:", label.shape)
 
-# # Process testing data in parallel
-# with Pool() as pool:
-#     results = pool.map(prepare_data.load_data, test_files)
-#     test_source_weather_x = np.concatenate([x for x,_, _ in results])
-#     test_imagesX = np.concatenate([x for _, x, _ in results])
-#     testY = np.concatenate([y for _, _, y in results])
-
-# Tensor creation
-# print("Tensor creation started")
-# train_source_weather_tensor = torch.tensor(train_weatherX, dtype=torch.float32)
-# train_source_images_tensor = torch.tensor(train_imagesX, dtype=torch.float32)
-# train_target_tesor = torch.tensor(trainY, dtype=torch.float32)
-# test_source_weather_x = torch.tensor(test_source_weather_x, dtype=torch.float32)
-# test_source_images_tensor = torch.tensor(test_imagesX, dtype=torch.float32)
-# test_target_sensor = torch.tensor(testY, dtype=torch.float32)
-# # Dataset creation
-# train_dataset = torch.utils.data.TensorDataset(train_source_weather_tensor, train_source_images_tensor, train_target_tesor)
-# test_dataset = torch.utils.data.TensorDataset(test_source_weather_x, test_source_images_tensor, test_target_sensor)
-
-print("Tensor creation done")
-
-
-# decide size of training and testing data
-train_size = int(0.9 * len(train_dataset))
+# Split train/validation
+train_size = int(0.8 * len(train_dataset))
 validation_size = len(train_dataset) - train_size
-
 train_dataset, validation_dataset = torch.utils.data.random_split(train_dataset, [train_size, validation_size])
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, shuffle=False)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, shuffle=True)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=True)
 
 # Model creation
 
@@ -152,8 +89,12 @@ accuracies = {
     "test": []
 }
 
-# Training loop
-num_epochs = 5
+patience = 3  
+best_val_loss = float('inf')
+epochs_no_improve = 0
+
+
+num_epochs = 20
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:
@@ -184,15 +125,28 @@ for epoch in range(num_epochs):
                 optimizer.step()
             curr_loss += class_loss.item()
             nbr_items += 1
+
+        avg_loss = curr_loss / nbr_items
+        losses[step].append(avg_loss)
+
         if step == "eval":
-            scheduler.step(curr_loss)
-        losses[step].append(curr_loss / nbr_items)
-        # Puoi aggiungere qui una metrica di accuratezza se il tuo problema è classificazione
+            scheduler.step(avg_loss)
+            if avg_loss < best_val_loss:
+                best_val_loss = avg_loss
+                epochs_no_improve = 0
+                best_model_state = model.state_dict()  
+            else:
+                epochs_no_improve += 1
 
     print(
-        f"Epoch [{epoch+1}/{num_epochs}], Loss: {class_loss.item():.4f}, Val loss : {losses['eval'][-1]:.4f}, Test loss : {losses['test'][-1]:.4f}"
+        f"Epoch [{epoch+1}/{num_epochs}], Loss: {losses['train'][-1]:.4f}, Val loss : {losses['eval'][-1]:.4f}, Test loss : {losses['test'][-1]:.4f}"
     )
+    
+    if epochs_no_improve >= patience:
+        print(f"Early stopping triggered at epoch {epoch+1}")
+        break
 
+#
 MODEL_BASE_PATH = "./models/"
 
 
@@ -224,6 +178,12 @@ def saveResults():
     plt.legend()
     plt.title("Accuracy")
     plt.savefig(currPath + "/accuracy.png")
+    # save existing file model.py in the same folder
+    with open(currPath + "/model.py", "w") as f:
+        f.write("# Path: model.py\n")
+        with open("model.py", "r") as original_file:
+            for line in original_file:
+                f.write(line)
 
 
 saveResults()

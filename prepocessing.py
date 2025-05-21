@@ -203,4 +203,4 @@ if __name__ == "__main__":
     np.savez("data/train/nyon_train_data.npz", nyon=np.array(train_grouped["nyon"]))
     np.savez("data/train/nyon_test_data.npz", nyon=np.array(test_grouped["nyon"]))
     np.savez("data/train/dole_train_data.npz", dole=np.array(train_grouped['dole']))
-    np.savez("data/train/dole_test_data.npz", dole=np.array(test_grouped['dole']))
+    np.savez("data/test/dole_test_data.npz", dole=np.array(test_grouped['dole']))
