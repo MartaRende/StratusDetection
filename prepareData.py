@@ -7,7 +7,7 @@ from PIL import Image
 import h5py
 
 class PrepareData:
-    def __init__(self, fp_images="/home/marta/Projects/tb/data/images/2023"):
+    def __init__(self, fp_images="/home/marta/Projects/tb/data/images/mch/1159/2/"):
         self.image_base_folder = fp_images
 
 
@@ -18,12 +18,12 @@ class PrepareData:
 
         img_filename = f"1159_2_{year}-{month}-{day}_{hourmin}.jpeg"
         # If your images are in subfolders by month/day:
-        img_path = os.path.join(self.image_base_folder, month, day, img_filename)
+        img_path = os.path.join(self.image_base_folder, year,month, day, img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             img_arr = np.array(img)
         else:
-            img_arr = np.zeros((512, 512, 3), dtype=np.uint8)  # Placeholder if missing
+            img_arr = np.zeros((512, 512, 3), dtype=np.uint8)  # Placeholder for missing images
         return img_arr
     def normalize_data(self, data, var_order=None):
    
@@ -97,18 +97,26 @@ class PrepareData:
             if not any(np.isnan(meteo_row)):
                 x_meteo.append(meteo_row)
                 x_images.append(self.get_image_for_datetime(dt))
+                # if imge contains 0 values, remove the row
+                if np.all(x_images[-1]==0):
+                    x_meteo.pop()
+                    x_images.pop()
+                    print(f"Image for {dt} is empty, removing row.")
+                    continue
                 from datetime import datetime, timedelta
-                dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=10)).isoformat()
+                dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=60)).isoformat()
 
                 if dt_next in dt_to_idx:
                     idx_next = dt_to_idx[dt_next]
                     temp = [loaded["gre000z0_nyon"][idx_next], loaded["gre000z0_dole"][idx_next]]
                     y.append(temp)
                 else:
+                    print(f"Warning: {dt_next} not found in data.")
                     x_meteo.pop()
                     x_images.pop()
 
-           
+
+        print(f"Filtered data: {len(x_meteo)} rows")
         x_meteo = np.array(x_meteo)
         x_images = np.array(x_images)
         y = np.array(y)

@@ -6,14 +6,14 @@ import glob
 import os
 import h5py
 import numpy as np
-
+from metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-
+MODEL_PATH = "models/model_0"
 prepare_data = PrepareData()
 model = StratusModel()
 # TODO : change path
-model.load_state_dict(torch.load("models/model_10/model.pth", map_location=device))
+model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 DATETIME = "2023-01-29T08:30:00"
 WEATHER_FP = "/home/marta/Projects/tb/data/weather/inca/2023"
 with torch.no_grad():
@@ -21,12 +21,17 @@ with torch.no_grad():
     # load data test of npz file
     npz_file = f"data/test/dole_test_data.npz"
     data = np.load(npz_file, allow_pickle=True)
+    
     good_prediction = 0
     x_meteo, x_image, y_expected, stats = prepare_data.load_data(npz_file)
     # TODO : save right path
-
+    for item in data["dole"]:
+        print(item["datetime"], item["gre000z0_dole"], item["gre000z0_nyon"])
+   
     print(stats)
     total_predictions = len(x_meteo)
+    y_predicted = []
+    final_expected = []
     for i in range(total_predictions):
         x_meteo = torch.tensor(x_meteo, dtype=torch.float32).to(device)  # [991, 15]
         x_images = (
@@ -35,14 +40,14 @@ with torch.no_grad():
         idx_test = i
         x_meteo_sample = x_meteo[idx_test].unsqueeze(0)  # [1, 15]
         x_image_sample = x_images[idx_test].unsqueeze(0)  # [1, 3, 512, 512]
-
-        print("x_meteo_sample", x_meteo_sample.shape)
+        print(idx_test)
+        
         y = model(x_meteo_sample, x_image_sample)
         y = y.squeeze(0).cpu().numpy()
         expected = y_expected[idx_test]
         tol = 20  # tolerance value
         # read stats values
-        stats = np.load(f"stats.npy", allow_pickle=True).item()
+        
         mean_nyon = stats["gre000z0_nyon"]["mean"]
         mean_dole = stats["gre000z0_dole"]["mean"]
         std_nyon = stats["gre000z0_nyon"]["std"]
@@ -55,22 +60,35 @@ with torch.no_grad():
         # Denormalize expected values
         expected[0] = expected[0] * std_nyon + mean_nyon
         expected[1] = expected[1] * std_dole + mean_dole
-        good_prediction += int(np.all(np.abs(y - expected) <= tol))
-        print("Predicted values:", y, "Expected values:", expected)
-
+        
+        
+        
         matching_items = [
             (i, item)
             for (i, item) in enumerate(data["dole"])
-            if abs(item["gre000z0_dole"] - expected[1]) <= 1
+            if abs(item["gre000z0_dole"] - expected[1]) <= 1 # for approximation
             and abs(item["gre000z0_nyon"] - expected[0]) <= 1
         ]
 
-        index = matching_items[0][0]
-        print("Matching items:", matching_items[0][0])
-        datetime = data["dole"][index]["datetime"]
-        print("Datetime:", datetime)
+        if matching_items:
+            index = matching_items[0][0]
+            datetime = data["dole"][index]["datetime"]
+            print("Datetime:", datetime, "Predicted values:", y, "Expected values:", expected)
+        else:
+            print("No matching items found for expected values:", expected)
+        y_predicted.append(y)
+        final_expected.append(expected)
+    metrics = Metrics(final_expected, y_predicted,data, save_path=MODEL_PATH)
+    metrics.find_datetimes()
+
+    mae = metrics.get_mean_absolute_error()
+    metrics.plot_mae(mae)
     
-
-
-print("Good predictions:", good_prediction, "Total predictions:", total_predictions)
-print("Accuracy:", good_prediction / total_predictions)
+    mse = metrics.get_mse()
+    metrics.plot_mse(mse)
+    
+    relative_error = metrics.get_relative_error()
+    metrics.plot_relative_error(relative_error)
+    
+    delta = metrics.get_delta_between_expected_and_predicted()
+    metrics.plot_delta(delta)

@@ -193,14 +193,28 @@ if __name__ == "__main__":
     print(f"Processed {len(processed_data)} records in {time.time() - start_time:.2f}s")
     train_data, test_data = processor.split_data(processed_data, test_size=0.2)
     print(f"Split data into {len(train_data)} training and {len(test_data)} testing records")
-   
+    from collections import defaultdict
+    from sklearn.model_selection import train_test_split
+
+    data_by_day = defaultdict(list)
+    for entry in processed_data:
+            dt = entry['dole']['datetime']
+            day = dt[:10]  # 'YYYY-MM-DD'
+            data_by_day[day].append(entry)
+
+    all_days = list(data_by_day.keys())
+    train_days, test_days = train_test_split(all_days, test_size=0.2, shuffle=True, random_state=42)
+
+    train_data = [record for day in train_days for record in data_by_day[day]]
+    test_data = [record for day in test_days for record in data_by_day[day]]
+
     train_grouped = group_data_by_location(train_data)
     test_grouped = group_data_by_location(test_data)
     print(len(train_grouped["dole"]))
     print(len(test_grouped["dole"]))
 
     # Save the processed data as .npz arrays
-    np.savez("data/train/nyon_train_data.npz", nyon=np.array(train_grouped["nyon"]))
-    np.savez("data/train/nyon_test_data.npz", nyon=np.array(test_grouped["nyon"]))
+    # np.savez("data/train/nyon_train_data.npz", nyon=np.array(train_grouped["nyon"]))
+    # np.savez("data/train/nyon_test_data.npz", nyon=np.array(test_grouped["nyon"]))
     np.savez("data/train/dole_train_data.npz", dole=np.array(train_grouped['dole']))
     np.savez("data/test/dole_test_data.npz", dole=np.array(test_grouped['dole']))
