@@ -23,6 +23,8 @@ def get_grid_indices(x_grid, y_grid, coordinates):
         indices[name] = (ix, iy)
     return indices
 
+import traceback
+
 def process_file(fp, datetimes, coordinates, idaweb_data):
     """Process a single NetCDF file for a list of datetime strings."""
     try:
@@ -43,12 +45,14 @@ def process_file(fp, datetimes, coordinates, idaweb_data):
 
                 for name, (ix, iy) in grid_indices.items():
                     point_data = {}
-                    point_data["datetime"] = dt_str 
+                    point_data["datetime"] = dt_str
                     has_nan = False
                     for var in ['RR', 'TD', 'WG', 'TT', 'CT', 'FF', 'RS', 'TG', 'Z0', 'ZS', 'SU', 'DD']:
                         try:
                             value = float(nc.variables[var][idx, iy, ix]) if var in nc.variables else np.nan
-                        except:
+                        except Exception as e:
+                            print(f"Error processing variable '{var}' in file '{fp}' at datetime '{dt_str}': {e}")
+                            traceback.print_exc()  # Print the full stack trace
                             value = np.nan
                         point_data[var] = value
                         if np.isnan(value):
@@ -61,12 +65,13 @@ def process_file(fp, datetimes, coordinates, idaweb_data):
                         else:
                             point_data[key] = np.nan
                     if not has_nan:
-                        data_entry[name] = point_data
-                if data_entry:  
+                        data_entry = point_data
+                if data_entry:
                     results.append(data_entry)
             return results
     except Exception as e:
-        print(f"Error processing {fp}: {e}")
+        print(f"Error processing file '{fp}': {e}")
+        traceback.print_exc()  # Print the full stack trace
         return []
 def group_data_by_location(processed_data):
     grouped = {"nyon": [], "dole": []}
@@ -87,7 +92,7 @@ class PreProcessData:
         self.cache_dir = Path(".data_cache")
         self.cache_dir.mkdir(exist_ok=True)
 
-        self.points = {"nyon": (46.38318, 6.23955), "dole": (46.424797, 6.099136)}
+        self.points = {"dole": (46.424797, 6.099136)}
         self.transformer = Transformer.from_crs("EPSG:4326", "EPSG:21781")
         self.coordinates = {
             name: self.transformer.transform(lat, lon)
@@ -181,7 +186,7 @@ class PreProcessData:
 if __name__ == "__main__":
     import time
     start_date = "2023-01-01T00:00:00"
-    end_date = "2023-02-01T00:00:00"
+    end_date = "2023-01-07T00:00:00"
     fp_inca = "/home/marta/Projects/tb/data/weather/inca/2023"
     fp_images = "/home/marta/Projects/tb/data/images/mch/1159/2/2023"
     fp_global_rayonnement = "data/rayonnement_global"
@@ -191,30 +196,24 @@ if __name__ == "__main__":
     start_time = time.time()
     processed_data = processor.get_range_data(workers=4)
     print(f"Processed {len(processed_data)} records in {time.time() - start_time:.2f}s")
-    train_data, test_data = processor.split_data(processed_data, test_size=0.2)
-    print(f"Split data into {len(train_data)} training and {len(test_data)} testing records")
+
     from collections import defaultdict
     from sklearn.model_selection import train_test_split
 
     data_by_day = defaultdict(list)
     for entry in processed_data:
-            dt = entry['dole']['datetime']
+            dt = entry['datetime']
             day = dt[:10]  # 'YYYY-MM-DD'
             data_by_day[day].append(entry)
-
     all_days = list(data_by_day.keys())
+    
     train_days, test_days = train_test_split(all_days, test_size=0.2, shuffle=True, random_state=42)
-
+    print(f"Train days: {train_days}")
+    print(f"Test days: {test_days}")
     train_data = [record for day in train_days for record in data_by_day[day]]
     test_data = [record for day in test_days for record in data_by_day[day]]
-
-    train_grouped = group_data_by_location(train_data)
-    test_grouped = group_data_by_location(test_data)
-    print(len(train_grouped["dole"]))
-    print(len(test_grouped["dole"]))
-
-    # Save the processed data as .npz arrays
-    # np.savez("data/train/nyon_train_data.npz", nyon=np.array(train_grouped["nyon"]))
-    # np.savez("data/train/nyon_test_data.npz", nyon=np.array(test_grouped["nyon"]))
-    np.savez("data/train/dole_train_data.npz", dole=np.array(train_grouped['dole']))
-    np.savez("data/test/dole_test_data.npz", dole=np.array(test_grouped['dole']))
+    print(f"Train data size: {len(train_data)}")
+    print(f"Test data size: {len(test_data)}")
+  
+    np.savez("data/train/dole_train_data_test.npz", dole=np.array(train_data))
+    np.savez("data/test/dole_test_data_test.npz", dole=np.array(test_data))

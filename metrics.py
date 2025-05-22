@@ -45,7 +45,6 @@ class Metrics:
     def find_datetimes(self):
         datetime_list = []
         for i in range(len(self.expected)):
-            print(f"Finding datetime for expected: {self.expected[i]} and predicted: {self.predicted[i]}")
             datetime_list.append(self.find_datetime(self.expected[i], self.predicted[i]))
         return datetime_list
     def get_mean_absolute_error(self):

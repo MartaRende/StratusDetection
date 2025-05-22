@@ -61,21 +61,6 @@ with torch.no_grad():
         expected[0] = expected[0] * std_nyon + mean_nyon
         expected[1] = expected[1] * std_dole + mean_dole
         
-        
-        
-        matching_items = [
-            (i, item)
-            for (i, item) in enumerate(data["dole"])
-            if abs(item["gre000z0_dole"] - expected[1]) <= 1 # for approximation
-            and abs(item["gre000z0_nyon"] - expected[0]) <= 1
-        ]
-
-        if matching_items:
-            index = matching_items[0][0]
-            datetime = data["dole"][index]["datetime"]
-            print("Datetime:", datetime, "Predicted values:", y, "Expected values:", expected)
-        else:
-            print("No matching items found for expected values:", expected)
         y_predicted.append(y)
         final_expected.append(expected)
     metrics = Metrics(final_expected, y_predicted,data, save_path=MODEL_PATH)
