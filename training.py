@@ -13,14 +13,14 @@ from sklearn.model_selection import train_test_split
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
 
-train_files = glob.glob("data/train/*.npz")
-test_files = glob.glob("data/test/*.npz")
+files = glob.glob("data/complete_data.npz")
+
 
 all_weatherX = []
 all_imagesX = []
 allY = []
 prepare_data = PrepareData()
-for file in train_files + test_files:
+for file in files:
     x_meteo, x_images, y,_ = prepare_data.load_data(file)
     all_weatherX.append(x_meteo)
     all_imagesX.append(x_images)

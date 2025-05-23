@@ -127,7 +127,7 @@ class PreProcessData:
 
     def _build_datetime_index(self):
         self.datetime_index = {}
-        nc_files = sorted(glob.glob(os.path.join(self.fp_inca, "*.nc")))
+        nc_files = sorted(glob.glob(os.path.join(self.fp_inca, "/**/*.nc")))
         for fp in tqdm(nc_files, desc="Building datetime index"):
             try:
                 with Dataset(fp) as nc:
@@ -181,13 +181,16 @@ class PreProcessData:
         return results
 
     def split_data(self, data, test_size=0.2):
+        # split data according stratus condition
+        # Filter b
+        
         return train_test_split(data, test_size=test_size, shuffle=True)
 
 if __name__ == "__main__":
     import time
     start_date = "2023-01-01T00:00:00"
-    end_date = "2023-01-07T00:00:00"
-    fp_inca = "/home/marta/Projects/tb/data/weather/inca/2023"
+    end_date = "2024-12-31T23:50:00"
+    fp_inca = "/home/marta/Projects/tb/data/weather/inca/"
     fp_images = "/home/marta/Projects/tb/data/images/mch/1159/2/2023"
     fp_global_rayonnement = "data/rayonnement_global"
 

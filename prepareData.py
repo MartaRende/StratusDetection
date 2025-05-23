@@ -122,18 +122,18 @@ class PrepareData:
         y = np.array(y)
         return x_meteo, x_images, y
     # filter data for hour and days
-    def filter_data(self, data, start_date, end_date, start_hour, end_hour, take_all_seasons=True):
+    def filter_data(self, data, start_date, end_date,take_all_seasons=True):
         months_to_take = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] if take_all_seasons else [1, 2,3,4,9,10,11,12]
         filtered_data = []
         for dt in data["datetime"]:
             date_part, time_part = dt.split('T')
-            hour = int(time_part.split(':')[0])
             month = int(date_part.split('-')[1])
-            if start_date <= date_part <= end_date and start_hour <= hour <= end_hour and month in months_to_take:
+            if start_date <= date_part <= end_date  and month in months_to_take:
                 filtered_data.append(dt)
         # delete all row input data wich have a row nan
       
         return filtered_data
+    
         
     def load_data(self, fp_weather):
         # Load the NPZ file
@@ -158,7 +158,7 @@ class PrepareData:
         data = dict(data)
         
         # Filter data
-        filtered_data = self.filter_data(data, "2023-01-01", "2023-12-31", 9, 19, take_all_seasons=True)
+        filtered_data = self.filter_data(data, "2023-01-01", "2023-01-31", take_all_seasons=True)
         
         # Prepare the final datasets
         x_meteo, x_images, y = self.prepare_data(data, filtered_datatimes=filtered_data)
