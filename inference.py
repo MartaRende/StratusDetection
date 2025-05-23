@@ -17,16 +17,21 @@ model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device)
 DATETIME = "2023-01-29T08:30:00"
 WEATHER_FP = "/home/marta/Projects/tb/data/weather/inca/2023"
 with torch.no_grad():
-    wanted_date = "20230129"
     # load data test of npz file
-    npz_file = f"data/test/dole_test_data.npz"
+    npz_file = f"data/test/test_with_datetime.npz"
     data = np.load(npz_file, allow_pickle=True)
     
-    good_prediction = 0
-    x_meteo, x_image, y_expected, stats = prepare_data.load_data(npz_file)
-    # TODO : save right path
-    for item in data["dole"]:
-        print(item["datetime"], item["gre000z0_dole"], item["gre000z0_nyon"])
+
+    x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
+    # normalize the data
+    x_meteo, _ = prepare_data.normalize_data(
+        x_meteo,
+        var_order=["gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+    y_expected, stats = prepare_data.normalize_data(
+        y_expected,
+        var_order=["gre000z0_nyon", "gre000z0_dole"]
+    )
+
    
     print(stats)
     total_predictions = len(x_meteo)

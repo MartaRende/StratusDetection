@@ -21,7 +21,8 @@ all_imagesX = []
 allY = []
 prepare_data = PrepareData()
 for file in files:
-    x_meteo, x_images, y,_ = prepare_data.load_data(file)
+    x_meteo, x_images, y = prepare_data.load_data(file)
+  
     all_weatherX.append(x_meteo)
     all_imagesX.append(x_images)
     allY.append(y)
@@ -32,9 +33,17 @@ allY = np.concatenate(allY)
 
 print("Data after filter:", all_weatherX.shape, all_imagesX.shape, allY.shape)
 
-weather_train, weather_test, images_train, images_test, y_train, y_test = train_test_split(
-    all_weatherX, all_imagesX, allY, test_size=0.2, random_state=42
+weather_train, weather_test, images_train, images_test, y_train, y_test = prepare_data.split_data(
+    all_weatherX, all_imagesX, allY
 )
+import ipdb
+ipdb.set_trace()
+# normalize the data
+weather_train, _ = prepare_data.normalize_data(weather_train, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+weather_test, _ = prepare_data.normalize_data(weather_test, var_order=[ "gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+# normalize labels
+y_train,_ = prepare_data.normalize_data(y_train, var_order=["gre000z0_nyon", "gre000z0_dole"])  
+y_test, _= prepare_data.normalize_data(y_test, var_order=["gre000z0_nyon", "gre000z0_dole"])
 
 class SimpleDataset(torch.utils.data.Dataset):
     def __init__(self, weather, images, y):

@@ -1,14 +1,22 @@
 from collections import defaultdict
+from datetime import datetime, timedelta
 import torch    
 import os
 import numpy as np
 import glob
 from PIL import Image
 import h5py
-
+import pandas as pd
+import random
 class PrepareData:
-    def __init__(self, fp_images="/home/marta/Projects/tb/data/images/mch/1159/2/"):
+    def __init__(self, fp_images="/home/marta/Projects/tb/data/images/mch/1159/2/", fp_weather="data/complete_data.npz", fp_global_rayonnement="data/rayonnement_global"):
         self.image_base_folder = fp_images
+        self.fp_weather = fp_weather
+        npz_file = np.load(fp_weather, allow_pickle=True)
+        # Convert to a regular dictionary
+        data_all = {k: npz_file[k] for k in npz_file.files}
+        self.data= data_all['dole']
+
 
 
     def get_image_for_datetime(self,dt):
@@ -60,7 +68,7 @@ class PrepareData:
                 else:
                     mean, std = stats[var]["mean"], stats[var]["std"]
                     norm_row.append((val - mean) / std)
-                if np.isnan(norm_row[-1]):
+                if np.isnan(norm_row[-1]).any():
                     norm_row[-1] = 0
             x_norm.append(norm_row)
         
@@ -70,26 +78,30 @@ class PrepareData:
         x_images = []
         y = []
         x_meteo = []
-        dt_to_idx = {dt: i for i, dt in enumerate(loaded["datetime"])}
-        for i, dt in enumerate(loaded["datetime"]):
-            
+        dt_to_idx = {}
+        for i in range(len(loaded)):
+            dt = loaded[i]["datetime"]
+            dt_to_idx[dt]  = i
+        for i in range(len(loaded)):
+            dt = loaded[i]["datetime"]
             if filtered_datatimes is not None and dt not in filtered_datatimes:
                 continue
             meteo_row = [
-                loaded["gre000z0_nyon"][i], # rayonnement global
-                loaded["gre000z0_dole"][i], # rayonnement global
-                loaded["RR"][i], # precipitation
-                loaded["TD"][i], # dew point temperature
-                loaded["WG"][i], # wind gust
-                loaded["TT"][i], # temperature
-                loaded["CT"][i], #  couverture du ciel 
-                loaded["FF"][i], #  wind speed
-                loaded["RS"][i], #  snowfall
-                loaded["TG"][i], #  ground temperature
-                loaded["Z0"][i], #  ground height
-                loaded["ZS"][i], #  snow height
-                loaded["SU"][i], #  sunshine duration
-                loaded["DD"][i], #  wind direction
+                loaded[i]["gre000z0_nyon"], # rayonnement global
+                loaded[i]["gre000z0_dole"], # rayonnement global
+                loaded[i]["RR"], # precipitation
+                loaded[i]["TD"], # dew point temperature
+                loaded[i]["WG"], # wind gust
+                loaded[i]["TT"], # temperature
+                loaded[i]["CT"], #  couverture du ciel 
+                loaded[i]["FF"], #  wind speed
+                loaded[i]["RS"], #  snowfall
+                loaded[i]["TG"], #  ground temperature
+                loaded[i]["Z0"], #  ground height
+                loaded[i]["ZS"], #  snow height
+                loaded[i]["SU"], #  sunshine duration
+                loaded[i]["DD"], #  wind direction
+            
             ]
             
             # Remove datetimes where any corresponding input data row has a NaN
@@ -101,19 +113,24 @@ class PrepareData:
                 if np.all(x_images[-1]==0):
                     x_meteo.pop()
                     x_images.pop()
+                    self.data = [row for row in self.data if row["datetime"] != dt]
                     print(f"Image for {dt} is empty, removing row.")
                     continue
-                from datetime import datetime, timedelta
+
                 dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=60)).isoformat()
 
                 if dt_next in dt_to_idx:
                     idx_next = dt_to_idx[dt_next]
-                    temp = [loaded["gre000z0_nyon"][idx_next], loaded["gre000z0_dole"][idx_next]]
+                    temp = [loaded[idx_next]["gre000z0_nyon"], loaded[idx_next]["gre000z0_dole"]]
                     y.append(temp)
                 else:
                     print(f"Warning: {dt_next} not found in data.")
+
                     x_meteo.pop()
                     x_images.pop()
+                    # Remove row from self.data
+                    self.data = [row for row in self.data if row["datetime"] != dt]
+                    
 
 
         print(f"Filtered data: {len(x_meteo)} rows")
@@ -125,50 +142,181 @@ class PrepareData:
     def filter_data(self, data, start_date, end_date,take_all_seasons=True):
         months_to_take = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] if take_all_seasons else [1, 2,3,4,9,10,11,12]
         filtered_data = []
-        for dt in data["datetime"]:
+        for i in range(len(data)):
+            dt = data[i]["datetime"]
             date_part, time_part = dt.split('T')
             month = int(date_part.split('-')[1])
             if start_date <= date_part <= end_date  and month in months_to_take:
                 filtered_data.append(dt)
-        # delete all row input data wich have a row nan
+    # delete all row input data wich have a row nan
       
         return filtered_data
-    
+    # def sort_data_by_day(self, data):
+    #     day_to_indices = defaultdict(list)
+    #     for idx, dt in enumerate(data["datetime"]):
+    #         day = dt.split('T')[0]
+    #         day_to_indices[day].append(idx)
+
+    #     days = sorted(day_to_indices.keys())
+    #     return days
+    def find_startus_days(self,data):
         
-    def load_data(self, fp_weather):
-        # Load the NPZ file
-        npz_file = np.load(fp_weather, allow_pickle=True)
+        dole_data = {}
+        nyon_data = {}
+  
+        for i in range(len(data)):
+            dole_data[data[i]["datetime"]] = data[i]["gre000z0_dole"]
+            nyon_data[data[i]["datetime"]] = data[i]["gre000z0_nyon"]
+
+        dole_df = pd.DataFrame.from_dict(dole_data, orient='index', columns=['gre000z0_dole'])
+        nyon_df = pd.DataFrame.from_dict(nyon_data, orient='index', columns=['gre000z0_nyon'])
+
+        # Step 3: Convert the index to datetime and group by day
+        dole_df.index = pd.to_datetime(dole_df.index)
+        nyon_df.index = pd.to_datetime(nyon_df.index)
+
+        dole_daily = dole_df.resample('D').median()  # Daily mean
+        nyon_daily = nyon_df.resample('D').median()
+
+        daily_diff = dole_daily['gre000z0_dole'] - nyon_daily['gre000z0_nyon']
+        stratus_days = daily_diff[daily_diff > 80].index
+        all_days = []
+        for i in stratus_days:
+            day = i.strftime('%Y-%m-%d')  # Convert Timestamp to string
+            all_days.append(day)
+        return stratus_days
+        # Find the start date
+    def get_test_train_days(self, split_ratio=0.8):
+        npz_file = np.load("data/complete_data.npz" ,allow_pickle=True)
         
         # Convert to a regular dictionary
-        data_all = {k: npz_file[k] for k in npz_file.files}
+        data = {k: npz_file[k] for k in npz_file.files}
+        data = data['dole']
+        # Step 1: Group indices by day
+        stratus_days = self.find_startus_days(data)
+        all_days = []
+        all_days = []
+        for i in range(len(data)):
+            dt = data[i]["datetime"]
+            day = dt.split('T')[0] if 'T' in dt else dt.split(' ')[0]
+            all_days.append(day)
+
+        all_days = list(set(all_days))
+
+        non_stratus_days = list(set(all_days) - set(stratus_days))
+
+        # Step 2: Split stratus days into 70/30
+        num_stratus_days = len(stratus_days)
+        num_train_stratus = int(0.7 * num_stratus_days)
+        random.seed(42)
+        stratus_days_shuffled = stratus_days.copy()
+        random.shuffle(list(stratus_days_shuffled))
+        train_stratus_days = stratus_days_shuffled[:num_train_stratus]
+        test_stratus_days = stratus_days_shuffled[num_train_stratus:]
+
+        # Step 3: Split non-stratus days into 80/20
+        num_non_stratus_train = int(split_ratio * len(non_stratus_days))
+        non_stratus_days_shuffled = non_stratus_days.copy()
+        random.shuffle(list(non_stratus_days_shuffled))
+        train_non_stratus_days = non_stratus_days_shuffled[:num_non_stratus_train]
+        test_non_stratus_days = non_stratus_days_shuffled[num_non_stratus_train:]
+
+        # Step 4: Gather indices
+        train_days = set(list(train_stratus_days) + train_non_stratus_days)
+        test_days = set(list(test_stratus_days) + test_non_stratus_days)
+
+       
+
+        return train_days, test_days
+    def get_indices_for_days(self, data, days):
+        indices = []
+        for i in range(len(self.data)):
+    
+            dt = self.data[i]["datetime"]
+            day = dt.split('T')[0] if 'T' in dt else dt.split(' ')[0]
+
+            # remove duplicates
+            if day in indices:
+                continue
+            if day in days:
+                indices.append(i)
+        return indices
+   
+    def split_data(self, x_meteo, x_images, y):
+        # Split the data into training and testing sets
+        train_days, test_days = self.get_test_train_days()
+        train_indices = self.get_indices_for_days(self.data, train_days)
+        test_indices = self.get_indices_for_days(self.data, test_days)
+    
+        x_meteo_train = x_meteo[train_indices]
+        x_images_train = x_images[train_indices]
+        y_train = y[train_indices]
+
+        x_meteo_test = x_meteo[test_indices]
+        x_images_test = x_images[test_indices]
+        y_test = y[test_indices]
+        # Save test data with datetime information
+        test_datetimes = [self.data[i]["datetime"] for i in test_indices]
+        test_save_path = "data/test/test_data_with_datetime.npz"
+        # Define column names for the data
+        column_names = [
+            "gre000z0_nyon",  # Global radiation at Nyon
+            "gre000z0_dole",  # Global radiation at Dole
+            "RR",             # Precipitation
+            "TD",             # Dew point temperature
+            "WG",             # Wind gust
+            "TT",             # Temperature
+            "CT",             # Sky coverage
+            "FF",             # Wind speed
+            "RS",             # Snowfall
+            "TG",             # Ground temperature
+            "Z0",             # Ground height
+            "ZS",             # Snow height
+            "SU",             # Sunshine duration
+            "DD",             # Wind direction
+        ]
+
+        # Combine x_meteo_test and test_datetimes
+        test_datetimes = np.array(test_datetimes).reshape(-1, 1)
+        combined_data = np.concatenate((x_meteo_test, test_datetimes), axis=1)
+
+        # Build list of dictionaries
+        dole = []
+        dole = []
+        for row in combined_data:
+            datetime_value = row[-1]  
+            entry = {
+                column_names[i]: float(row[i]) if '.' in str(row[i]) else int(row[i])
+                for i in range(len(column_names))
+            }
+            entry['datetime'] = datetime_value
+            dole.append(entry)
+
+
+        # Save to .npz
+        test_save_path = "data/test/test_data_with_keys.npz"
+        np.savez(test_save_path, dole=dole)
+        print(f"Test data saved in structured format to {test_save_path}")
+
+        import ipdb
+        ipdb.set_trace()
+        print(f"Test data with datetime saved to {test_save_path}")
+    
+        return x_meteo_train, x_meteo_test, x_images_train, x_images_test, y_train, y_test
+    def rebuild_data_with_filtered_datetimes(self, filtered_datetimes):
+        filtered_set = set(filtered_datetimes)
+        self.data = [row for row in self.data if row["datetime"] in filtered_set]
         
-        # Get the 'dole' data
-        dole_data = data_all['dole']
-        
-        # Initialize the result dictionary
-        data = defaultdict(list)
-        # Process each item in dole_data
-        for item in dole_data:
-                
-            # Add all values to our dictionary of lists
-            for key, value in item.items():
-                data[key].append(value)
-        
-        # Convert defaultdict to regular dict
-        data = dict(data)
-        
+    def load_data(self, fp_weather):
+ 
         # Filter data
-        filtered_data = self.filter_data(data, "2023-01-01", "2023-01-31", take_all_seasons=True)
-        
+        filtered_datetimes = self.filter_data(self.data, "2023-01-01", "2023-01-31", take_all_seasons=True)
+        self.rebuild_data_with_filtered_datetimes(filtered_datetimes)
+     
         # Prepare the final datasets
-        x_meteo, x_images, y = self.prepare_data(data, filtered_datatimes=filtered_data)
+        x_meteo, x_images, y = self.prepare_data(self.data, filtered_datatimes=filtered_datetimes)
+        
         print(f"Data Prepared: {fp_weather}")
         
-        # Normalize data
-        x_meteo, _ = self.normalize_data(x_meteo, var_order=[
-            "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", 
-            "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"
-        ])
-        y, stats = self.normalize_data(y, var_order=["gre000z0_nyon", "gre000z0_dole"])
         
-        return x_meteo, x_images, y, stats
+        return x_meteo, x_images, y

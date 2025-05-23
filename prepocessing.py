@@ -180,16 +180,11 @@ class PreProcessData:
                     results.extend(result)
         return results
 
-    def split_data(self, data, test_size=0.2):
-        # split data according stratus condition
-        # Filter b
-        
-        return train_test_split(data, test_size=test_size, shuffle=True)
 
 if __name__ == "__main__":
     import time
     start_date = "2023-01-01T00:00:00"
-    end_date = "2024-12-31T23:50:00"
+    end_date = "2023-01-01T23:50:00"
     fp_inca = "/home/marta/Projects/tb/data/weather/inca/"
     fp_images = "/home/marta/Projects/tb/data/images/mch/1159/2/2023"
     fp_global_rayonnement = "data/rayonnement_global"
@@ -200,8 +195,6 @@ if __name__ == "__main__":
     processed_data = processor.get_range_data(workers=4)
     print(f"Processed {len(processed_data)} records in {time.time() - start_time:.2f}s")
 
-    from collections import defaultdict
-    from sklearn.model_selection import train_test_split
 
     data_by_day = defaultdict(list)
     for entry in processed_data:
@@ -209,14 +202,6 @@ if __name__ == "__main__":
             day = dt[:10]  # 'YYYY-MM-DD'
             data_by_day[day].append(entry)
     all_days = list(data_by_day.keys())
-    
-    train_days, test_days = train_test_split(all_days, test_size=0.2, shuffle=True, random_state=42)
-    print(f"Train days: {train_days}")
-    print(f"Test days: {test_days}")
-    train_data = [record for day in train_days for record in data_by_day[day]]
-    test_data = [record for day in test_days for record in data_by_day[day]]
-    print(f"Train data size: {len(train_data)}")
-    print(f"Test data size: {len(test_data)}")
-  
-    np.savez("data/train/dole_train_data_test.npz", dole=np.array(train_data))
-    np.savez("data/test/dole_test_data_test.npz", dole=np.array(test_data))
+    all_days = [record for day in all_days for record in data_by_day[day]]
+
+    np.savez("data/data.npz", dole=np.array(all_days))
