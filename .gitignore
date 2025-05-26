@@ -12,3 +12,5 @@ models/
 .data_cache/
 
 analysis/
+
+my_project.egg-info/
