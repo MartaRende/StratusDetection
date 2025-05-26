@@ -8,5 +8,6 @@
 #SBATCH --gres=gpu:1             # number of gpus per node
 #SBATCH --output=logs/%x_%j.out      # standard output
 #SBATCH --error=logs/%x_%j.err       # standard error
+#SBATCH --nodelist=chacha                # nodes to use
 #module purge
 apptainer exec --nv ./train.sif python3 training.py 1
