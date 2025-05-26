@@ -8,9 +8,6 @@ From: nvidia/cuda:12.6.2-base-ubuntu22.04
     AUTHOR_NAME Marta Rende
     VERSION 1.0
 
-%environment
- 
-
 %post -c /bin/bash
     export DEBIAN_FRONTEND=noninteractive
 
@@ -29,12 +26,7 @@ From: nvidia/cuda:12.6.2-base-ubuntu22.04
 
     python3 -m pip install setuptools wheel build
 
-%files
-    pyproject.toml .
-  
-
-%post -c /bin/bash
-    # Install your Python project dependencies from pyproject.toml
     python3 -m pip install .
 
-    # pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+%files
+    pyproject.toml .
