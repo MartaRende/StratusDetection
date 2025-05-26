@@ -36,7 +36,8 @@ From: nvidia/cuda:12.6.2-base-ubuntu22.04
 
     # Make UV environment available by default
     echo 'export PATH="/opt/uv-venv/bin:$PATH"' >> /etc/bash.bashrc
-    echo 'export PATH="/root/.cargo/bin:$PATH"' >> /etc/profile.d/uv.sh
+    echo 'export PATH="/root/.cargo/bin:$PATH"' >> /etc/bash.bashrc
+
 
 
 %files
