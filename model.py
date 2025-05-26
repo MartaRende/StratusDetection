@@ -28,7 +28,7 @@ class StratusModel(nn.Module):
         self.mlp_meteo = nn.Sequential(
             nn.Linear(input_data_size, 32),
             nn.ReLU(),
-            nn.Linear(32, output_mlp_meteo_size),
+            nn.Linear(32, 64),
             nn.ReLU(),
             nn.Linear(64, output_mlp_meteo_size),
             nn.ReLU(),
