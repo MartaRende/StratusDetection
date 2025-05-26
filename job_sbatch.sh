@@ -6,5 +6,7 @@
 #SBATCH --mem-per-cpu=4G         # memory per cpu-core (4G per cpu-core is default)
 #SBATCH --time=00:30:00          # total run time limit (HH:MM:SS)
 #SBATCH --gres=gpu:1             # number of gpus per node
+#SBATCH --output=logs/%x_%j.out      # standard output
+#SBATCH --error=logs/%x_%j.err       # standard error
 #module purge
 apptainer exec --nv ./train.sif python3 training.py
