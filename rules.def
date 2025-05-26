@@ -44,5 +44,7 @@ From: nvidia/cuda:12.6.2-base-ubuntu22.04
 %files
     pyproject.toml .
     training.py . 
+    model.py .
+    prepareData.py .
 %environment
     export PATH="/root/.cargo/bin:/opt/uv-venv/bin:$PATH"

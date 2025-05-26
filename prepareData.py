@@ -270,8 +270,7 @@ class PrepareData:
         self.test_data = dole
         print(f"Train data shape: {x_meteo_train.shape}, Test data shape: {x_meteo_test.shape}")
         print(f"len of test data: {len(self.test_data)}")
-        import ipdb
-        ipdb.set_trace()
+   
         return x_meteo_train, x_meteo_test, x_images_train, x_images_test, y_train, y_test
     def rebuild_data_with_filtered_datetimes(self, filtered_datetimes):
         filtered_set = set(filtered_datetimes)

@@ -1,3 +1,5 @@
+model.py
+prepareData.py
 pyproject.toml
 training.py
 my_project.egg-info/PKG-INFO
