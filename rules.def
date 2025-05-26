@@ -20,6 +20,7 @@ From: nvidia/cuda:12.6.2-base-ubuntu22.04
     # Install UV
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="/root/.cargo/bin:$PATH"
+    source $HOME/.local/bin/env
 
     # Create venv
     uv venv /opt/uv-venv
