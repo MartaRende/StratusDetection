@@ -9,4 +9,4 @@
 #SBATCH --output=logs/%x_%j.out      # standard output
 #SBATCH --error=logs/%x_%j.err       # standard error
 #module purge
-apptainer exec --nv ./train.sif python3 training.py
+apptainer exec --nv ./train.sif python3 training.py 1

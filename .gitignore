@@ -14,3 +14,5 @@ models/
 analysis/
 
 my_project.egg-info/
+
+logs/
