@@ -16,6 +16,7 @@ class PrepareData:
         # Convert to a regular dictionary
         data_all = {k: npz_file[k] for k in npz_file.files}
         self.data= data_all['dole']
+        self.test_data = []
 
 
 
@@ -187,47 +188,23 @@ class PrepareData:
         return stratus_days
         # Find the start date
     def get_test_train_days(self, split_ratio=0.8):
-        npz_file = np.load("data/complete_data.npz" ,allow_pickle=True)
-        
-        # Convert to a regular dictionary
-        data = {k: npz_file[k] for k in npz_file.files}
-        data = data['dole']
-        # Step 1: Group indices by day
-        stratus_days = self.find_startus_days(data)
-        all_days = []
-        all_days = []
-        for i in range(len(data)):
-            dt = data[i]["datetime"]
-            day = dt.split('T')[0] if 'T' in dt else dt.split(' ')[0]
-            all_days.append(day)
+        # npz_file = np.load("data/complete_data.npz", allow_pickle=True)
+        # data = {k: npz_file[k] for k in npz_file.files}
+        # data = data['dole']
+        all_days = list(set([
+            d["datetime"].split('T')[0] if 'T' in d["datetime"] else d["datetime"].split(' ')[0]
+            for d in self.data
+        ]))
 
-        all_days = list(set(all_days))
-
-        non_stratus_days = list(set(all_days) - set(stratus_days))
-
-        # Step 2: Split stratus days into 70/30
-        num_stratus_days = len(stratus_days)
-        num_train_stratus = int(0.7 * num_stratus_days)
         random.seed(42)
-        stratus_days_shuffled = stratus_days.copy()
-        random.shuffle(list(stratus_days_shuffled))
-        train_stratus_days = stratus_days_shuffled[:num_train_stratus]
-        test_stratus_days = stratus_days_shuffled[num_train_stratus:]
-
-        # Step 3: Split non-stratus days into 80/20
-        num_non_stratus_train = int(split_ratio * len(non_stratus_days))
-        non_stratus_days_shuffled = non_stratus_days.copy()
-        random.shuffle(list(non_stratus_days_shuffled))
-        train_non_stratus_days = non_stratus_days_shuffled[:num_non_stratus_train]
-        test_non_stratus_days = non_stratus_days_shuffled[num_non_stratus_train:]
-
-        # Step 4: Gather indices
-        train_days = set(list(train_stratus_days) + train_non_stratus_days)
-        test_days = set(list(test_stratus_days) + test_non_stratus_days)
-
-       
-
+        all_days.sort()
+        random.shuffle(all_days)
+        split_index = int(split_ratio * len(all_days))
+        train_days = set(all_days[:split_index])
+        test_days = set(all_days[split_index:])
+        
         return train_days, test_days
+
     def get_indices_for_days(self, data, days):
         indices = []
         for i in range(len(self.data)):
@@ -235,11 +212,9 @@ class PrepareData:
             dt = self.data[i]["datetime"]
             day = dt.split('T')[0] if 'T' in dt else dt.split(' ')[0]
 
-            # remove duplicates
-            if day in indices:
-                continue
             if day in days:
                 indices.append(i)
+    
         return indices
    
     def split_data(self, x_meteo, x_images, y):
@@ -255,9 +230,9 @@ class PrepareData:
         x_meteo_test = x_meteo[test_indices]
         x_images_test = x_images[test_indices]
         y_test = y[test_indices]
+        
         # Save test data with datetime information
         test_datetimes = [self.data[i]["datetime"] for i in test_indices]
-        test_save_path = "data/test/test_data_with_datetime.npz"
         # Define column names for the data
         column_names = [
             "gre000z0_nyon",  # Global radiation at Nyon
@@ -291,17 +266,12 @@ class PrepareData:
             }
             entry['datetime'] = datetime_value
             dole.append(entry)
-
-
-        # Save to .npz
-        test_save_path = "data/test/test_data_with_keys.npz"
-        np.savez(test_save_path, dole=dole)
-        print(f"Test data saved in structured format to {test_save_path}")
-
+        # to save data in training process
+        self.test_data = dole
+        print(f"Train data shape: {x_meteo_train.shape}, Test data shape: {x_meteo_test.shape}")
+        print(f"len of test data: {len(self.test_data)}")
         import ipdb
         ipdb.set_trace()
-        print(f"Test data with datetime saved to {test_save_path}")
-    
         return x_meteo_train, x_meteo_test, x_images_train, x_images_test, y_train, y_test
     def rebuild_data_with_filtered_datetimes(self, filtered_datetimes):
         filtered_set = set(filtered_datetimes)

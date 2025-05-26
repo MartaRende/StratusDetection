@@ -5,7 +5,7 @@ import numpy as np
 import glob
 from PIL import Image
 from multiprocessing import Pool
-
+import sys
 from model import StratusModel
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
@@ -13,13 +13,20 @@ from sklearn.model_selection import train_test_split
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
 
+# add an argument to the script to change certain parameters
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
+if len(sys.argv) > 1:
+    if sys.argv[1] == 1:
+        print("Train of chacha")
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2/"
+        
 files = glob.glob("data/complete_data.npz")
 
 
 all_weatherX = []
 all_imagesX = []
 allY = []
-prepare_data = PrepareData()
+prepare_data = PrepareData(FP_IMAGES)
 for file in files:
     x_meteo, x_images, y = prepare_data.load_data(file)
   
@@ -36,8 +43,9 @@ print("Data after filter:", all_weatherX.shape, all_imagesX.shape, allY.shape)
 weather_train, weather_test, images_train, images_test, y_train, y_test = prepare_data.split_data(
     all_weatherX, all_imagesX, allY
 )
-import ipdb
-ipdb.set_trace()
+# save the data to npz file
+
+
 # normalize the data
 weather_train, _ = prepare_data.normalize_data(weather_train, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
 weather_test, _ = prepare_data.normalize_data(weather_test, var_order=[ "gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
@@ -102,8 +110,9 @@ patience = 3
 best_val_loss = float('inf')
 epochs_no_improve = 0
 
+print("len(data_test):", len(prepare_data.test_data))
 
-num_epochs = 20
+num_epochs = 2
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:
@@ -193,6 +202,10 @@ def saveResults():
         with open("model.py", "r") as original_file:
             for line in original_file:
                 f.write(line)
+    # save test data taken from test_dataset
+    test_save_path = os.path.join(currPath, "test_data.npz")
+    
+    np.savez(test_save_path, dole=prepare_data.test_data)
 
 
 saveResults()

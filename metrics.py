@@ -37,11 +37,17 @@ class Metrics:
         index = matching_items[0][0] if matching_items else None
         if index is not None:
             datetime = self.data[index]["datetime"]
-            print("Datetime:", datetime, "Predicted values:", predicted, "Expected values:", expected)
             return datetime
         else:
             print("No matching items found for expected values:", expected)
             return []
+    def print_datetimes(self):
+        for i in range(len(self.expected)):
+            datetime = self.find_datetime(self.expected[i], self.predicted[i])
+            if datetime:
+                print("Datetime:", datetime, "Predicted values:", self.predicted[i], "Expected values:", self.expected[i])
+            else:
+                print(f"Sample {i}: No matching datetime found")
     def find_datetimes(self):
         datetime_list = []
         for i in range(len(self.expected)):
@@ -57,31 +63,30 @@ class Metrics:
             mae.append([mae1, mae2])
         return mae
     
-    def plot_mae(self,mea, title="Mean Absolute Error", xlabel="Sample Index", ylabel="MAE"):
-        plt.figure(figsize=(10, 5))
+    def plot_mae(self, mea, title="Mean Absolute Error", xlabel="Datetime", ylabel="MAE"):
+        plt.figure(figsize=(12, 10))
         datetime = self.find_datetimes()
-        #plot all first values of lists of list 
+        
         if isinstance(mea[0], (list, np.ndarray)):
             for i, dataset in enumerate(zip(*mea)):
-            
-                if i == 0:
-                    dataset_label = "nyon"
-                else :
-                    dataset_label = "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=dataset_label)
-                # plot on x axis the datetime
-                plt.xticks(range(len(datetime)), datetime, rotation=90)
-                plt.tight_layout()
-                plt.subplots_adjust(bottom=0.5)
-                plt.legend()
+                label = "nyon" if i == 0 else "dole"
+                plt.plot(dataset, marker='o', linestyle='-', label=label)
+
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
         else:
             plt.plot(mea, marker='o', linestyle='-', color='b', label='MAE')
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
 
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.grid()
+        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.25)
+        plt.grid(True)
         plt.legend()
+
         # save
         plt.savefig(f"{self.save_path}/mae.png")
         
@@ -93,30 +98,34 @@ class Metrics:
             delta.append([delta1, delta2])
         return delta
     
-    def plot_delta(self,delta, title="Delta between Expected and Predicted", xlabel="Sample Index", ylabel="Delta"):
-        plt.figure(figsize=(10, 5))
+    def plot_delta(self, delta, title="Delta between Expected and Predicted", xlabel="Datetime", ylabel="Delta"):
+
+
+        plt.figure(figsize=(12, 10))
         datetime = self.find_datetimes()
+
         # Check if delta[0] contains multiple datasets
         if isinstance(delta[0], (list, np.ndarray)):
             for i, dataset in enumerate(zip(*delta)):  # Unpack multiple datasets
-                if i == 0:
-                    dataset_label = "nyon"
-                else:
-                    dataset_label = "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=dataset_label)
-                # plot on x axis the datetime
-                plt.xticks(range(len(datetime)), datetime, rotation=90)
-                plt.tight_layout()
-                plt.subplots_adjust(bottom=0.5)
-                plt.legend()
+                label = "nyon" if i == 0 else "dole"
+                plt.plot(dataset, marker='o', linestyle='-', label=label)
+
+            # Show only every 6th datetime label for clarity
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
         else:
             plt.plot(delta, marker='o', linestyle='-', color='b', label='Delta')
-        
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
+
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.grid()
+        plt.tight_layout()
         plt.legend()
+        plt.subplots_adjust(bottom=0.25)  # adjust space for rotated labels
+        plt.grid(True)
+    
         plt.savefig(f"{self.save_path}/delta.png")
     def get_relative_error(self):
         relative_error = []
@@ -125,30 +134,32 @@ class Metrics:
             rel_error2 = np.abs((self.expected[i][1] - self.predicted[i][1]) / self.expected[i][1])
             relative_error.append([rel_error1, rel_error2])
         return relative_error
-    def plot_relative_error(self, relative_error, title="Relative Error", xlabel="Sample Index", ylabel="Relative Error"):
-        plt.figure(figsize=(10, 5))
+    def plot_relative_error(self, relative_error, title="Relative Error", xlabel="Datetime", ylabel="Relative Error"):
+        plt.figure(figsize=(12, 10))
         datetime = self.find_datetimes()
-        # Check if relative_error[0] contains multiple datasets
+
         if isinstance(relative_error[0], (list, np.ndarray)):
             for i, dataset in enumerate(zip(*relative_error)):
-                if i == 0:
-                    dataset_label = "nyon"
-                else:
-                    dataset_label = "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=dataset_label)
-                # plot on x axis the datetime
-                plt.xticks(range(len(datetime)), datetime, rotation=90)
-                plt.tight_layout()
-                plt.subplots_adjust(bottom=0.5)
-                plt.legend()
+                label = "nyon" if i == 0 else "dole"
+                plt.plot(dataset, marker='o', linestyle='-', label=label)
+
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
         else:
             plt.plot(relative_error, marker='o', linestyle='-', color='b', label='Relative Error')
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
+
         plt.title(title)
-        plt.xlabel(xlabel)      
+        plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.grid()
+        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.25)
+        plt.grid(True)
         plt.legend()
         plt.savefig(f"{self.save_path}/relative_error.png")
+        plt.close()
+
     def get_mse(self):
         mse = []
         for i in range(len(self.expected)):
@@ -156,28 +167,28 @@ class Metrics:
             mse2 = np.mean((self.expected[i][1] - self.predicted[i][1]) ** 2)
             mse.append([mse1, mse2])
         return mse
-    def plot_mse(self, mse, title="Mean Squared Error", xlabel="Sample Index", ylabel="MSE"):
-        plt.figure(figsize=(10, 5))
+    def plot_mse(self, mse, title="Mean Squared Error", xlabel="Datetime", ylabel="MSE"):
+        plt.figure(figsize=(12, 10))
         datetime = self.find_datetimes()
-        # Check if mse[0] contains multiple datasets
+
         if isinstance(mse[0], (list, np.ndarray)):
             for i, dataset in enumerate(zip(*mse)):
-                if i == 0:
-                    dataset_label = "nyon"
-                else:
-                    dataset_label = "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=dataset_label)
-                # plot on x axis the datetime
-                plt.xticks(range(len(datetime)), datetime, rotation=90)
-                plt.tight_layout()
-                plt.subplots_adjust(bottom=0.5)
-                plt.legend()
+                label = "nyon" if i == 0 else "dole"
+                plt.plot(dataset, marker='o', linestyle='-', label=label)
+
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
         else:
             plt.plot(mse, marker='o', linestyle='-', color='b', label='MSE')
-        
+            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
+
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.grid()
+        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.25)
+        plt.grid(True)
         plt.legend()
         plt.savefig(f"{self.save_path}/mse.png")
+        plt.close()

@@ -9,18 +9,18 @@ import numpy as np
 from metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_PATH = "models/model_0"
-prepare_data = PrepareData()
+MODEL_PATH = "models/model_2"
+npz_file = f"{MODEL_PATH}/test_data.npz"
+prepare_data = PrepareData(fp_weather=npz_file)
 model = StratusModel()
 # TODO : change path
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
-DATETIME = "2023-01-29T08:30:00"
-WEATHER_FP = "/home/marta/Projects/tb/data/weather/inca/2023"
+# load data test of npz file
+
+data = np.load(npz_file, allow_pickle=True)
+
 with torch.no_grad():
-    # load data test of npz file
-    npz_file = f"data/test/test_with_datetime.npz"
-    data = np.load(npz_file, allow_pickle=True)
-    
+ 
 
     x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
     # normalize the data
@@ -35,6 +35,7 @@ with torch.no_grad():
    
     print(stats)
     total_predictions = len(x_meteo)
+    print(f"Total predictions: {total_predictions}")
     y_predicted = []
     final_expected = []
     for i in range(total_predictions):
@@ -45,7 +46,6 @@ with torch.no_grad():
         idx_test = i
         x_meteo_sample = x_meteo[idx_test].unsqueeze(0)  # [1, 15]
         x_image_sample = x_images[idx_test].unsqueeze(0)  # [1, 3, 512, 512]
-        print(idx_test)
         
         y = model(x_meteo_sample, x_image_sample)
         y = y.squeeze(0).cpu().numpy()
@@ -65,12 +65,14 @@ with torch.no_grad():
         # Denormalize expected values
         expected[0] = expected[0] * std_nyon + mean_nyon
         expected[1] = expected[1] * std_dole + mean_dole
-        
         y_predicted.append(y)
         final_expected.append(expected)
     metrics = Metrics(final_expected, y_predicted,data, save_path=MODEL_PATH)
-    metrics.find_datetimes()
+    metrics.print_datetimes()
 
+    accuracy = metrics.get_accuracy(metrics.expected, metrics.predicted)
+    print(f"Accuracy: {accuracy * 100:.2f}%")
+    
     mae = metrics.get_mean_absolute_error()
     metrics.plot_mae(mae)
     
