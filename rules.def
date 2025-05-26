@@ -11,25 +11,30 @@ From: nvidia/cuda:12.6.2-base-ubuntu22.04
 %post -c /bin/bash
     export DEBIAN_FRONTEND=noninteractive
 
-    # System dependencies
+    # Install system dependencies
     apt-get -y update && apt-get -y install \
-        git python3-pip python3-dev python3-venv \
-        python3-opencv libglib2.0-0 curl build-essential \
-        libgl1 libsm6 libxext6 libxrender-dev libopenblas-dev
+        git \
+        python3-pip \
+        python3-dev \
+        python3-venv \
+        python3-opencv \
+        libglib2.0-0 \
+        curl \
+        build-essential
 
-    # Install UV
+    # Install UV (Astral's fast Python installer)
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    export PATH="/root/.cargo/bin:$PATH"
+    export PATH="/root/.cargo/bin:$PATH"  # Add UV to PATH
     source $HOME/.local/bin/env
-
-    # Create venv
+    # Initialize a virtual environment with UV (faster than venv)
     uv venv /opt/uv-venv
     export PATH="/opt/uv-venv/bin:$PATH"
 
-    # Install with verbose logging, no cache, and timeout
-    uv pip install -v --no-cache-dir --timeout=120 --no-build-isolation .
+    # Install packages with UV (much faster than pip)
+    uv pip install --upgrade pip setuptools wheel
+    uv pip install .
 
-    # Activate venv by default
+    # Make UV environment available by default
     echo 'export PATH="/opt/uv-venv/bin:$PATH"' >> /etc/bash.bashrc
 
 %files
