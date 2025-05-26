@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: my-project
+Version: 0.1.0
+Requires-Dist: fastparquet>=2024.11.0
+Requires-Dist: h5py>=3.13.0
+Requires-Dist: ipdb>=0.13.13
+Requires-Dist: ipykernel>=6.29.5
+Requires-Dist: matplotlib>=3.10.3
+Requires-Dist: netcdf4>=1.7.2
+Requires-Dist: pillow>=11.2.1
+Requires-Dist: pip>=25.1.1
+Requires-Dist: pyarrow>=20.0.0
+Requires-Dist: pyproj>=3.7.1
+Requires-Dist: scikit-learn>=1.6.1
+Requires-Dist: torch>=2.7.0
+Requires-Dist: tqdm>=4.67.1
+Requires-Dist: xarray>=2025.4.0

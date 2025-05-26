@@ -17,3 +17,9 @@ dependencies = [
     "tqdm>=4.67.1",
     "xarray>=2025.4.0",
 ]
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["training"]  
