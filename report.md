@@ -11,4 +11,4 @@
     - Pseudo-random splitting of data, being sure to have a good percentage of days with and without layer in train and test
 4. Code written and tested for training 
 5. Code written and tested for inference
-6. Some statistics done and tested
+6. Some statistics done(mae, mse, accurancy, relative error)

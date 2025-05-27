@@ -16,10 +16,12 @@ print(f"Device is : {device}")
 # add an argument to the script to change certain parameters
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
 if len(sys.argv) > 1:
-    if sys.argv[1] == 1:
+    if sys.argv[1] == "1":
         print("Train of chacha")
         FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2/"
-        
+
+
+print("FP_IMAGES:", FP_IMAGES)     
 files = glob.glob("data/complete_data.npz")
 
 
@@ -44,7 +46,8 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
     all_weatherX, all_imagesX, allY
 )
 # save the data to npz file
-
+import ipdb
+ipdb.set_trace()
 
 # normalize the data
 weather_train, _ = prepare_data.normalize_data(weather_train, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])

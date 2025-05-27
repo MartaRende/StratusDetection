@@ -54,41 +54,11 @@ class Metrics:
             datetime_list.append(self.find_datetime(self.expected[i], self.predicted[i]))
         return datetime_list
     def get_mean_absolute_error(self):
-        mae= []
-        
-        for i in range(len(self.expected)):
-            mae1 = np.mean(np.abs(self.expected[i][0] - self.predicted[i][0]))
-            mae2 = np.mean(np.abs(self.expected[i][1] - self.predicted[i][1]))
-            
-            mae.append([mae1, mae2])
+        errors = np.abs(np.array(self.expected) - np.array(self.predicted))
+        mae = np.mean(errors, axis=0) 
         return mae
     
-    def plot_mae(self, mea, title="Mean Absolute Error", xlabel="Datetime", ylabel="MAE"):
-        plt.figure(figsize=(12, 10))
-        datetime = self.find_datetimes()
-        
-        if isinstance(mea[0], (list, np.ndarray)):
-            for i, dataset in enumerate(zip(*mea)):
-                label = "nyon" if i == 0 else "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=label)
-
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
-            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
-        else:
-            plt.plot(mea, marker='o', linestyle='-', color='b', label='MAE')
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
-            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
-
-        plt.title(title)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.tight_layout()
-        plt.subplots_adjust(bottom=0.25)
-        plt.grid(True)
-        plt.legend()
-
-        # save
-        plt.savefig(f"{self.save_path}/mae.png")
+   
         
     def get_delta_between_expected_and_predicted(self):
         delta = []
@@ -160,35 +130,22 @@ class Metrics:
         plt.savefig(f"{self.save_path}/relative_error.png")
         plt.close()
 
-    def get_mse(self):
-        mse = []
-        for i in range(len(self.expected)):
-            mse1 = np.mean((self.expected[i][0] - self.predicted[i][0]) ** 2)
-            mse2 = np.mean((self.expected[i][1] - self.predicted[i][1]) ** 2)
-            mse.append([mse1, mse2])
+    def get_rmse(self):
+        errors = (np.array(self.expected) - np.array(self.predicted)) ** 2
+        mse = np.mean(errors, axis=0) 
+        mse = np.sqrt(mse)
         return mse
-    def plot_mse(self, mse, title="Mean Squared Error", xlabel="Datetime", ylabel="MSE"):
-        plt.figure(figsize=(12, 10))
-        datetime = self.find_datetimes()
 
-        if isinstance(mse[0], (list, np.ndarray)):
-            for i, dataset in enumerate(zip(*mse)):
-                label = "nyon" if i == 0 else "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=label)
+    def mean_relative_error(self):
+        expected = np.array(self.expected)
+        predicted = np.array(self.predicted)
+        
+        relative_errors = np.abs((expected - predicted) / expected)
+        
+        mre = np.mean(relative_errors, axis=0)
+        
+        return mre
 
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
-            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
-        else:
-            plt.plot(mse, marker='o', linestyle='-', color='b', label='MSE')
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
-            plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
 
-        plt.title(title)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.tight_layout()
-        plt.subplots_adjust(bottom=0.25)
-        plt.grid(True)
-        plt.legend()
-        plt.savefig(f"{self.save_path}/mse.png")
-        plt.close()
+
+    

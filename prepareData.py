@@ -180,7 +180,7 @@ class PrepareData:
         nyon_daily = nyon_df.resample('D').median()
 
         daily_diff = dole_daily['gre000z0_dole'] - nyon_daily['gre000z0_nyon']
-        stratus_days = daily_diff[daily_diff > 80].index
+        stratus_days = daily_diff[daily_diff > 120].index
         all_days = []
         for i in stratus_days:
             day = i.strftime('%Y-%m-%d')  # Convert Timestamp to string

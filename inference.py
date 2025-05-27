@@ -23,6 +23,8 @@ with torch.no_grad():
  
 
     x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
+    import ipdb
+    ipdb.set_trace()
     # normalize the data
     x_meteo, _ = prepare_data.normalize_data(
         x_meteo,
@@ -74,13 +76,16 @@ with torch.no_grad():
     print(f"Accuracy: {accuracy * 100:.2f}%")
     
     mae = metrics.get_mean_absolute_error()
-    metrics.plot_mae(mae)
+    print(f"Mean Absolute Error: {mae}")
     
-    mse = metrics.get_mse()
-    metrics.plot_mse(mse)
+    mse = metrics.get_rmse()
+    print(f"Mean Squared Error: {mse}") 
     
+    mre = metrics.get_mean_relative_error()
+    print(f"Mean Relative Error: {mre}")   
     relative_error = metrics.get_relative_error()
     metrics.plot_relative_error(relative_error)
+    
     
     delta = metrics.get_delta_between_expected_and_predicted()
     metrics.plot_delta(delta)
