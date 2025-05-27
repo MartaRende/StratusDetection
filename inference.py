@@ -9,7 +9,7 @@ import numpy as np
 from metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_PATH = "models/model_2"
+MODEL_PATH = "models/model_3"
 npz_file = f"{MODEL_PATH}/test_data.npz"
 prepare_data = PrepareData(fp_weather=npz_file)
 model = StratusModel()
@@ -81,7 +81,7 @@ with torch.no_grad():
     mse = metrics.get_rmse()
     print(f"Mean Squared Error: {mse}") 
     
-    mre = metrics.get_mean_relative_error()
+    mre = metrics.mean_relative_error()
     print(f"Mean Relative Error: {mre}")   
     relative_error = metrics.get_relative_error()
     metrics.plot_relative_error(relative_error)

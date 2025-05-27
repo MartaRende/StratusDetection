@@ -122,7 +122,7 @@ epochs_no_improve = 0
 
 print("len(data_test):", len(prepare_data.test_data))
 
-num_epochs = 50
+num_epochs = 1
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:
@@ -212,8 +212,11 @@ def saveResults():
         with open("model.py", "r") as original_file:
             for line in original_file:
                 f.write(line)
+    # do the mse calculation on the test data
+        
     # save test data taken from test_dataset
     test_save_path = os.path.join(currPath, "test_data.npz")
+    
     
     np.savez(test_save_path, dole=prepare_data.test_data)
 
