@@ -21,6 +21,7 @@ if len(sys.argv) > 1:
 prepare_data = PrepareData(fp_images=FP_IMAGES,fp_weather=npz_file)
 model = StratusModel()
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
+model = model.to(device)
 model.eval()
 # load data test of npz file
 
