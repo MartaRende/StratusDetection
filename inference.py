@@ -6,12 +6,19 @@ import glob
 import os
 import h5py
 import numpy as np
+import sys
 from metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
 MODEL_PATH = "models/model_3"
 npz_file = f"{MODEL_PATH}/test_data.npz"
-prepare_data = PrepareData(fp_weather=npz_file)
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
+if len(sys.argv) > 1:
+    if sys.argv[1] == "1":
+        print("Train on chacha")
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2"
+        FP_IMAGES = os.path.normpath(FP_IMAGES)
+prepare_data = PrepareData(fp_images=FP_IMAGES,fp_weather=npz_file)
 model = StratusModel()
 # TODO : change path
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
@@ -23,8 +30,7 @@ with torch.no_grad():
  
 
     x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
-    import ipdb
-    ipdb.set_trace()
+ 
     # normalize the data
     x_meteo, _ = prepare_data.normalize_data(
         x_meteo,
