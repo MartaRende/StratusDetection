@@ -58,8 +58,7 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
     all_weatherX, all_imagesX, allY
 )
 # save the data to npz file
-import ipdb
-ipdb.set_trace()
+
 
 # normalize the data
 weather_train, _ = prepare_data.normalize_data(weather_train, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
