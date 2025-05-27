@@ -12,15 +12,20 @@ from sklearn.model_selection import train_test_split
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
-
+print(os.system("whoami"))
 # add an argument to the script to change certain parameters
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
-        print("Train of chacha")
+        print("Train on chacha")
         FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2/"
+        FP_IMAGES = os.path.normpath(FP_IMAGES)
 
-
+if os.path.exists(FP_IMAGES):
+    print(f"Path {FP_IMAGES}  exist.")
+else:
+    print(f"Path {FP_IMAGES} does not exist. Please check the path.")
+    sys.exit(1)
 print("FP_IMAGES:", FP_IMAGES)     
 files = glob.glob("data/complete_data.npz")
 
