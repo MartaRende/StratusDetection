@@ -10,7 +10,7 @@ import sys
 from metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_PATH = "models/model_0"
+MODEL_PATH = "models/model_3"
 npz_file = f"{MODEL_PATH}/test_data.npz"
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
 if len(sys.argv) > 1:
