@@ -115,7 +115,7 @@ class PrepareData:
                     x_meteo.pop()
                     x_images.pop()
                     self.data = [row for row in self.data if row["datetime"] != dt]
-                    # print(f"Image for {dt} is empty, removing row.")
+                    print(f"Image for {dt} is empty, removing row.")
                     continue
 
                 dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=60)).isoformat()
@@ -125,7 +125,7 @@ class PrepareData:
                     temp = [loaded[idx_next]["gre000z0_nyon"], loaded[idx_next]["gre000z0_dole"]]
                     y.append(temp)
                 else:
-                    # print(f"Warning: {dt_next} not found in data.")
+                    print(f"Warning: {dt_next} not found in data.")
 
                     x_meteo.pop()
                     x_images.pop()
