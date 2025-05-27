@@ -1,44 +1,50 @@
 # Path: model.py
-# import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
+# Path: model.py
 import torch
+import torch.nn as nn
 
 class StratusModel(nn.Module):
-    def __init__(self, input_data_size=15, output_size = 2):
+    def __init__(self, input_data_size=15, output_size=2):
         super(StratusModel, self).__init__()
-        output_mlp_meteo_size = 64
-        output_ccn_size = 64
+        
+        # CNN for image processing
         self.cnn = nn.Sequential(
-        nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
-        nn.ReLU(),
-        nn.MaxPool2d(2, 2),
-        nn.Conv2d(32, output_ccn_size, kernel_size=3, stride=1, padding=1),
-        nn.ReLU(),
-        nn.MaxPool2d(2, 2),
-        nn.AdaptiveAvgPool2d((1, 1))
-    )
-
-        self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_data_size, 32),
+            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Linear(32, output_mlp_meteo_size),
+            nn.MaxPool2d(2, 2), # 512 x512 --> 256 x256
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Linear(64, output_mlp_meteo_size),
-            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 256 x 256 --> 128 x 128
+            nn.AdaptiveAvgPool2d((8, 8))  # Forces output to 8x8 regardless of input size
         )
+        self.cnn_output_size = 32 * 8 * 8  # 32 channels * 8x8 spatial = 2048
+        
+        # MLP for meteorological data
+        self.mlp_meteo = nn.Sequential(
+            nn.Linear(input_data_size, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU()
+        )
+        
+        # Final classification head
         self.mlp_head = nn.Sequential(
-        nn.Linear(output_ccn_size+output_mlp_meteo_size, 64),
-        nn.ReLU(),
-        nn.Dropout(0.3),
-        nn.Linear(64, output_size)  # Predicting rayonnement for Nyon and La Dôle
-    )
+            nn.Linear(self.cnn_output_size + 64, 128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(128, output_size)
+        )
 
     def forward(self, meteo_data, image):
-        z_img = self.cnn(image)       
-        z_meteo = self.mlp_meteo(meteo_data)  
-        z_img = z_img.view(z_img.size(0), -1)
-        z = torch.cat([z_img, z_meteo], dim=1) 
-        out = self.mlp_head(z)  # [B, 2]
-        return out
+        # Process image through CNN
+        z_img = self.cnn(image)
+        z_img = z_img.view(z_img.size(0), -1)  # Flatten to [batch_size, 2048]
+        
+        # Process meteo data
+        z_meteo = self.mlp_meteo(meteo_data)
+        
+        # Combine features
+        z = torch.cat([z_img, z_meteo], dim=1)
+        
+        # Final prediction
+        return self.mlp_head(z)
