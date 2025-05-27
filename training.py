@@ -13,19 +13,26 @@ from sklearn.model_selection import train_test_split
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
 print(os.system("whoami"))
+print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 # add an argument to the script to change certain parameters
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/data/datasets/photocast/photocastv1_5/data/images/mch/1159/2"
+        FP_IMAGES = "marta.rende@chacha.hevs,ch:/data/datasets/photocast/photocastv1_5/data/images/mch/1159/2"
         FP_IMAGES = os.path.normpath(FP_IMAGES)
+
+
+if not os.access(FP_IMAGES, os.R_OK):
+    print(f"Path exists but is not readable: {FP_IMAGES}")
+    sys.exit(1)
 
 if os.path.exists(FP_IMAGES):
     print(f"Path {FP_IMAGES}  exist.")
 else:
     print(f"Path {FP_IMAGES} does not exist. Please check the path.")
     sys.exit(1)
+    
 print("FP_IMAGES:", FP_IMAGES)     
 files = glob.glob("data/complete_data.npz")
 

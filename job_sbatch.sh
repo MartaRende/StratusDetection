@@ -10,4 +10,4 @@
 #SBATCH --error=logs/%x_%j.err       # standard error
 #SBATCH --nodelist=chacha            # nodes to use
 #module purge
-apptainer exec --nv ./train.sif python3 training.py 1
+apptainer exec --nv ./train.sif python3 training.py 1 --bind /home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2:/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2
