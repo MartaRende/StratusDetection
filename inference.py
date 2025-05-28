@@ -11,7 +11,7 @@ import importlib
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 6  # or any number you want
+MODEL_NUM = 0  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -111,8 +111,8 @@ with torch.no_grad():
     mae = metrics.get_mean_absolute_error()
     print(f"Mean Absolute Error: {mae}")
 
-    mse = metrics.get_rmse()
-    print(f"Mean Squared Error: {mse}")
+    rmse = metrics.get_rmse()
+    print(f"Root Mean Squared Error: {rmse}")
 
     mre = metrics.mean_relative_error()
     print(f"Mean Relative Error: {mre}")

@@ -170,15 +170,19 @@ class PrepareData:
     #     days = sorted(day_to_indices.keys())
     #     return days
     def find_startus_days(self, days_filetred=None):
-
-            
-        
+     
+                
         dole_data = {}
         nyon_data = {}
   
         for i in range(len(self.data)):
+            if days_filetred is not None:
+                day = self.data[i]["datetime"].split('T')[0]
+                if day not in days_filetred:
+                    continue
             dole_data[self.data[i]["datetime"]] = self.data[i]["gre000z0_dole"]
             nyon_data[self.data[i]["datetime"]] = self.data[i]["gre000z0_nyon"]
+           
 
         dole_df = pd.DataFrame.from_dict(dole_data, orient='index', columns=['gre000z0_dole'])
         nyon_df = pd.DataFrame.from_dict(nyon_data, orient='index', columns=['gre000z0_nyon'])
@@ -226,8 +230,29 @@ class PrepareData:
         train_days = set(list(train_stratus_days) + non_stratus_days[:int(remaining_train)])
         test_days = set(list(test_stratus_days) + non_stratus_days[int(remaining_train):])
 
+        # stratus_days = self.find_startus_days(days_filetred=train_days)
+        # # Split train_days into train and validation sets, stratified by presence of stratus
+        # train_days = list(train_days)
+        # # Identify which train_days are stratus days
+        # stratus_days_set = set([d.strftime('%Y-%m-%d') for d in self.find_startus_days(days_filetred=train_days)])
+        # non_stratus_days_set = set(train_days) - stratus_days_set
+
+        # # Shuffle for randomness
+        # stratus_days_list = list(stratus_days_set)
+        # non_stratus_days_list = list(non_stratus_days_set)
+        # random.shuffle(stratus_days_list)
+        # random.shuffle(non_stratus_days_list)
+
+        # val_split = 0.1  # 10% for validation
+
+        # # Stratified split for stratus and non-stratus days
+        # val_count_stratus = int(len(stratus_days_list) * val_split)
+        # val_count_non_stratus = int(len(non_stratus_days_list) * val_split)
+
+        # val_days = set(stratus_days_list[:val_count_stratus] + non_stratus_days_list[:val_count_non_stratus])
+        # # train_days = set(stratus_days_list[val_count_stratus:] + non_stratus_days_list[val_count_non_stratus:])
         return train_days, test_days
-   
+        
 
     def get_indices_for_days(self, data, days):
         indices = []
@@ -325,9 +350,8 @@ class PrepareData:
     def load_data(self, fp_weather):
  
         # Filter data
-        filtered_datetimes = self.filter_data(self.data, "2023-01-01", "2024-12-31", take_all_seasons=False)
+        filtered_datetimes = self.filter_data(self.data, "2024-12-01", "2024-12-31", take_all_seasons=False)
         self.rebuild_data_with_filtered_datetimes(filtered_datetimes)
-     
         # Prepare the final datasets
         x_meteo, x_images, y = self.prepare_data(self.data, filtered_datatimes=filtered_datetimes)
         

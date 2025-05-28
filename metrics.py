@@ -31,10 +31,11 @@ class Metrics:
         matching_items = [
             (i, item)
             for (i, item) in enumerate(self.data)
-            if abs(item["gre000z0_dole"] - expected[1]) <= 1 # for approximation
-            and abs(item["gre000z0_nyon"] - expected[0]) <= 1
+            if abs(item["gre000z0_dole"] - expected[1]) <= 1e-6 # for approximation
+            and abs(item["gre000z0_nyon"] - expected[0]) <= 1e-6
         ]
         index = matching_items[0][0] if matching_items else None
+
         if index is not None:
             datetime = self.data[index]["datetime"]
             return datetime
