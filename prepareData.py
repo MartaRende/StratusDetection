@@ -169,7 +169,9 @@ class PrepareData:
 
     #     days = sorted(day_to_indices.keys())
     #     return days
-    def find_startus_days(self):
+    def find_startus_days(self, days_filetred=None):
+
+            
         
         dole_data = {}
         nyon_data = {}
@@ -189,7 +191,7 @@ class PrepareData:
         nyon_daily = nyon_df.resample('D').median()
 
         daily_diff = dole_daily['gre000z0_dole'] - nyon_daily['gre000z0_nyon']
-        stratus_days = daily_diff[daily_diff > 120].index
+        stratus_days = daily_diff[daily_diff > 80].index
         all_days = []
         for i in stratus_days:
             day = i.strftime('%Y-%m-%d')  # Convert Timestamp to string
@@ -197,9 +199,7 @@ class PrepareData:
         return stratus_days
         # Find the start date
     def get_test_train_days(self, split_ratio=0.8):
-        # npz_file = np.load("data/complete_data.npz", allow_pickle=True)
-        # data = {k: npz_file[k] for k in npz_file.files}
-        # data = data['dole']
+    
         stratus_days = self.find_startus_days()
         print(f"Stratus days found: {len(stratus_days)}")
         print(f"Stratus days: {stratus_days}")
@@ -227,8 +227,7 @@ class PrepareData:
         test_days = set(list(test_stratus_days) + non_stratus_days[int(remaining_train):])
 
         return train_days, test_days
-        
-
+   
 
     def get_indices_for_days(self, data, days):
         indices = []

@@ -15,7 +15,18 @@ class StratusModel(nn.Module):
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),   # 256 x 256 --> 128 x 128
-            nn.AdaptiveAvgPool2d((8, 8))  # Forces output to 8x8 regardless of input size
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 128 x 128 --> 64 x 64
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 64 x 64 --> 32 x 32
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 32 x 32 --> 16 x 16
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
         )
         self.cnn_output_size = 32 * 8 * 8  # 32 channels * 8x8 spatial = 2048
         
@@ -25,6 +36,7 @@ class StratusModel(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 64),
             nn.ReLU()
+            
         )
         
         # Final classification head
