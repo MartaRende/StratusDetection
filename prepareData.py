@@ -34,46 +34,56 @@ class PrepareData:
         else:
             img_arr = np.zeros((512, 512, 3), dtype=np.uint8)  # Placeholder for missing images
         return img_arr
-    def normalize_data(self, data, var_order=None):
-   
+    import numpy as np
+
+    def normalize_data(self, data_train, data_test, var_order=None):
         log_vars = ["RR", "RS"]
         angle_var = "DD"
 
+        # If no variable names are provided, just standardize entire arrays
         if var_order is None:
-            stats = {"mean": np.mean(data, axis=0), "std": np.std(data, axis=0)}
-            x_norm = (data - stats["mean"]) / stats["std"]
-            x_norm = np.nan_to_num(x_norm)
-            return x_norm
+            mean = np.mean(data_train, axis=0)
+            std = np.std(data_train, axis=0)
+            train_norm = (data_train - mean) / std
+            test_norm = (data_test - mean) / std
+            return np.nan_to_num(train_norm), np.nan_to_num(test_norm), {"mean": mean, "std": std}
 
         stats = {}
         for idx, var in enumerate(var_order):
             if var == angle_var:
                 continue
-            values = data[:, idx]
+            values = data_train[:, idx]
+            if var in log_vars:
+                values = np.log1p(values)
             stats[var] = {"mean": float(np.mean(values)), "std": float(np.std(values))}
 
-        x_norm = []
-        for row in data:
-            norm_row = []
-            for idx, var in enumerate(var_order):
-                val = row[idx]
-                # print dole gre000z0 values
-                if var == angle_var:
-                    angle_rad = np.deg2rad(val)
-                    norm_row.append(np.cos(angle_rad))
-                    norm_row.append(np.sin(angle_rad))
-                elif var in log_vars:
-                    val = np.log1p(val)
-                    mean, std = stats[var]["mean"], stats[var]["std"]
-                    norm_row.append((val - mean) / std)
-                else:
-                    mean, std = stats[var]["mean"], stats[var]["std"]
-                    norm_row.append((val - mean) / std)
-                if np.isnan(norm_row[-1]).any():
-                    norm_row[-1] = 0
-            x_norm.append(norm_row)
-        
-        return np.array(x_norm), stats
+        def process(data):
+            x_norm = []
+            for row in data:
+                norm_row = []
+                for idx, var in enumerate(var_order):
+                    val = row[idx]
+                    if var == angle_var:
+                        angle_rad = np.deg2rad(val)
+                        norm_row.append(np.cos(angle_rad))
+                        norm_row.append(np.sin(angle_rad))
+                    elif var in log_vars:
+                        val = np.log1p(val)
+                        mean, std = stats[var]["mean"], stats[var]["std"]
+                        normed = (val - mean) / std
+                        norm_row.append(0 if np.isnan(normed) else normed)
+                    else:
+                        mean, std = stats[var]["mean"], stats[var]["std"]
+                        normed = (val - mean) / std
+                        norm_row.append(0 if np.isnan(normed) else normed)
+                x_norm.append(norm_row)
+            return np.array(x_norm)
+
+        train_norm = process(data_train)
+        test_norm = process(data_test)
+
+        return train_norm, test_norm, stats
+
             
     def prepare_data(self,loaded, filtered_datatimes=None):
         x_images = []
@@ -160,14 +170,14 @@ class PrepareData:
 
     #     days = sorted(day_to_indices.keys())
     #     return days
-    def find_startus_days(self,data):
+    def find_startus_days(self):
         
         dole_data = {}
         nyon_data = {}
   
-        for i in range(len(data)):
-            dole_data[data[i]["datetime"]] = data[i]["gre000z0_dole"]
-            nyon_data[data[i]["datetime"]] = data[i]["gre000z0_nyon"]
+        for i in range(len(self.data)):
+            dole_data[self.data[i]["datetime"]] = self.data[i]["gre000z0_dole"]
+            nyon_data[self.data[i]["datetime"]] = self.data[i]["gre000z0_nyon"]
 
         dole_df = pd.DataFrame.from_dict(dole_data, orient='index', columns=['gre000z0_dole'])
         nyon_df = pd.DataFrame.from_dict(nyon_data, orient='index', columns=['gre000z0_nyon'])
@@ -191,19 +201,35 @@ class PrepareData:
         # npz_file = np.load("data/complete_data.npz", allow_pickle=True)
         # data = {k: npz_file[k] for k in npz_file.files}
         # data = data['dole']
+        stratus_days = self.find_startus_days()
+        print(f"Stratus days found: {len(stratus_days)}")
+        print(f"Stratus days: {stratus_days}")
         all_days = list(set([
             d["datetime"].split('T')[0] if 'T' in d["datetime"] else d["datetime"].split(' ')[0]
             for d in self.data
         ]))
-
+   
+        # Ensure 80% of stratus days in train, 20% in test
+        stratus_days = [d.strftime('%Y-%m-%d') for d in stratus_days]
         random.seed(42)
-        all_days.sort()
-        random.shuffle(all_days)
-        split_index = int(split_ratio * len(all_days))
-        train_days = set(all_days[:split_index])
-        test_days = set(all_days[split_index:])
-        
+        stratus_days.sort()
+        random.shuffle(stratus_days)
+        split_index = int(split_ratio * len(stratus_days))
+        train_stratus_days = set(stratus_days[:split_index])
+        test_stratus_days = set(stratus_days[split_index:])
+
+        # Now, add non-stratus days to fill up the rest of the days
+        non_stratus_days = [d for d in all_days if d not in stratus_days]
+        random.shuffle(non_stratus_days)
+        remaining_train = len(all_days) * split_ratio - len(train_stratus_days)
+        remaining_test = len(all_days) - len(train_stratus_days) - len(test_stratus_days) - remaining_train
+
+        train_days = set(list(train_stratus_days) + non_stratus_days[:int(remaining_train)])
+        test_days = set(list(test_stratus_days) + non_stratus_days[int(remaining_train):])
+
         return train_days, test_days
+        
+
 
     def get_indices_for_days(self, data, days):
         indices = []
@@ -279,7 +305,7 @@ class PrepareData:
     def load_data(self, fp_weather):
  
         # Filter data
-        filtered_datetimes = self.filter_data(self.data, "2023-02-01", "2024-12-31", take_all_seasons=False)
+        filtered_datetimes = self.filter_data(self.data, "2023-01-01", "2023-01-31", take_all_seasons=False)
         self.rebuild_data_with_filtered_datetimes(filtered_datetimes)
      
         # Prepare the final datasets
