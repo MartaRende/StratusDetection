@@ -63,7 +63,6 @@ The loss is:
 
 ## For the next time 
 - Change model size
-- Make model inference easily on chacha
 - Splitting data more accurately by including pca results  
 - Adding idaweb data (e.g. pressure, clouds) as an input 
 - Evaluate the performance of the models obtained

@@ -24,11 +24,11 @@ class StratusModel(nn.Module):
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),   # 32 x 32 --> 16 x 16
-            nn.Conv2d(32, 16, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
+            # nn.Conv2d(32, 16, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
         )
-        self.cnn_output_size = 16 * 8 * 8  # 32 channels * 8x8 spatial = 2048
+        self.cnn_output_size = 32 * 16 * 16  # 32 channels * 8x8 spatial = 2048
         
         # MLP for meteorological data
         self.mlp_meteo = nn.Sequential(
@@ -46,7 +46,13 @@ class StratusModel(nn.Module):
             nn.Linear(self.cnn_output_size + 64, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(128, output_size)
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(32, output_size) 
         )
 
     def forward(self, meteo_data, image):
