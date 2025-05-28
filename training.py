@@ -57,11 +57,11 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
 
 
 # normalize the data
-weather_train, _ = prepare_data.normalize_data(weather_train, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
-weather_test, _ = prepare_data.normalize_data(weather_test, var_order=[ "gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+# weather_train, _ = prepare_data.normalize_data(weather_train, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+# weather_test, _ = prepare_data.normalize_data(weather_test, var_order=[ "gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
 # normalize labels
-y_train,_ = prepare_data.normalize_data(y_train, var_order=["gre000z0_nyon", "gre000z0_dole"])  
-y_test, _= prepare_data.normalize_data(y_test, var_order=["gre000z0_nyon", "gre000z0_dole"])
+# y_train,_ = prepare_data.normalize_data(y_train, var_order=["gre000z0_nyon", "gre000z0_dole"])  
+# y_test, _= prepare_data.normalize_data(y_test, var_order=["gre000z0_nyon", "gre000z0_dole"])
 
 class SimpleDataset(torch.utils.data.Dataset):
     def __init__(self, weather, images, y):
@@ -95,10 +95,10 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=T
 
 # Model creation
 
-model = StratusModel(input_data_size=15, output_size=2).to(device)
+model = StratusModel(input_data_size=14, output_size=2).to(device)
 # Loss function and optimizer
 loss = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer, mode="min", factor=0.1, patience=3
 )
@@ -122,7 +122,7 @@ epochs_no_improve = 0
 
 print("len(data_test):", len(prepare_data.test_data))
 
-num_epochs = 50
+num_epochs = 1
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:

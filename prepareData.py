@@ -118,7 +118,7 @@ class PrepareData:
                     print(f"Image for {dt} is empty, removing row.")
                     continue
 
-                dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=60)).isoformat()
+                dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=10)).isoformat()
 
                 if dt_next in dt_to_idx:
                     idx_next = dt_to_idx[dt_next]
@@ -279,7 +279,7 @@ class PrepareData:
     def load_data(self, fp_weather):
  
         # Filter data
-        filtered_datetimes = self.filter_data(self.data, "2023-01-01", "2024-12-31", take_all_seasons=False)
+        filtered_datetimes = self.filter_data(self.data, "2023-02-01", "2023-02-31", take_all_seasons=False)
         self.rebuild_data_with_filtered_datetimes(filtered_datetimes)
      
         # Prepare the final datasets
