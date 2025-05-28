@@ -86,9 +86,9 @@ print("test_dataset", len(test_dataset))
 train_size = int(0.8 * len(train_dataset))
 validation_size = len(train_dataset) - train_size
 train_dataset, validation_dataset = torch.utils.data.random_split(train_dataset, [train_size, validation_size])
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, shuffle=True)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 
 # Model creation
 

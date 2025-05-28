@@ -34,7 +34,6 @@ class PrepareData:
         else:
             img_arr = np.zeros((512, 512, 3), dtype=np.uint8)  # Placeholder for missing images
         return img_arr
-    import numpy as np
 
     def normalize_data(self, data_train, data_test, var_order=None):
         log_vars = ["RR", "RS"]

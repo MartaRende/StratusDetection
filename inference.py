@@ -33,16 +33,16 @@ with torch.no_grad():
     x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
  
     # normalize the data
-    x_meteo, _ = prepare_data.normalize_data(
-        x_meteo,
-        var_order=["gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
-    y_expected, stats = prepare_data.normalize_data(
-        y_expected,
-        var_order=["gre000z0_nyon", "gre000z0_dole"]
-    )
+    # x_meteo, _ = prepare_data.normalize_data(
+    #     x_meteo,
+    #     var_order=["gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+    # y_expected, stats = prepare_data.normalize_data(
+    #     y_expected,
+    #     var_order=["gre000z0_nyon", "gre000z0_dole"]
+    # )
 
    
-    print(stats)
+    # print(stats)
     total_predictions = len(x_meteo)
     print(f"Total predictions: {total_predictions}")
     y_predicted = []
@@ -62,18 +62,18 @@ with torch.no_grad():
         tol = 20  # tolerance value
         # read stats values
         
-        mean_nyon = stats["gre000z0_nyon"]["mean"]
-        mean_dole = stats["gre000z0_dole"]["mean"]
-        std_nyon = stats["gre000z0_nyon"]["std"]
-        std_dole = stats["gre000z0_dole"]["std"]
+        # mean_nyon = stats["gre000z0_nyon"]["mean"]
+        # mean_dole = stats["gre000z0_dole"]["mean"]
+        # std_nyon = stats["gre000z0_nyon"]["std"]
+        # std_dole = stats["gre000z0_dole"]["std"]
 
         # Denormalize predicted values
-        y[0] = y[0] * std_nyon + mean_nyon
-        y[1] = y[1] * std_dole + mean_dole
+        # y[0] = y[0] * std_nyon + mean_nyon
+        # y[1] = y[1] * std_dole + mean_dole
 
-        # Denormalize expected values
-        expected[0] = expected[0] * std_nyon + mean_nyon
-        expected[1] = expected[1] * std_dole + mean_dole
+        # # Denormalize expected values
+        # expected[0] = expected[0] * std_nyon + mean_nyon
+        # expected[1] = expected[1] * std_dole + mean_dole
         y_predicted.append(y)
         final_expected.append(expected)
     metrics = Metrics(final_expected, y_predicted,data, save_path=MODEL_PATH)
