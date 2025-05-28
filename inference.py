@@ -1,4 +1,3 @@
-from model import StratusModel
 from prepareData import PrepareData
 import torch
 import netCDF4
@@ -8,41 +7,68 @@ import h5py
 import numpy as np
 import sys
 from metrics import *
+import importlib
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_PATH = "models/model_4"
+MODEL_NUM = 6  # or any number you want
+MODEL_PATH = f"models/model_{MODEL_NUM}"
+module_path = f"models.model_{MODEL_NUM}.model"
+module = importlib.import_module(module_path)
+StratusModel = getattr(module, "StratusModel")
+model = StratusModel()
+
+
 npz_file = f"{MODEL_PATH}/test_data.npz"
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2"
+        FP_IMAGES = (
+            "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2"
+        )
         FP_IMAGES = os.path.normpath(FP_IMAGES)
-prepare_data = PrepareData(fp_images=FP_IMAGES,fp_weather=npz_file)
-model = StratusModel(input_data_size=15)
+prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
 # load data test of npz file
 
 data = np.load(npz_file, allow_pickle=True)
-stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True).item()
-print(f"Stats keys: {stats.keys()}")
+stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
+stats_input = stats["stats_input"].item()
+stats_label = stats["stats_label"].item()
+print(f"Stats keys: {stats}")
 with torch.no_grad():
- 
-
     x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
- 
+
     # normalize the data
     x_meteo = prepare_data.normalize_data_test(
         x_meteo,
-        var_order=["gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"],stats=stats)
+        var_order=[
+            "gre000z0_nyon",
+            "gre000z0_dole",
+            "RR",
+            "TD",
+            "WG",
+            "TT",
+            "CT",
+            "FF",
+            "RS",
+            "TG",
+            "Z0",
+            "ZS",
+            "SU",
+            "DD",
+        ],
+        stats=stats_input,
+    )
     y_expected = prepare_data.normalize_data_test(
         y_expected,
-        var_order=["gre000z0_nyon", "gre000z0_dole"], stats=stats
+        var_order=["gre000z0_nyon", "gre000z0_dole"],
+        stats=stats_label,
     )
 
-   
     # print(stats)
     total_predictions = len(x_meteo)
     print(f"Total predictions: {total_predictions}")
@@ -56,43 +82,42 @@ with torch.no_grad():
         idx_test = i
         x_meteo_sample = x_meteo[idx_test].unsqueeze(0)  # [1, 15]
         x_image_sample = x_images[idx_test].unsqueeze(0)  # [1, 3, 512, 512]
-        
+
         y = model(x_meteo_sample, x_image_sample)
         y = y.squeeze(0).cpu().numpy()
         expected = y_expected[idx_test]
         # read stats values
-        
-        # mean_nyon = stats["gre000z0_nyon"]["mean"]
-        # mean_dole = stats["gre000z0_dole"]["mean"]
-        # std_nyon = stats["gre000z0_nyon"]["std"]
-        # std_dole = stats["gre000z0_dole"]["std"]
+
+        mean_nyon = stats_label["gre000z0_nyon"]["mean"]
+        mean_dole = stats_label["gre000z0_dole"]["mean"]
+        std_nyon = stats_label["gre000z0_nyon"]["std"]
+        std_dole = stats_label["gre000z0_dole"]["std"]
 
         # Denormalize predicted values
-        # y[0] = y[0] * std_nyon + mean_nyon
-        # y[1] = y[1] * std_dole + mean_dole
+        y[0] = y[0] * std_nyon + mean_nyon
+        y[1] = y[1] * std_dole + mean_dole
 
-        # # Denormalize expected values
-        # expected[0] = expected[0] * std_nyon + mean_nyon
-        # expected[1] = expected[1] * std_dole + mean_dole
+        # Denormalize expected values
+        expected[0] = expected[0] * std_nyon + mean_nyon
+        expected[1] = expected[1] * std_dole + mean_dole
         y_predicted.append(y)
         final_expected.append(expected)
-    metrics = Metrics(final_expected, y_predicted,data, save_path=MODEL_PATH)
+    metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH)
     metrics.print_datetimes()
 
     accuracy = metrics.get_accuracy(metrics.expected, metrics.predicted)
     print(f"Accuracy: {accuracy * 100:.2f}%")
-    
+
     mae = metrics.get_mean_absolute_error()
     print(f"Mean Absolute Error: {mae}")
-    
+
     mse = metrics.get_rmse()
-    print(f"Mean Squared Error: {mse}") 
-    
+    print(f"Mean Squared Error: {mse}")
+
     mre = metrics.mean_relative_error()
-    print(f"Mean Relative Error: {mre}")   
+    print(f"Mean Relative Error: {mre}")
     relative_error = metrics.get_relative_error()
     metrics.plot_relative_error(relative_error)
-    
-    
+
     delta = metrics.get_delta_between_expected_and_predicted()
     metrics.plot_delta(delta)

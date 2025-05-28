@@ -56,11 +56,10 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
 
 
 # normalize the data
-weather_train, weather_test, stats = prepare_data.normalize_data(weather_train,weather_test, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+weather_train, weather_test, stats_input = prepare_data.normalize_data(weather_train,weather_test, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
 #normalize labels
-y_train,y_test, stats = prepare_data.normalize_data(y_train, y_test,var_order=["gre000z0_nyon", "gre000z0_dole"])  
+y_train,y_test, stats_label = prepare_data.normalize_data(y_train, y_test,var_order=["gre000z0_nyon", "gre000z0_dole"])  
 
-print(stats)
 import ipdb
 ipdb.set_trace()
 class SimpleDataset(torch.utils.data.Dataset):
@@ -122,7 +121,7 @@ epochs_no_improve = 0
 
 print("len(data_test):", len(prepare_data.test_data))
 
-num_epochs = 50
+num_epochs = 1
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:
@@ -221,7 +220,7 @@ def saveResults():
     np.savez(test_save_path, dole=prepare_data.test_data)
     # save the stats
     stats_save_path = os.path.join(currPath, "stats.npz")
-    np.savez(stats_save_path, **stats)
+    np.savez(stats_save_path, stats_input=stats_input, stats_label=stats_label)
 
 
 saveResults()
