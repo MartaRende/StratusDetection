@@ -60,8 +60,6 @@ weather_train, weather_test, stats_input = prepare_data.normalize_data(weather_t
 #normalize labels
 y_train,y_test, stats_label = prepare_data.normalize_data(y_train, y_test,var_order=["gre000z0_nyon", "gre000z0_dole"])  
 
-import ipdb
-ipdb.set_trace()
 class SimpleDataset(torch.utils.data.Dataset):
     def __init__(self, weather, images, y):
         self.weather = weather
