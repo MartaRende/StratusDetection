@@ -10,7 +10,7 @@ import sys
 from metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_PATH = "models/model_3"
+MODEL_PATH = "models/model_4"
 npz_file = f"{MODEL_PATH}/test_data.npz"
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
 if len(sys.argv) > 1:
@@ -19,27 +19,28 @@ if len(sys.argv) > 1:
         FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2"
         FP_IMAGES = os.path.normpath(FP_IMAGES)
 prepare_data = PrepareData(fp_images=FP_IMAGES,fp_weather=npz_file)
-model = StratusModel()
+model = StratusModel(input_data_size=15)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
 # load data test of npz file
 
 data = np.load(npz_file, allow_pickle=True)
-
+stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True).item()
+print(f"Stats keys: {stats.keys()}")
 with torch.no_grad():
  
 
     x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
  
     # normalize the data
-    # x_meteo, _ = prepare_data.normalize_data(
-    #     x_meteo,
-    #     var_order=["gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
-    # y_expected, stats = prepare_data.normalize_data(
-    #     y_expected,
-    #     var_order=["gre000z0_nyon", "gre000z0_dole"]
-    # )
+    x_meteo = prepare_data.normalize_data_test(
+        x_meteo,
+        var_order=["gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"],stats=stats)
+    y_expected = prepare_data.normalize_data_test(
+        y_expected,
+        var_order=["gre000z0_nyon", "gre000z0_dole"], stats=stats
+    )
 
    
     # print(stats)
@@ -59,7 +60,6 @@ with torch.no_grad():
         y = model(x_meteo_sample, x_image_sample)
         y = y.squeeze(0).cpu().numpy()
         expected = y_expected[idx_test]
-        tol = 20  # tolerance value
         # read stats values
         
         # mean_nyon = stats["gre000z0_nyon"]["mean"]

@@ -300,11 +300,34 @@ class PrepareData:
     def rebuild_data_with_filtered_datetimes(self, filtered_datetimes):
         filtered_set = set(filtered_datetimes)
         self.data = [row for row in self.data if row["datetime"] in filtered_set]
+    def normalize_data_test(self, data, var_order=None, stats=None):
+       
+       
+        x_norm = []
+        for row in data:
+            norm_row = []
+            for idx, var in var_order:
+                val = row[var]
+                if var == "DD":
+                    angle_rad = np.deg2rad(val)
+                    norm_row.append(np.cos(angle_rad))
+                    norm_row.append(np.sin(angle_rad))
+                elif var in ["RR", "RS"]:
+                    val = np.log1p(val)
+                    mean, std = stats[var]["mean"], stats[var]["std"]
+                    normed = (val - mean) / std
+                    norm_row.append(0 if np.isnan(normed) else normed)
+                else:
+                    mean, std = stats[var]["mean"], stats[var]["std"]
+                    normed = (val - mean) / std
+                    norm_row.append(0 if np.isnan(normed) else normed)
+            x_norm.append(norm_row)
+        return np.array(x_norm)
         
     def load_data(self, fp_weather):
  
         # Filter data
-        filtered_datetimes = self.filter_data(self.data, "2023-01-01", "2024-12-31", take_all_seasons=False)
+        filtered_datetimes = self.filter_data(self.data, "2023-01-01", "2023-01-31", take_all_seasons=False)
         self.rebuild_data_with_filtered_datetimes(filtered_datetimes)
      
         # Prepare the final datasets
