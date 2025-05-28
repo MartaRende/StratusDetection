@@ -11,7 +11,7 @@ import importlib
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 3  # or any number you want
+MODEL_NUM = 4  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -41,7 +41,7 @@ stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
 with torch.no_grad():
     x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
-
+    stratus_days = prepare_data.find_startus_days()
     # normalize the data
     x_meteo = prepare_data.normalize_data_test(
         x_meteo,
@@ -103,9 +103,13 @@ with torch.no_grad():
         y_predicted.append(y)
         final_expected.append(expected)
     metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH)
+
     metrics.print_datetimes()
+    
+    
 
     accuracy = metrics.get_accuracy(metrics.expected, metrics.predicted)
+    
     print(f"Accuracy: {accuracy * 100:.2f}%")
 
     mae = metrics.get_mean_absolute_error()
@@ -121,3 +125,7 @@ with torch.no_grad():
 
     delta = metrics.get_delta_between_expected_and_predicted()
     metrics.plot_delta(delta)
+    
+    for i in stratus_days:
+        print(f"Stratus day: {i}")
+        metrics.plot_day_curves(i)

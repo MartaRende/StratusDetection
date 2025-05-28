@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+
+
 class Metrics:
     def __init__(self, expected, predicted, data, save_path=None):
         self.expected = expected
         self.predicted = predicted
-        self.data = data['dole']
+        self.data = data["dole"]
         self.save_path = save_path
         if save_path:
             os.makedirs(save_path, exist_ok=True)
@@ -17,21 +19,22 @@ class Metrics:
             # Update save_path to point to the new folder
             self.save_path = metrics_folder
 
-    
-    def get_correctPredictions(self,expected, predicted, tol=20):
+    def get_correctPredictions(self, expected, predicted, tol=20):
         good_predictions = 0
         for i in range(len(expected)):
             good_predictions += int(np.all(np.abs(predicted[i] - expected[i]) <= tol))
         return good_predictions
-    def get_accuracy(self,expected, predicted, tol=20):
+
+    def get_accuracy(self, expected, predicted, tol=20):
         good_predictions = self.get_correctPredictions(expected, predicted, tol)
         accuracy = good_predictions / len(expected)
         return accuracy
+
     def find_datetime(self, expected, predicted):
         matching_items = [
             (i, item)
             for (i, item) in enumerate(self.data)
-            if abs(item["gre000z0_dole"] - expected[1]) <= 1e-6 # for approximation
+            if abs(item["gre000z0_dole"] - expected[1]) <= 1e-6  # for approximation
             and abs(item["gre000z0_nyon"] - expected[0]) <= 1e-6
         ]
         index = matching_items[0][0] if matching_items else None
@@ -42,25 +45,35 @@ class Metrics:
         else:
             print("No matching items found for expected values:", expected)
             return []
+
     def print_datetimes(self):
         for i in range(len(self.expected)):
             datetime = self.find_datetime(self.expected[i], self.predicted[i])
             if datetime:
-                print("Datetime:", datetime, "Predicted values:", self.predicted[i], "Expected values:", self.expected[i])
+                print(
+                    "Datetime:",
+                    datetime,
+                    "Predicted values:",
+                    self.predicted[i],
+                    "Expected values:",
+                    self.expected[i],
+                )
             else:
                 print(f"Sample {i}: No matching datetime found")
+
     def find_datetimes(self):
         datetime_list = []
         for i in range(len(self.expected)):
-            datetime_list.append(self.find_datetime(self.expected[i], self.predicted[i]))
+            datetime_list.append(
+                self.find_datetime(self.expected[i], self.predicted[i])
+            )
         return datetime_list
+
     def get_mean_absolute_error(self):
         errors = np.abs(np.array(self.expected) - np.array(self.predicted))
-        mae = np.mean(errors, axis=0) 
+        mae = np.mean(errors, axis=0)
         return mae
-    
-   
-        
+
     def get_delta_between_expected_and_predicted(self):
         delta = []
         for i in range(len(self.expected)):
@@ -68,10 +81,14 @@ class Metrics:
             delta2 = np.abs(self.expected[i][1] - self.predicted[i][1])
             delta.append([delta1, delta2])
         return delta
-    
-    def plot_delta(self, delta, title="Delta between Expected and Predicted", xlabel="Datetime", ylabel="Delta"):
 
-
+    def plot_delta(
+        self,
+        delta,
+        title="Delta between Expected and Predicted",
+        xlabel="Datetime",
+        ylabel="Delta",
+    ):
         plt.figure(figsize=(12, 10))
         datetime = self.find_datetimes()
 
@@ -79,14 +96,18 @@ class Metrics:
         if isinstance(delta[0], (list, np.ndarray)):
             for i, dataset in enumerate(zip(*delta)):  # Unpack multiple datasets
                 label = "nyon" if i == 0 else "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=label)
+                plt.plot(dataset, marker="o", linestyle="-", label=label)
 
             # Show only every 6th datetime label for clarity
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            xtick_labels = [
+                dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)
+            ]
             plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
         else:
-            plt.plot(delta, marker='o', linestyle='-', color='b', label='Delta')
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.plot(delta, marker="o", linestyle="-", color="b", label="Delta")
+            xtick_labels = [
+                dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)
+            ]
             plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
 
         plt.title(title)
@@ -96,29 +117,51 @@ class Metrics:
         plt.legend()
         plt.subplots_adjust(bottom=0.25)  # adjust space for rotated labels
         plt.grid(True)
-    
+
         plt.savefig(f"{self.save_path}/delta.png")
+
     def get_relative_error(self):
         relative_error = []
         for i in range(len(self.expected)):
-            rel_error1 = np.abs((self.expected[i][0] - self.predicted[i][0]) / self.expected[i][0])
-            rel_error2 = np.abs((self.expected[i][1] - self.predicted[i][1]) / self.expected[i][1])
+            rel_error1 = np.abs(
+                (self.expected[i][0] - self.predicted[i][0]) / self.expected[i][0]
+            )
+            rel_error2 = np.abs(
+                (self.expected[i][1] - self.predicted[i][1]) / self.expected[i][1]
+            )
             relative_error.append([rel_error1, rel_error2])
         return relative_error
-    def plot_relative_error(self, relative_error, title="Relative Error", xlabel="Datetime", ylabel="Relative Error"):
+
+    def plot_relative_error(
+        self,
+        relative_error,
+        title="Relative Error",
+        xlabel="Datetime",
+        ylabel="Relative Error",
+    ):
         plt.figure(figsize=(12, 10))
         datetime = self.find_datetimes()
 
         if isinstance(relative_error[0], (list, np.ndarray)):
             for i, dataset in enumerate(zip(*relative_error)):
                 label = "nyon" if i == 0 else "dole"
-                plt.plot(dataset, marker='o', linestyle='-', label=label)
+                plt.plot(dataset, marker="o", linestyle="-", label=label)
 
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            xtick_labels = [
+                dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)
+            ]
             plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
         else:
-            plt.plot(relative_error, marker='o', linestyle='-', color='b', label='Relative Error')
-            xtick_labels = [dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)]
+            plt.plot(
+                relative_error,
+                marker="o",
+                linestyle="-",
+                color="b",
+                label="Relative Error",
+            )
+            xtick_labels = [
+                dt if idx % 6 == 0 else "" for idx, dt in enumerate(datetime)
+            ]
             plt.xticks(range(len(datetime)), xtick_labels, rotation=90)
 
         plt.title(title)
@@ -133,20 +176,82 @@ class Metrics:
 
     def get_rmse(self):
         errors = (np.array(self.expected) - np.array(self.predicted)) ** 2
-        mse = np.mean(errors, axis=0) 
+        mse = np.mean(errors, axis=0)
         mse = np.sqrt(mse)
         return mse
 
     def mean_relative_error(self):
         expected = np.array(self.expected)
         predicted = np.array(self.predicted)
-        
+
         relative_errors = np.abs((expected - predicted) / expected)
-        
+
         mre = np.mean(relative_errors, axis=0)
-        
+
         return mre
 
+    def plot_day_curves(self, day, title="Day Curves", xlabel="Hour", ylabel="Value"):
+        # Get aligned datetimes
+        datetime_list = self.find_datetimes()
 
+        # Find indices where the datetime matches the requested day
+        indices = [
+            i for i, dt in enumerate(datetime_list)
+            if dt and dt.startswith(str(day))
+        ]
+        if not indices:
+            print(f"No aligned data found for day {day}")
+            return
 
-    
+        # Extract hour values
+        hours = [datetime_list[i].split("T")[1][:5] for i in indices]
+
+        # Extract expected and predicted values
+        expected_day = [self.expected[i] for i in indices]
+        predicted_day = [self.predicted[i] for i in indices]
+
+        expected_nyon = [val[0] for val in expected_day]
+        expected_dole = [val[1] for val in expected_day]
+        predicted_nyon = [val[0] for val in predicted_day]
+        predicted_dole = [val[1] for val in predicted_day]
+
+        # Plot actual vs predicted
+        plt.figure(figsize=(12, 6))
+        plt.plot(hours, expected_nyon, "o-", label="Expected Nyon")
+        plt.plot(hours, predicted_nyon, "x--", label="Predicted Nyon")
+        plt.plot(hours, expected_dole, "o-", label="Expected Dole")
+        plt.plot(hours, predicted_dole, "x--", label="Predicted Dole")
+        plt.title(f"{title} - {day}")
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.xticks(rotation=45)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(f"{self.save_path}/day_curve_{day}.png")
+        plt.close()
+
+        # Plot differences
+        plt.figure(figsize=(12, 6))
+        plt.plot(
+            hours,
+            np.array(expected_nyon) - np.array(predicted_nyon),
+            "o-",
+            label="Nyon Difference",
+        )
+        plt.plot(
+            hours,
+            np.array(expected_dole) - np.array(predicted_dole),
+            "x--",
+            label="Dole Difference",
+        )
+        plt.title(f"{title} - {day} (Difference)")
+        plt.xlabel(xlabel)
+        plt.ylabel("Difference")
+        plt.xticks(rotation=45)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(f"{self.save_path}/day_curve_diff_{day}.png")
+        plt.close()
+

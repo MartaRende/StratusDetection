@@ -127,7 +127,7 @@ class PrepareData:
                     print(f"Image for {dt} is empty, removing row.")
                     continue
 
-                dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=10)).isoformat()
+                dt_next = (datetime.fromisoformat(dt) + timedelta(minutes=60)).isoformat()
 
                 if dt_next in dt_to_idx:
                     idx_next = dt_to_idx[dt_next]
@@ -170,11 +170,9 @@ class PrepareData:
     #     days = sorted(day_to_indices.keys())
     #     return days
     def find_startus_days(self, days_filetred=None):
-     
-                
         dole_data = {}
         nyon_data = {}
-  
+
         for i in range(len(self.data)):
             if days_filetred is not None:
                 day = self.data[i]["datetime"].split('T')[0]
@@ -182,25 +180,24 @@ class PrepareData:
                     continue
             dole_data[self.data[i]["datetime"]] = self.data[i]["gre000z0_dole"]
             nyon_data[self.data[i]["datetime"]] = self.data[i]["gre000z0_nyon"]
-           
 
         dole_df = pd.DataFrame.from_dict(dole_data, orient='index', columns=['gre000z0_dole'])
         nyon_df = pd.DataFrame.from_dict(nyon_data, orient='index', columns=['gre000z0_nyon'])
 
-        # Step 3: Convert the index to datetime and group by day
+        # Convert the index to datetime and group by day
         dole_df.index = pd.to_datetime(dole_df.index)
         nyon_df.index = pd.to_datetime(nyon_df.index)
 
-        dole_daily = dole_df.resample('D').median()  # Daily mean
+        dole_daily = dole_df.resample('D').median()  # Daily median
         nyon_daily = nyon_df.resample('D').median()
 
         daily_diff = dole_daily['gre000z0_dole'] - nyon_daily['gre000z0_nyon']
         stratus_days = daily_diff[daily_diff > 80].index
-        all_days = []
-        for i in stratus_days:
-            day = i.strftime('%Y-%m-%d')  # Convert Timestamp to string
-            all_days.append(day)
-        return stratus_days
+
+        # Convert DatetimeIndex to a list of strings
+        stratus_days_strings = stratus_days.strftime('%Y-%m-%d').tolist()
+
+        return stratus_days_strings
         # Find the start date
     def get_test_train_days(self, split_ratio=0.8):
     
