@@ -5,10 +5,12 @@ import os
 
 
 class Metrics:
-    def __init__(self, expected, predicted, data, save_path=None):
+    def __init__(self, expected, predicted, data, save_path=None, start_date=None, end_date=None):
         self.expected = pd.DataFrame(expected, columns=["nyon", "dole"])
         self.predicted = pd.DataFrame(predicted, columns=["nyon", "dole"])
         self.data = pd.DataFrame(data["dole"])
+        self.start_date = start_date
+        self.end_date = end_date
         self.data = pd.json_normalize(self.data[0])
 
         self.save_path = save_path
@@ -32,10 +34,19 @@ class Metrics:
             (np.abs(self.data["gre000z0_nyon"] - expected_row["nyon"]) <= 1e-6) &
             (np.abs(self.data["gre000z0_dole"] - expected_row["dole"]) <= 1e-6)
         ]
+        if self.start_date and self.end_date:
+            match = match[
+                (pd.to_datetime(match["datetime"]) >= pd.to_datetime(self.start_date)) &
+                (pd.to_datetime(match["datetime"]) <= pd.to_datetime(self.end_date))
+            ]
         return match["datetime"].iloc[0] if not match.empty else None
 
-    def find_datetimes(self):
-        return [self.find_datetime(row) for _, row in self.expected.iterrows()]
+    def find_datetimes(self, start_date=None, end_date=None):
+        return [
+            self.find_datetime(row, start_date=start_date, end_date=end_date)
+            for _, row in self.expected.iterrows()
+        ]
+
 
     def print_datetimes(self):
         datetimes = self.find_datetimes()
