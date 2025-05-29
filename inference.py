@@ -11,7 +11,7 @@ import importlib
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 2  # or any number you want
+MODEL_NUM = 5  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -40,8 +40,9 @@ stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
 with torch.no_grad():
-    x_meteo, x_image, y_expected = prepare_data.load_data()
+    x_meteo, x_image, y_expected = prepare_data.load_data( start_date="2024-10-01", end_date="2024-10-31")
     stratus_days = prepare_data.find_stratus_days()
+    print(f"Stratus days: {stratus_days}")
     # normalize the data
     x_meteo = prepare_data.normalize_data_test(
         x_meteo,
@@ -103,7 +104,6 @@ with torch.no_grad():
     metrics.print_datetimes()
     
     
-
     accuracy = metrics.get_accuracy()
     
     print(f"Accuracy: {accuracy * 100:.2f}%")
@@ -125,3 +125,4 @@ with torch.no_grad():
     for i in stratus_days:
         print(f"Stratus day: {i}")
         metrics.plot_day_curves(i)
+    metrics.plot_random_days(exclude_days=stratus_days)

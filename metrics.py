@@ -114,12 +114,19 @@ class Metrics:
         df = df[df["datetime"].notnull()]
         df["day"] = df["datetime"].astype(str).str[:10]
         df["hour"] = df["datetime"].astype(str).str[11:16]
+        df["month"] = df["datetime"].astype(str).str[:7]  # Extract month (YYYY-MM)
 
+        # Define the month directory based on the first datetime's month
+        month_dir = os.path.join(self.save_path, df["month"].iloc[0])
+        os.makedirs(month_dir, exist_ok=True)
+
+        # Filter data for the specified day
         day_df = df[df["day"] == str(day)]
         if day_df.empty:
             print(f"No aligned data found for day {day}")
             return
 
+        # Plot actual vs predicted
         plt.figure(figsize=(12, 6))
         plt.plot(day_df["hour"], day_df["expected_nyon"], "o-", label="Expected Nyon")
         plt.plot(day_df["hour"], day_df["predicted_nyon"], "x--", label="Predicted Nyon")
@@ -132,7 +139,7 @@ class Metrics:
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f"{self.save_path}/day_curve_{day}.png")
+        plt.savefig(f"{month_dir}/day_curve_{day}.png")  # Save in month_dir
         plt.close()
 
         # Plot differences
@@ -146,5 +153,29 @@ class Metrics:
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f"{self.save_path}/day_curve_diff_{day}.png")
+        plt.savefig(f"{month_dir}/day_curve_diff_{day}.png")  # Save in month_dir
         plt.close()
+
+    def plot_random_days(self, num_days=3, exclude_days=None, title="Random Day Curves", xlabel="Hour", ylabel="Value"):
+        datetime_list = self.find_datetimes()
+        df = pd.DataFrame({
+            "datetime": datetime_list,
+            "expected_nyon": self.expected["nyon"],
+            "expected_dole": self.expected["dole"],
+            "predicted_nyon": self.predicted["nyon"],
+            "predicted_dole": self.predicted["dole"],
+        })
+        df = df[df["datetime"].notnull()]
+        df["day"] = df["datetime"].astype(str).str[:10]
+        unique_days = df["day"].unique().tolist()
+
+        if exclude_days is not None:
+            unique_days = [d for d in unique_days if d not in exclude_days]
+
+        if len(unique_days) < num_days:
+            print("Not enough days to sample from after exclusion.")
+            return
+
+        sampled_days = np.random.choice(unique_days, size=num_days, replace=False)
+        for day in sampled_days:
+            self.plot_day_curves(day, title=title, xlabel=xlabel, ylabel=ylabel)
