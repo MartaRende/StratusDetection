@@ -30,19 +30,18 @@ else:
     print(f"Path {FP_IMAGES} does not exist. Please check the path.")
     
 print("FP_IMAGES:", FP_IMAGES)     
-files = glob.glob("data/complete_data.npz")
+FP_WEATHER_DATA = "data/complete_data.npz"
 
 
 all_weatherX = []
 all_imagesX = []
 allY = []
-prepare_data = PrepareData(FP_IMAGES)
-for file in files:
-    x_meteo, x_images, y = prepare_data.load_data(file)
-  
-    all_weatherX.append(x_meteo)
-    all_imagesX.append(x_images)
-    allY.append(y)
+prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA)
+x_meteo, x_images, y = prepare_data.load_data()
+
+all_weatherX.append(x_meteo)
+all_imagesX.append(x_images)
+allY.append(y)
 
 all_weatherX = np.concatenate(all_weatherX)
 all_imagesX = np.concatenate(all_imagesX)
@@ -82,6 +81,8 @@ test_dataset = SimpleDataset(weather_test, images_test, y_test)
 print("train_dataset", len(train_dataset))
 print("test_dataset", len(test_dataset))
 
+import ipdb
+ipdb.set_trace()
 # Split train/validation
 train_size = int(0.8 * len(train_dataset))
 validation_size = len(train_dataset) - train_size

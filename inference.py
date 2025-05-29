@@ -11,7 +11,7 @@ import importlib
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 4  # or any number you want
+MODEL_NUM = 2  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -40,8 +40,8 @@ stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
 with torch.no_grad():
-    x_meteo, x_image, y_expected = prepare_data.load_data(npz_file)
-    stratus_days = prepare_data.find_startus_days()
+    x_meteo, x_image, y_expected = prepare_data.load_data()
+    stratus_days = prepare_data.find_stratus_days()
     # normalize the data
     x_meteo = prepare_data.normalize_data_test(
         x_meteo,
@@ -88,18 +88,14 @@ with torch.no_grad():
         expected = y_expected[idx_test]
         # read stats values
 
-        mean_nyon = stats_label["gre000z0_nyon"]["mean"]
-        mean_dole = stats_label["gre000z0_dole"]["mean"]
-        std_nyon = stats_label["gre000z0_nyon"]["std"]
-        std_dole = stats_label["gre000z0_dole"]["std"]
-
-        # Denormalize predicted values
-        y[0] = y[0] * std_nyon + mean_nyon
-        y[1] = y[1] * std_dole + mean_dole
-
-        # Denormalize expected values
-        expected[0] = expected[0] * std_nyon + mean_nyon
-        expected[1] = expected[1] * std_dole + mean_dole
+        min_nyon = stats_label["gre000z0_nyon"]["min"]
+        max_nyon = stats_label["gre000z0_nyon"]["max"]
+        min_dole = stats_label["gre000z0_dole"]["min"]
+        max_dole = stats_label["gre000z0_dole"]["max"]
+        y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
+        y[1] = y[1] * (max_dole - min_dole) + min_dole
+        expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
+        expected[1] = expected[1] * (max_dole - min_dole) + min_dole
         y_predicted.append(y)
         final_expected.append(expected)
     metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH)
@@ -108,7 +104,7 @@ with torch.no_grad():
     
     
 
-    accuracy = metrics.get_accuracy(metrics.expected, metrics.predicted)
+    accuracy = metrics.get_accuracy()
     
     print(f"Accuracy: {accuracy * 100:.2f}%")
 
@@ -121,7 +117,7 @@ with torch.no_grad():
     mre = metrics.mean_relative_error()
     print(f"Mean Relative Error: {mre}")
     relative_error = metrics.get_relative_error()
-    metrics.plot_relative_error(relative_error)
+    metrics.plot_relative_error()
 
     delta = metrics.get_delta_between_expected_and_predicted()
     metrics.plot_delta(delta)
