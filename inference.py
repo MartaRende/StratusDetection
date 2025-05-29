@@ -39,8 +39,8 @@ stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
 stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
-start_date = "2024-10-01"
-end_date = "2024-10-31"
+start_date = "2024-03-01"
+end_date = "2024-03-31"
 with torch.no_grad():
     x_meteo, x_image, y_expected = prepare_data.load_data( start_date=start_date, end_date=end_date)
     stratus_days = prepare_data.find_stratus_days()

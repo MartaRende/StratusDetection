@@ -41,9 +41,9 @@ class Metrics:
             ]
         return match["datetime"].iloc[0] if not match.empty else None
 
-    def find_datetimes(self, start_date=None, end_date=None):
+    def find_datetimes(self):
         return [
-            self.find_datetime(row, start_date=start_date, end_date=end_date)
+            self.find_datetime(row)
             for _, row in self.expected.iterrows()
         ]
 
