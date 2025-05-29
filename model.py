@@ -34,10 +34,10 @@ class StratusModel(nn.Module):
         self.mlp_meteo = nn.Sequential(
             nn.Linear(input_data_size, 64),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
 
         )
         
@@ -45,13 +45,13 @@ class StratusModel(nn.Module):
         self.mlp_head = nn.Sequential(
             nn.Linear(self.cnn_output_size + 64, 128),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(64, 32),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(32, output_size) 
         )
 
