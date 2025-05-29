@@ -81,8 +81,6 @@ test_dataset = SimpleDataset(weather_test, images_test, y_test)
 print("train_dataset", len(train_dataset))
 print("test_dataset", len(test_dataset))
 
-import ipdb
-ipdb.set_trace()
 # Split train/validation
 train_size = int(0.8 * len(train_dataset))
 validation_size = len(train_dataset) - train_size
