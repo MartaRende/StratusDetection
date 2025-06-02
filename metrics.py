@@ -259,7 +259,7 @@ class Metrics:
    
         return rmse_per_day
 
-    def plot_rmse_for_specific_days(self, days):
+    def plot_rmse_for_specific_days(self, days, stratus_days="stratus_days"):
         if len(days) == 0:
             print("No days provided for RMSE calculation.")
             return
@@ -281,6 +281,6 @@ class Metrics:
         plt.xticks(rotation=45)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(f"{self.path}/rmse_specific_days_{days}.png")
+        plt.savefig(f"{self.path}/rmse_specific_days_{stratus_days}.png")
         plt.close()
         

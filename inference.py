@@ -152,4 +152,4 @@ global_metrics = Metrics(
 global_metrics.plot_rmse_for_specific_days(stratus_days)
 non_stratus_days = global_metrics.find_unique_days_non_startus(stratus_days)
 
-global_metrics.plot_rmse_for_specific_days(non_stratus_days)
+global_metrics.plot_rmse_for_specific_days(non_stratus_days, stratus_days="non_stratus_days")
