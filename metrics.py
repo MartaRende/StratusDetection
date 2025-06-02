@@ -234,8 +234,7 @@ class Metrics:
         # Filter for requested days
         days = [str(day) for sublist in days for day in sublist]
         df_filtered = df[df["day"].isin(days)]
-        import ipdb
-        ipdb.set_trace()
+    
         # for i in range(len(days)):
         #     df_filtered = df[df["day"].isin([days[i]])]
         # if df_filtered.empty:
