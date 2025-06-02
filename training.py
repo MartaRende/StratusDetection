@@ -60,7 +60,7 @@ weather_train, weather_validation, images_train, images_validation, y_train, y_v
 
 
 # normalize the data
-weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(weather_train,weather_validation,weather_test, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])
+weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(weather_train,weather_validation,weather_test, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD","pres"])
 #normalize labels
 y_train,y_validation,y_test, stats_label = prepare_data.normalize_data(y_train,y_validation, y_test,var_order=["gre000z0_nyon", "gre000z0_dole"])  
 

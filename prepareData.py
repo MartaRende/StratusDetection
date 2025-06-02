@@ -101,7 +101,7 @@ class PrepareData:
         for idx, row in df.iterrows():
             meteo_row = row[[
                 "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
-                "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"
+                "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ]]
 
             if meteo_row.isnull().any():
@@ -191,7 +191,7 @@ class PrepareData:
         test_indices = self.data[self.data['date_str'].isin(test_days)].index
         column_names = [
             "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
-            "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"
+            "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD","pres"
         ]
         label_names = ["gre000z0_nyon", "gre000z0_dole"]
 
