@@ -50,7 +50,6 @@ class PrepareData:
             validation_norm = (validation_df - min_vals) / range_vals
             test_norm = (test_df - min_vals) / range_vals
             return train_norm.fillna(0), validation_norm.fillna(0), test_norm.fillna(0), {"min": min_vals, "max": max_vals}
-
         for var in var_order:
             if var == angle_var:
                 continue
@@ -147,15 +146,32 @@ class PrepareData:
         daily_diff = daily_dole - daily_nyon
         stratus_days = daily_diff[daily_diff > 80].index.strftime('%Y-%m-%d').tolist()
         return stratus_days
+    
+    def get_train_validation_days(self, train_days, split_ratio=0.2):
+        train_days = list(train_days)
+        # Use self.data to find stratus days
+        stratus_days = self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
+        random.shuffle(stratus_days)
+        split_index = int(split_ratio * len(stratus_days))
+        train_stratus_days = set(stratus_days[split_index:])
+        test_stratus_days = set(stratus_days[:split_index])
+        non_stratus_days = [d for d in train_days if d not in stratus_days]
+        random.shuffle(non_stratus_days)
+        remaining_train = int(len(train_days) * (1 - split_ratio)) - len(train_stratus_days)
 
+        train_days = set(list(train_stratus_days) + non_stratus_days[:remaining_train])
+        test_days = set(list(test_stratus_days) + non_stratus_days[remaining_train:])
+    
+        return train_days, test_days
+    
     def get_test_train_days(self, split_ratio=0.8):
         stratus_days = self.find_stratus_days()
         all_days = self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist()
-       
+
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
-        train_stratus_days = set(stratus_days[:split_index])
-        test_stratus_days = set(stratus_days[split_index:])
+        train_stratus_days = set(stratus_days[split_index:])
+        test_stratus_days = set(stratus_days[:split_index])
         non_stratus_days = [d for d in all_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(all_days) * split_ratio) - len(train_stratus_days)
@@ -173,7 +189,6 @@ class PrepareData:
         # Get train and test indices based on date_str
         train_indices = self.data[self.data['date_str'].isin(train_days)].index
         test_indices = self.data[self.data['date_str'].isin(test_days)].index
-
         column_names = [
             "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"
@@ -202,9 +217,42 @@ class PrepareData:
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
       
-        
 
         return x_meteo_train_df, x_meteo_test_df, x_images_train, x_images_test, y_train_df, y_test_df
+
+    def split_train_validation(self, x_meteo_df, x_images, y_df, validation_ratio=0.2):
+        # Get training days and validation days from existing dates
+        train_days = x_meteo_df['datetime'].dt.strftime('%Y-%m-%d').unique()
+        train_day_set, val_day_set = self.get_train_validation_days(train_days, validation_ratio)
+
+        x_meteo_df = x_meteo_df.copy()
+        y_df = y_df.copy()
+        x_meteo_df['date_str'] = x_meteo_df['datetime'].dt.strftime('%Y-%m-%d')
+        y_df['date_str'] = y_df['datetime'].dt.strftime('%Y-%m-%d')
+
+        train_mask = x_meteo_df['date_str'].isin(train_day_set)
+        val_mask = x_meteo_df['date_str'].isin(val_day_set)
+
+        column_names = [col for col in x_meteo_df.columns if col not in ["datetime", "date_str"]]
+        label_names = [col for col in y_df.columns if col not in ["datetime", "date_str"]]
+
+        # Prepare DataFrames for train/val splits
+        x_meteo_train_df = x_meteo_df[train_mask].reset_index(drop=True)[column_names]
+        x_meteo_val_df = x_meteo_df[val_mask].reset_index(drop=True)[column_names]
+        y_train_df = y_df[train_mask].reset_index(drop=True)[label_names]
+        y_val_df = y_df[val_mask].reset_index(drop=True)[label_names]
+
+        # Add datetime back for reference
+        x_meteo_train_df['datetime'] = x_meteo_df[train_mask].reset_index(drop=True)['datetime']
+        x_meteo_val_df['datetime'] = x_meteo_df[val_mask].reset_index(drop=True)['datetime']
+        y_train_df['datetime'] = y_df[train_mask].reset_index(drop=True)['datetime']
+        y_val_df['datetime'] = y_df[val_mask].reset_index(drop=True)['datetime']
+
+        img_train = x_images[train_mask.to_numpy()]
+        img_val = x_images[val_mask.to_numpy()]
+
+        return x_meteo_train_df, x_meteo_val_df, img_train, img_val, y_train_df, y_val_df
+
 
     def normalize_data_test(self, data, var_order=None, stats=None):
         df = pd.DataFrame(data, columns=var_order)

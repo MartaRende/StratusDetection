@@ -53,9 +53,11 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
     all_weatherX, all_imagesX, allY
 )
 
-weather_train, weather_validation, images_train, images_validation, y_train, y_validation = prepare_data.split_data(
+
+weather_train, weather_validation, images_train, images_validation, y_train, y_validation = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
+
 
 # normalize the data
 weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(weather_train,weather_validation,weather_test, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD"])

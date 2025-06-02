@@ -126,10 +126,8 @@ for year, month in months:
          
         all_predicted.append(y_predicted)
         all_expected.append(final_expected)
-        import ipdb
-        ipdb.set_trace()
-        print("len")
-        print(len(all_predicted[0]), len(all_expected[0]))
+
+    
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH, start_date=start_date, end_date=end_date)
         accuracy = metrics.get_accuracy()
         print(f"Accuracy: {accuracy * 100:.2f}%")
@@ -150,8 +148,13 @@ for year, month in months:
         metrics.save_metrics()
         print("strtaus days for month:", stratus_days)
 
+# Flatten all_expected into a 1D array
+all_expected =  [item for sublist in all_expected for item in sublist]
+all_predicted =  [item for sublist in all_predicted for item in sublist]
+import ipdb
+ipdb.set_trace()
 global_metrics = Metrics(
-    all_expected[0], all_predicted[0], data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
+    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
 )
 global_metrics_mse  = global_metrics.get_rmse()
 print(f"Global RMSE: {global_metrics_mse}")
