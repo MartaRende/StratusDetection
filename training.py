@@ -53,7 +53,7 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
     all_weatherX, all_imagesX, allY
 )
 
-weather_train, weather_validation, images_train, images_validation, y_train, y_validation = train_test_split(
+weather_train, weather_validation, images_train, images_validation, y_train, y_validation = prepare_data.split_data(
     weather_train, images_train
 )
 
@@ -80,14 +80,14 @@ class SimpleDataset(torch.utils.data.Dataset):
         )
 
 train_dataset = SimpleDataset(weather_train, images_train, y_train)
+validation_dataset = SimpleDataset(weather_validation, images_validation, y_validation)
 test_dataset = SimpleDataset(weather_test, images_test, y_test)
 print("train_dataset", len(train_dataset))
+print("validation_dataset", len(validation_dataset))
 print("test_dataset", len(test_dataset))
 
 # Split train/validation
-train_size = int(0.8 * len(train_dataset))
-validation_size = len(train_dataset) - train_size
-train_dataset, validation_dataset = torch.utils.data.random_split(train_dataset, [train_size, validation_size])
+
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32)
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)

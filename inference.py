@@ -123,10 +123,10 @@ for year, month in months:
             expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)
             final_expected.append(expected)
-            import ipdb
-            ipdb.set_trace()
+         
         all_predicted.append(y_predicted)
         all_expected.append(final_expected)
+        import ipdb
         ipdb.set_trace()
         print("len")
         print(len(all_predicted[0]), len(all_expected[0]))
