@@ -54,7 +54,7 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
 )
 
 weather_train, weather_validation, images_train, images_validation, y_train, y_validation = prepare_data.split_data(
-    weather_train, images_train
+    weather_train, images_train, y_train
 )
 
 # normalize the data
