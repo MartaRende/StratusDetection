@@ -36,7 +36,7 @@ class PrepareData:
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
 
-    def normalize_data(self, train_df, test_df, var_order=None):
+    def normalize_data(self, train_df, validation_df, test_df, var_order=None):
         log_vars = ["RR", "RS"]
         angle_var = "DD"
         stats = {}
@@ -47,8 +47,9 @@ class PrepareData:
             range_vals = max_vals - min_vals
             range_vals = range_vals.replace(0, 1e-8)  # Avoid division by zero
             train_norm = (train_df - min_vals) / range_vals
+            validation_norm = (validation_df - min_vals) / range_vals
             test_norm = (test_df - min_vals) / range_vals
-            return train_norm.fillna(0), test_norm.fillna(0), {"min": min_vals, "max": max_vals}
+            return train_norm.fillna(0), validation_norm.fillna(0), test_norm.fillna(0), {"min": min_vals, "max": max_vals}
 
         for var in var_order:
             if var == angle_var:
@@ -63,7 +64,6 @@ class PrepareData:
                     angle_rad = np.deg2rad(pd.to_numeric(df[var], errors="coerce").fillna(0))
                     df_processed[f"{var}_cos"] = np.cos(angle_rad)
                     df_processed[f"{var}_sin"] = np.sin(angle_rad)
-
                 else:
                     min_val = stats[var]["min"]
                     max_val = stats[var]["max"]
@@ -74,8 +74,9 @@ class PrepareData:
             return df_processed
 
         train_norm = process(train_df)
+        validation_norm = process(validation_df)
         test_norm = process(test_df)
-        return train_norm.values, test_norm.values, stats
+        return train_norm.values, validation_norm.values, test_norm.values, stats
 
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
@@ -151,7 +152,6 @@ class PrepareData:
         stratus_days = self.find_stratus_days()
         all_days = self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist()
        
-        random.seed(42)
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
         train_stratus_days = set(stratus_days[:split_index])

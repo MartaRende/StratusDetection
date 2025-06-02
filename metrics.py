@@ -58,6 +58,7 @@ class Metrics:
                 (pd.to_datetime(match["datetime"]) >= pd.to_datetime(self.start_date)) &
                 (pd.to_datetime(match["datetime"]) <= pd.to_datetime(self.end_date))
             ]
+
         return match["datetime"].iloc[0] if not match.empty else None
 
     def find_datetimes(self):
@@ -238,6 +239,8 @@ class Metrics:
         else:
             days = [str(day) for day in days]
         df_filtered = df[df["day"].isin(days)]
+        import ipdb 
+        ipdb.set_trace()
     
         # for i in range(len(days)):
         #     df_filtered = df[df["day"].isin([days[i]])]

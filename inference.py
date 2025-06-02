@@ -49,7 +49,8 @@ end_year = 2024
 stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(10, 12)] 
+# +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -122,11 +123,14 @@ for year, month in months:
             expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)
             final_expected.append(expected)
-        all_predicted.append(np.array(y_predicted))
-        all_expected.append(np.array(final_expected))
-        
+            import ipdb
+            ipdb.set_trace()
+        all_predicted.append(y_predicted)
+        all_expected.append(final_expected)
+        ipdb.set_trace()
+        print("len")
+        print(len(all_predicted[0]), len(all_expected[0]))
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH, start_date=start_date, end_date=end_date)
-        metrics.print_datetimes()
         accuracy = metrics.get_accuracy()
         print(f"Accuracy: {accuracy * 100:.2f}%")
         mae = metrics.get_mean_absolute_error()
@@ -144,10 +148,21 @@ for year, month in months:
             metrics.plot_day_curves(i)
         metrics.plot_random_days(exclude_days=stratus_days_for_month)
         metrics.save_metrics()
+        print("strtaus days for month:", stratus_days)
 
 global_metrics = Metrics(
     all_expected[0], all_predicted[0], data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
 )
+global_metrics_mse  = global_metrics.get_rmse()
+print(f"Global RMSE: {global_metrics_mse}")
+print(f"Global Accuracy: {global_metrics.get_accuracy() * 100:.2f}%")
+
+global_metrics_mre = global_metrics.mean_relative_error()
+print(f"Global Mean Relative Error: {global_metrics_mre}")
+
+global_metrics_mae = global_metrics.get_mean_absolute_error()
+print(f"Global Mean Absolute Error: {global_metrics_mae}")
+
 
 global_metrics.plot_rmse_for_specific_days(stratus_days)
 non_stratus_days = global_metrics.find_unique_days_non_startus(stratus_days)
