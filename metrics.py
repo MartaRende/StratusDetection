@@ -230,9 +230,13 @@ class Metrics:
         })
         df = df[df["datetime"].notnull()]
         df["day"] = df["datetime"].astype(str).str[:10]
-       
+      
         # Filter for requested days
-        days = [str(day) for sublist in days for day in sublist]
+        if isinstance(days, list) and len(days) > 0 and isinstance(days[0], list):
+            # Flatten if 2D
+            days = [item for sublist in days for item in sublist]
+        else:
+            days = [str(day) for day in days]
         df_filtered = df[df["day"].isin(days)]
     
         # for i in range(len(days)):
