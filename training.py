@@ -37,7 +37,7 @@ all_weatherX = []
 all_imagesX = []
 allY = []
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA)
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-15")
 
 all_weatherX.append(x_meteo)
 all_imagesX.append(x_images)
@@ -96,7 +96,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 
 # Model creation
 
-model = StratusModel(input_data_size=15, output_size=2).to(device)
+model = StratusModel(input_data_size=16, output_size=2).to(device)
 # Loss function and optimizer
 loss = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)

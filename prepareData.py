@@ -97,7 +97,8 @@ class PrepareData:
         df['datetime_next'] = df['datetime'] + timedelta(minutes=10)
 
         valid_indices = []
-
+        import ipdb
+      
         for idx, row in df.iterrows():
             meteo_row = row[[
                 "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
