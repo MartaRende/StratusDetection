@@ -21,6 +21,7 @@ class PrepareData:
         df = pd.json_normalize(df[0])
 
         df['datetime'] = pd.to_datetime(df['datetime'])
+    
         
         return df
 
@@ -79,11 +80,12 @@ class PrepareData:
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
         months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
+
         mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
                (self.data['datetime'].dt.date <= pd.to_datetime(end_date).date()) & \
                (self.data['datetime'].dt.month.isin(months_to_take))
         self.data = self.data[mask].copy()
-
+  
         return self.data
 
     def prepare_data(self, df):
