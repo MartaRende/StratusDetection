@@ -36,7 +36,7 @@ all_weatherX = []
 all_imagesX = []
 allY = []
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA)
-x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-31")
+x_meteo, x_images, y = prepare_data.load_data()
 
 all_weatherX.append(x_meteo)
 all_imagesX.append(x_images)

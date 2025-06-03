@@ -11,6 +11,7 @@ Requires-Dist: pillow>=11.2.1
 Requires-Dist: pip>=25.1.1
 Requires-Dist: pyarrow>=20.0.0
 Requires-Dist: pyproj>=3.7.1
+Requires-Dist: scikit-fuzzy>=0.5.0
 Requires-Dist: scikit-learn>=1.6.1
 Requires-Dist: torch>=2.7.0
 Requires-Dist: tqdm>=4.67.1
