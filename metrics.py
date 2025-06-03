@@ -81,25 +81,30 @@ class Metrics:
     def get_delta_between_expected_and_predicted(self):
         return (self.predicted - self.expected).abs().values.tolist()
 
-    def plot_rmse(self, title="Rmse", xlabel="Datetime", ylabel="rmse"):
+    def plot_rmse(self, title="RMSE", xlabel="Datetime", ylabel="RMSE"):
         delta = np.sqrt((self.predicted - self.expected) ** 2)
         datetime = self.find_datetimes()
-        xticks = [dt if i % 6 == 0 else "" for i, dt in enumerate(datetime)]
 
-        plt.figure(figsize=(12, 10))
-        for col in delta.columns:
-            plt.plot(delta[col], marker="o", linestyle="-", label=col)
+        # Aggregate data to reduce clutter
+        delta["datetime"] = datetime
+        aggregated = delta.groupby(delta["datetime"].dt.date).mean()
 
-        plt.xticks(range(len(datetime)), xticks, rotation=90)
+        plt.figure(figsize=(16, 8))
+        for col in aggregated.columns:
+            if col != "datetime":
+                plt.plot(aggregated.index, aggregated[col], marker="o", linestyle="-", label=col)
+
+        # Adjust x-axis ticks
+        xticks = [dt if i % 10 == 0 else "" for i, dt in enumerate(aggregated.index)]
+        plt.xticks(range(len(aggregated.index)), xticks, rotation=45)
+
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.grid(True)
+        plt.grid(True, linestyle="--", alpha=0.5)
         plt.legend()
         plt.tight_layout()
-        plt.subplots_adjust(bottom=0.25)
-
-        plt.savefig(f"{self.path}/delta.png")
+        plt.savefig(f"{self.path}/rmse.png")
         plt.close()
 
     def get_relative_error(self):
@@ -108,7 +113,7 @@ class Metrics:
     def plot_relative_error(self, title="Relative Error", xlabel="Datetime", ylabel="Relative Error"):
         rel_error = ((self.predicted - self.expected).abs() / self.expected.replace(0, np.nan)).fillna(0)
         datetime = self.find_datetimes()
-        xticks = [dt if i % 6 == 0 else "" for i, dt in enumerate(datetime)]
+        xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetime)]
 
         plt.figure(figsize=(12, 10))
         for col in rel_error.columns:
@@ -285,4 +290,64 @@ class Metrics:
         plt.tight_layout()
         plt.savefig(f"{self.path}/rmse_specific_days_{stratus_days}.png")
         plt.close()
+    
+    def get_relative_error_for_specific_days(self, days):
+        datetime_list = self.find_datetimes()
+        df = pd.DataFrame({
+            "datetime": datetime_list,
+            "expected_nyon": self.expected["nyon"],
+            "expected_dole": self.expected["dole"],
+            "predicted_nyon": self.predicted["nyon"],
+            "predicted_dole": self.predicted["dole"],
+        })
+        df = df[df["datetime"].notnull()]
+        df["day"] = df["datetime"].astype(str).str[:10]
+
+        # Flatten days if needed
+        if isinstance(days, list) and len(days) > 0 and isinstance(days[0], list):
+            days = [item for sublist in days for item in sublist]
+        else:
+            days = [str(day) for day in days]
+        df_filtered = df[df["day"].isin(days)]
+
+        rel_error_per_day = {}
+        for day in days:
+            day_df = df_filtered[df_filtered["day"] == day]
+            if day_df.empty:
+                continue
+            # Avoid division by zero
+            rel_error_nyon = ((day_df["predicted_nyon"] - day_df["expected_nyon"]).abs() / day_df["expected_nyon"].replace(0, np.nan)).fillna(0).mean()
+            rel_error_dole = ((day_df["predicted_dole"] - day_df["expected_dole"]).abs() / day_df["expected_dole"].replace(0, np.nan)).fillna(0).mean()
+            rel_error_per_day[day] = {
+                "nyon": rel_error_nyon,
+                "dole": rel_error_dole
+            }
+        return rel_error_per_day
+
+    def plot_relative_error_for_specific_days(self, days, stratus_days="stratus_days"):
+        if len(days) == 0:
+            print("No days provided for relative error calculation.")
+            return
+        rel_error_per_day = self.get_relative_error_for_specific_days(days)
+        if not rel_error_per_day:
+            print("No relative error data available for the specified days.")
+            return
+
+        days_list = list(rel_error_per_day.keys())
+        rel_nyon = [rel_error_per_day[day]["nyon"] for day in days_list]
+        rel_dole = [rel_error_per_day[day]["dole"] for day in days_list]
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(days_list, rel_nyon, marker='o', linestyle='-', label='Relative Error Nyon')
+        plt.plot(days_list, rel_dole, marker='x', linestyle='--', label='Relative Error Dole')
+        plt.xlabel("Days")
+        plt.ylabel("Relative Error")
+        plt.title("Relative Error for Specific Days")
+        plt.xticks(rotation=45)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f"{self.path}/relative_error_specific_days_{stratus_days}.png")
+        plt.close()
+        
+
         
