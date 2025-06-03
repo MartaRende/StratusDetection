@@ -239,8 +239,7 @@ class Metrics:
         else:
             days = [str(day) for day in days]
         df_filtered = df[df["day"].isin(days)]
-        import ipdb 
-        ipdb.set_trace()
+
     
         # for i in range(len(days)):
         #     df_filtered = df[df["day"].isin([days[i]])]
