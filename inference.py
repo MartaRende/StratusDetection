@@ -21,12 +21,12 @@ model = StratusModel()
 
 
 npz_file = f"{MODEL_PATH}/test_data.npz"
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
         FP_IMAGES = (
-            "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2"
+            "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
         )
         FP_IMAGES = os.path.normpath(FP_IMAGES)
 
@@ -65,32 +65,23 @@ for year, month in months:
 
     with torch.no_grad():
         prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file)
-        x_meteo, x_image, y_expected = prepare_data.load_data(start_date=start_date, end_date=end_date)
-      
-        if len(x_meteo) == 0 or len(x_image) == 0 or len(y_expected) == 0:
+        x_meteo, x_image_view1, x_image_view2, y_expected = prepare_data.load_data(
+            start_date=start_date, end_date=end_date, two_views=True
+        )
+
+        if len(x_meteo) == 0 or len(x_image_view1) == 0 or len(x_image_view2) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
+
         stratus_days_for_month = prepare_data.find_stratus_days()
         stratus_days.append(stratus_days_for_month)
         print(f"Stratus days: {stratus_days_for_month}")
+
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
             var_order=[
-                "gre000z0_nyon",
-                "gre000z0_dole",
-                "RR",
-                "TD",
-                "WG",
-                "TT",
-                "CT",
-                "FF",
-                "RS",
-                "TG",
-                "Z0",
-                "ZS",
-                "SU",
-                "DD",
-                "pres"
+                "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG",
+                "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ],
             stats=stats_input,
         )
@@ -102,32 +93,39 @@ for year, month in months:
 
         total_predictions = len(x_meteo)
         print(f"Total predictions: {total_predictions}")
+
+        x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
+        x_image_view1_tensor = torch.tensor(x_image_view1, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
+        x_image_view2_tensor = torch.tensor(x_image_view2, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
+
         y_predicted = []
         final_expected = []
+
         for i in range(total_predictions):
-            x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
-            x_images_tensor = torch.tensor(x_image, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
-            idx_test = i
-            x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0)
-            x_image_sample = x_images_tensor[idx_test].unsqueeze(0)
-            y = model(x_meteo_sample, x_image_sample)
+            x_meteo_sample = x_meteo_tensor[i].unsqueeze(0)
+            x_image_sample1 = x_image_view1_tensor[i].unsqueeze(0)
+            x_image_sample2 = x_image_view2_tensor[i].unsqueeze(0)
+
+            y = model(x_meteo_sample, x_image_sample1, x_image_sample2)
             y = y.squeeze(0).cpu().numpy()
-            expected = y_expected[idx_test]
+            expected = y_expected[i]
+
             min_nyon = stats_label["gre000z0_nyon"]["min"]
             max_nyon = stats_label["gre000z0_nyon"]["max"]
             min_dole = stats_label["gre000z0_dole"]["min"]
             max_dole = stats_label["gre000z0_dole"]["max"]
+
             y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
             y[1] = y[1] * (max_dole - min_dole) + min_dole
             expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
             expected[1] = expected[1] * (max_dole - min_dole) + min_dole
+
             y_predicted.append(y)
             final_expected.append(expected)
-         
+
         all_predicted.append(y_predicted)
         all_expected.append(final_expected)
 
-    
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH, start_date=start_date, end_date=end_date)
         accuracy = metrics.get_accuracy()
         print(f"Accuracy: {accuracy * 100:.2f}%")
@@ -137,36 +135,32 @@ for year, month in months:
         print(f"Root Mean Squared Error: {rmse}")
         mre = metrics.mean_relative_error()
         print(f"Mean Relative Error: {mre}")
-        relative_error = metrics.get_relative_error()
-        metrics.plot_relative_error()
+
         delta = metrics.get_delta_between_expected_and_predicted()
+        metrics.plot_relative_error()
         metrics.plot_rmse(delta)
+
         for i in stratus_days_for_month:
             print(f"Stratus day: {i}")
             metrics.plot_day_curves(i)
         metrics.plot_random_days(exclude_days=stratus_days_for_month)
         metrics.save_metrics()
-        print("strtaus days for month:", stratus_days)
+        print("Stratus days for month:", stratus_days)
 
-# Flatten all_expected into a 1D array
-all_expected =  [item for sublist in all_expected for item in sublist]
-all_predicted =  [item for sublist in all_predicted for item in sublist]
+# Flatten for global metrics
+all_expected = [item for sublist in all_expected for item in sublist]
+all_predicted = [item for sublist in all_predicted for item in sublist]
 
 global_metrics = Metrics(
-    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
+    all_expected, all_predicted, data, save_path=MODEL_PATH,
+    start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
 )
-global_metrics_mse  = global_metrics.get_rmse()
-print(f"Global RMSE: {global_metrics_mse}")
+
+print(f"Global RMSE: {global_metrics.get_rmse()}")
 print(f"Global Accuracy: {global_metrics.get_accuracy() * 100:.2f}%")
-
-global_metrics_mre = global_metrics.mean_relative_error()
-print(f"Global Mean Relative Error: {global_metrics_mre}")
-
-global_metrics_mae = global_metrics.get_mean_absolute_error()
-print(f"Global Mean Absolute Error: {global_metrics_mae}")
-
+print(f"Global Mean Relative Error: {global_metrics.mean_relative_error()}")
+print(f"Global Mean Absolute Error: {global_metrics.get_mean_absolute_error()}")
 
 global_metrics.plot_rmse_for_specific_days(stratus_days)
 non_stratus_days = global_metrics.find_unique_days_non_startus(stratus_days)
-
 global_metrics.plot_rmse_for_specific_days(non_stratus_days, stratus_days="non_stratus_days")
