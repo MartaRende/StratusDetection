@@ -171,8 +171,8 @@ class PrepareData:
 
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
-        train_stratus_days = set(stratus_days[split_index:])
-        test_stratus_days = set(stratus_days[:split_index])
+        train_stratus_days = set(stratus_days[:split_index])
+        test_stratus_days = set(stratus_days[split_index:])
         non_stratus_days = [d for d in all_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(all_days) * split_ratio) - len(train_stratus_days)
