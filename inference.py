@@ -65,11 +65,11 @@ for year, month in months:
 
     with torch.no_grad():
         prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file)
-        x_meteo, x_image_view1, x_image_view2, y_expected = prepare_data.load_data(
+        x_meteo, x_images, y_expected = prepare_data.load_data(
             start_date=start_date, end_date=end_date
         )
-
-        if len(x_meteo) == 0 or len(x_image_view1) == 0 or len(x_image_view2) == 0 or len(y_expected) == 0:
+ 
+        if len(x_meteo) == 0 or len(x_images) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
 
@@ -93,7 +93,8 @@ for year, month in months:
 
         total_predictions = len(x_meteo)
         print(f"Total predictions: {total_predictions}")
-
+        x_image_view1 = x_images[:, 0, :, :, :]  # Extract the first image view
+        x_image_view2 = x_images[:, 1, :, :, :]  # Extract the second image view
         x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
         x_image_view1_tensor = torch.tensor(x_image_view1, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
         x_image_view2_tensor = torch.tensor(x_image_view2, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
