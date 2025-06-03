@@ -324,7 +324,7 @@ class Metrics:
             }
         return rel_error_per_day
 
-    def plot_relative_error_for_specific_days(self, days, stratus_days="stratus_days"):
+    def plot_relative_error_for_specific_days(self, days, stratus_days="stratus_days_relative"):
         if len(days) == 0:
             print("No days provided for relative error calculation.")
             return
