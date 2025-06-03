@@ -156,8 +156,7 @@ class PrepareData:
         split_index = int(split_ratio * len(stratus_days))
         train_stratus_days = set(stratus_days[split_index:])
         test_stratus_days = set(stratus_days[:split_index])
-        import ipdb
-        ipdb.set_trace()
+        
         non_stratus_days = [d for d in train_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(train_days) * (1 - split_ratio)) - len(train_stratus_days)
@@ -221,8 +220,8 @@ class PrepareData:
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
         print(f"Train days: {len(train_days)}, Test days: {len(test_days)}")
-        import ipdb
-        ipdb.set_trace()
+        
+        
         return x_meteo_train_df, x_meteo_test_df, x_images_train, x_images_test, y_train_df, y_test_df
 
     def split_train_validation(self, x_meteo_df, x_images, y_df, validation_ratio=0.2):
@@ -255,8 +254,6 @@ class PrepareData:
 
         img_train = x_images[train_mask.to_numpy()]
         img_val = x_images[val_mask.to_numpy()]
-        import ipdb
-        ipdb.set_trace()
         return x_meteo_train_df, x_meteo_val_df, img_train, img_val, y_train_df, y_val_df
 
 
