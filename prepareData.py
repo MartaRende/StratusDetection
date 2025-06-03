@@ -151,27 +151,31 @@ class PrepareData:
         train_days = list(train_days)
         # Use self.data to find stratus days
         stratus_days = self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
+        print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
         train_stratus_days = set(stratus_days[split_index:])
         test_stratus_days = set(stratus_days[:split_index])
+        import ipdb
+        ipdb.set_trace()
         non_stratus_days = [d for d in train_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(train_days) * (1 - split_ratio)) - len(train_stratus_days)
 
         train_days = set(list(train_stratus_days) + non_stratus_days[:remaining_train])
         test_days = set(list(test_stratus_days) + non_stratus_days[remaining_train:])
-    
+        print(f"Train days: {len(train_days)}, Test days: {len(test_days)}")
         return train_days, test_days
     
     def get_test_train_days(self, split_ratio=0.8):
         stratus_days = self.find_stratus_days()
         all_days = self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist()
-
+        print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
-        train_stratus_days = set(stratus_days[split_index:])
-        test_stratus_days = set(stratus_days[:split_index])
+        train_stratus_days = set(stratus_days[:split_index])
+        test_stratus_days = set(stratus_days[split_index:])
+       
         non_stratus_days = [d for d in all_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(all_days) * split_ratio) - len(train_stratus_days)
@@ -216,8 +220,9 @@ class PrepareData:
         train_datetimes = self.data.loc[train_indices, 'datetime'].values
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
-      
-
+        print(f"Train days: {len(train_days)}, Test days: {len(test_days)}")
+        import ipdb
+        ipdb.set_trace()
         return x_meteo_train_df, x_meteo_test_df, x_images_train, x_images_test, y_train_df, y_test_df
 
     def split_train_validation(self, x_meteo_df, x_images, y_df, validation_ratio=0.2):
@@ -250,7 +255,8 @@ class PrepareData:
 
         img_train = x_images[train_mask.to_numpy()]
         img_val = x_images[val_mask.to_numpy()]
-
+        import ipdb
+        ipdb.set_trace()
         return x_meteo_train_df, x_meteo_val_df, img_train, img_val, y_train_df, y_val_df
 
 
