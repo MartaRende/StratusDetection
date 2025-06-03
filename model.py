@@ -52,7 +52,7 @@ class StratusModel(nn.Module):
         
         # Final classification head
         self.mlp_head = nn.Sequential(
-            nn.Linear(self.cnn_output_size + 32, 128),
+            nn.Linear(self.cnn_output_size * 2 + 32, 128),
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(128, 64),
@@ -64,16 +64,12 @@ class StratusModel(nn.Module):
             nn.Linear(32, output_size) 
         )
 
-    def forward(self, meteo_data, image):
-        # Process image through CNN
-        z_img = self.cnn(image)
-        z_img = z_img.view(z_img.size(0), -1)  # Flatten to [batch_size, 2048]
-        
-        # Process meteo data
-        z_meteo = self.mlp_meteo(meteo_data)
-        
-        # Combine features
-        z = torch.cat([z_img, z_meteo], dim=1)
-        
-        # Final prediction
-        return self.mlp_head(z)
+    def forward(self, weather_x, image1_x, image2_x):
+        x1 = self.cnn(image1_x)
+        x2 = self.cnn(image2_x)
+        x1 = x1.view(x1.size(0), -1)
+        x2 = x2.view(x2.size(0), -1)
+        cnn_out = torch.cat((x1, x2), dim=1)
+        meteo_out = self.mlp_meteo(weather_x)
+        combined = torch.cat((cnn_out, meteo_out), dim=1)
+        return self.mlp_head(combined)

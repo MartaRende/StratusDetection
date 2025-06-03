@@ -25,11 +25,11 @@ class PrepareData:
         
         return df
 
-    def get_image_for_datetime(self, dt):
+    def get_image_for_datetime(self, dt, image_view="2"):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
-        img_filename = f"1159_2_{date_str}_{time_str}.jpeg"
-        img_path = os.path.join(self.image_base_folder, dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
+        img_filename = f"1159_{image_view}_{date_str}_{time_str}.jpeg"
+        img_path = os.path.join(self.image_base_folder, image_view,dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             return np.array(img)
@@ -108,8 +108,9 @@ class PrepareData:
                 print(f"Skipping row {idx} due to NaN values in meteo data.")
                 continue
 
-            img_array = self.get_image_for_datetime(row['datetime'])
-            if np.all(img_array == 0):
+            img_array_1 = self.get_image_for_datetime(row['datetime'], image_view="1")
+            img_array_2 = self.get_image_for_datetime(row['datetime'], image_view="2")
+            if np.all(img_array_1 == 0) or np.all(img_array_2 == 0):
                 print(f"Skipping row {idx} due to missing image data.")
                 continue
 
@@ -119,7 +120,7 @@ class PrepareData:
                 continue
 
             x_meteo.append(meteo_row.values)
-            x_images.append(img_array)
+            x_images.append((img_array_1, img_array_2))
             y.append(next_row.iloc[0][["gre000z0_nyon", "gre000z0_dole"]].values)
             valid_indices.append(idx)
 
