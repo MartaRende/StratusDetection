@@ -78,25 +78,19 @@ class Metrics:
     def get_mean_absolute_error(self):
         return (self.predicted - self.expected).abs().mean()
 
-    def get_delta_between_expected_and_predicted(self):
-        return (self.predicted - self.expected).abs().values.tolist()
+
 
     def plot_rmse(self, title="RMSE", xlabel="Datetime", ylabel="RMSE"):
-        delta = np.sqrt((self.predicted - self.expected) ** 2)
-        datetime = self.find_datetimes()
+        rmse = np.sqrt((self.predicted - self.expected) ** 2)
+        datetimes = self.find_datetimes()
 
-        # Aggregate data to reduce clutter
-        delta["datetime"] = datetime
-        aggregated = delta.groupby(delta["datetime"].dt.date).mean()
+        plt.figure(figsize=(12, 6))
+        for col in rmse.columns:
+            plt.plot(rmse[col], marker="o", linestyle="-", label=col)
 
-        plt.figure(figsize=(16, 8))
-        for col in aggregated.columns:
-            if col != "datetime":
-                plt.plot(aggregated.index, aggregated[col], marker="o", linestyle="-", label=col)
-
-        # Adjust x-axis ticks
-        xticks = [dt if i % 10 == 0 else "" for i, dt in enumerate(aggregated.index)]
-        plt.xticks(range(len(aggregated.index)), xticks, rotation=45)
+        # Adjust x-axis ticks using datetimes
+        xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetimes)]
+        plt.xticks(range(len(datetimes)), xticks, rotation=45)
 
         plt.title(title)
         plt.xlabel(xlabel)

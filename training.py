@@ -117,13 +117,13 @@ accuracies = {
     "test": []
 }
 
-patience = 6
+patience = 15
 best_val_loss = float('inf')
 epochs_no_improve = 0
 
 print("len(data_test):", len(prepare_data.test_data))
 
-num_epochs = 1
+num_epochs = 70
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:

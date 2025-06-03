@@ -7,6 +7,7 @@
 #SBATCH --time=01:30:00          # total run time limit (HH:MM:SS)
 #SBATCH --gres=gpu:1             # number of gpus per node
 #SBATCH --output=logs/%x_%j.out      # standard output
+#SBATCH --gres=shard:24          # number of gpu shards to use
 #SBATCH --error=logs/%x_%j.err       # standard error
 #SBATCH --nodelist=chacha            # nodes to use
 #module purge

@@ -6,6 +6,7 @@
 #SBATCH --mem-per-cpu=16G         # memory per cpu-core (4G per cpu-core is default)
 #SBATCH --time=01:30:00          # total run time limit (HH:MM:SS)
 #SBATCH --gres=gpu:1             # number of gpus per node
+#SBATCH --gres=shard:24          # number of gpu shards to use
 #SBATCH --output=logs/%x_%j.out      # standard output
 #SBATCH --error=logs/%x_%j.err       # standard error
 #SBATCH --nodelist=chacha            # nodes to use
