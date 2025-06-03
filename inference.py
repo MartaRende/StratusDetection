@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 9  # or any number you want
+MODEL_NUM = 15  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -66,7 +66,7 @@ for year, month in months:
     with torch.no_grad():
         prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file)
         x_meteo, x_image_view1, x_image_view2, y_expected = prepare_data.load_data(
-            start_date=start_date, end_date=end_date, two_views=True
+            start_date=start_date, end_date=end_date
         )
 
         if len(x_meteo) == 0 or len(x_image_view1) == 0 or len(x_image_view2) == 0 or len(y_expected) == 0:
