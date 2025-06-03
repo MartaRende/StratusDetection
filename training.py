@@ -8,7 +8,6 @@ from multiprocessing import Pool
 import sys
 from model import StratusModel
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")

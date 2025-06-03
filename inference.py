@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 7  # or any number you want
+MODEL_NUM = 9  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -49,7 +49,7 @@ end_year = 2024
 stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2024, m) for m in range(10, 12)] 
+months = [(2024, m) for m in range(10, 11)] 
 # +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
@@ -91,6 +91,7 @@ for year, month in months:
                 "ZS",
                 "SU",
                 "DD",
+                "pres"
             ],
             stats=stats_input,
         )
@@ -151,8 +152,7 @@ for year, month in months:
 # Flatten all_expected into a 1D array
 all_expected =  [item for sublist in all_expected for item in sublist]
 all_predicted =  [item for sublist in all_predicted for item in sublist]
-import ipdb
-ipdb.set_trace()
+
 global_metrics = Metrics(
     all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
 )
