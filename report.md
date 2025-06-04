@@ -116,10 +116,58 @@ The loss is:
 ![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-25.png)
 ![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-28.png)
 
-**Pases for improvement**
+**Next improvement**
 Problems with trend reversals :
 ![str_2](models/model_14/metrics/2024-11/day_curve_2024-11-09.png)
 ![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-20.png)
 ![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-09.png)
 
 #### Model Performance Metrics model_16
+In front of these performances I decided to integrate a second view of the dole camera not touching to the structure of the model 14. 
+Obtaining the following perfromances:
+- **Mean Absolute Error (MAE):**
+    - Nyon: **53.20**
+    - Dôle: **62.51**
+
+- **Root Mean Squared Error (RMSE):**
+    - Nyon: **74.40**
+    - Dôle: **85.32**
+
+- **Mean Relative Error:**
+    - Nyon: **0.44**
+    - Dôle: **0.44**
+
+- **Stratus Days:**
+    - RMSE
+        - Nyon: **64.55**
+        - Dôle: **98.31**
+    - Relative Error
+        - Nyon: **0.60**
+        - Dôle: **0.24**
+
+- **Non-Stratus Days:**
+    - RMSE
+        - Nyon: **64.48**
+        - Dôle: **71.66**
+    - Relative Error
+        - Nyon: **0.49**
+        - Dôle: **0.48**
+- **Observations of clear stratus days:**
+
+![str_1](models/model_14/metrics/2023-01/day_curve_2023-01-26.png)
+![str_2](models/model_14/metrics/2023-01/day_curve_2023-01-24.png)
+![str_4](models/model_14/metrics/2023-12/day_curve_2023-12-17.png)
+![str_4](models/model_14/metrics/2024-11/day_curve_2024-11-04.png)
+
+- **Observations of half stratus days:**
+
+
+![str_3](models/model_14/metrics/2023-09/day_curve_2023-09-02.png)
+![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-25.png)
+![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-28.png)
+
+**Pases for improvement**
+Problems with trend reversals :
+![str_2](models/model_14/metrics/2024-11/day_curve_2024-11-09.png)
+![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-20.png)
+![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-09.png)
