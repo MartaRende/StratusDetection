@@ -110,8 +110,11 @@ class PrepareData:
 
             img_array_1 = self.get_image_for_datetime(row['datetime'], image_view="1")
             img_array_2 = self.get_image_for_datetime(row['datetime'], image_view="2")
-            if np.all(img_array_1 == 0) or np.all(img_array_2 == 0):
-                print(f"Skipping row {idx} due to missing image data.")
+            if np.all(img_array_1 == 0):
+                print(f"Skipping row {idx} due to missing image data. For image view 1")
+                continue
+            if np.all(img_array_2 == 0):
+                print(f"Skipping row {idx} due to missing image data. For image view 2")
                 continue
 
             next_row = df[df['datetime'] == row['datetime_next']]

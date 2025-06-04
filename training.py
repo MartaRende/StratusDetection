@@ -35,7 +35,7 @@ all_weatherX = []
 all_imagesX = []
 allY = []
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA)
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-15")
 
 all_weatherX.append(x_meteo)
 all_imagesX.append(x_images)
@@ -117,7 +117,7 @@ accuracies = {
     "test": []
 }
 
-patience = 15
+patience = 7
 best_val_loss = float('inf')
 epochs_no_improve = 0
 
