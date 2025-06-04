@@ -209,15 +209,7 @@ class Metrics:
         for day in sampled_days:
             self.plot_day_curves(day, title=title, xlabel=xlabel, ylabel=ylabel)
 
-    def save_metrics(self):
-        month_dir = self.path
-        metrics_file = os.path.join(month_dir, "metrics.txt")
-        with open(metrics_file, "w") as f:
-            f.write(f"Accuracy: {self.get_accuracy()}\n")
-            f.write(f"Mean Absolute Error: {self.get_mean_absolute_error().tolist()}\n")
-            f.write(f"Root Mean Squared Error: {self.get_rmse().tolist()}\n")
-            f.write(f"Mean Relative Error: {self.mean_relative_error().tolist()}\n")
-        print(f"Metrics saved to {metrics_file}")
+   
     
     def get_rmse_for_specific_days(self, days):
         datetime_list = self.find_datetimes()
@@ -343,5 +335,20 @@ class Metrics:
         plt.savefig(f"{self.path}/relative_error_specific_days_{stratus_days}.png")
         plt.close()
         
-
         
+    def save_metrics(self, stratus_days=None, non_stratus_days=None):
+        month_dir = self.path
+        metrics_file = os.path.join(month_dir, "metrics.txt")
+        with open(metrics_file, "w") as f:
+            f.write(f"Accuracy: {self.get_accuracy()}\n")
+            f.write(f"Mean Absolute Error: {self.get_mean_absolute_error().tolist()}\n")
+            f.write(f"Root Mean Squared Error: {self.get_rmse().tolist()}\n")
+            f.write(f"Mean Relative Error: {self.mean_relative_error().tolist()}\n")
+            if stratus_days:
+                f.write(f"Rmse stratus days: {self.get_rmse_for_specific_days(stratus_days)}\n")
+                f.write(f"Relative Error stratus days: {self.get_relative_error_for_specific_days(stratus_days)}\n")
+            if non_stratus_days:
+                f.write(f"Rmse non-stratus days: {self.get_rmse_for_specific_days(non_stratus_days)}\n")
+                f.write(f"Relative Error non-stratus days: {self.get_relative_error_for_specific_days(non_stratus_days)}\n")
+        print(f"Metrics saved to {metrics_file}")
+            
