@@ -33,7 +33,7 @@ class StratusModel(nn.Module):
             # nn.ReLU(),
             # nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
         )
-        self.cnn_output_size = 32 * 16 * 16  # 32 channels * 8x8 spatial = 2048
+        self.cnn_output_size = 32 * 16 * 16  # 32 channels and 16x16 feature map size
         
         # MLP for meteorological data
         self.mlp_meteo = nn.Sequential(
