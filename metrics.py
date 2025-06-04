@@ -78,25 +78,19 @@ class Metrics:
     def get_mean_absolute_error(self):
         return (self.predicted - self.expected).abs().mean()
 
-    def get_delta_between_expected_and_predicted(self):
-        return (self.predicted - self.expected).abs().values.tolist()
+
 
     def plot_rmse(self, title="RMSE", xlabel="Datetime", ylabel="RMSE"):
-        delta = np.sqrt((self.predicted - self.expected) ** 2)
-        datetime = self.find_datetimes()
+        rmse = np.sqrt((self.predicted - self.expected) ** 2)
+        datetimes = self.find_datetimes()
 
-        # Aggregate data to reduce clutter
-        delta["datetime"] = datetime
-        aggregated = delta.groupby(delta["datetime"].dt.date).mean()
+        plt.figure(figsize=(12, 6))
+        for col in rmse.columns:
+            plt.plot(rmse[col], marker="o", linestyle="-", label=col)
 
-        plt.figure(figsize=(16, 8))
-        for col in aggregated.columns:
-            if col != "datetime":
-                plt.plot(aggregated.index, aggregated[col], marker="o", linestyle="-", label=col)
-
-        # Adjust x-axis ticks
-        xticks = [dt if i % 10 == 0 else "" for i, dt in enumerate(aggregated.index)]
-        plt.xticks(range(len(aggregated.index)), xticks, rotation=45)
+        # Adjust x-axis ticks using datetimes
+        xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetimes)]
+        plt.xticks(range(len(datetimes)), xticks, rotation=45)
 
         plt.title(title)
         plt.xlabel(xlabel)
@@ -215,15 +209,7 @@ class Metrics:
         for day in sampled_days:
             self.plot_day_curves(day, title=title, xlabel=xlabel, ylabel=ylabel)
 
-    def save_metrics(self):
-        month_dir = self.path
-        metrics_file = os.path.join(month_dir, "metrics.txt")
-        with open(metrics_file, "w") as f:
-            f.write(f"Accuracy: {self.get_accuracy()}\n")
-            f.write(f"Mean Absolute Error: {self.get_mean_absolute_error().tolist()}\n")
-            f.write(f"Root Mean Squared Error: {self.get_rmse().tolist()}\n")
-            f.write(f"Mean Relative Error: {self.mean_relative_error().tolist()}\n")
-        print(f"Metrics saved to {metrics_file}")
+   
     
     def get_rmse_for_specific_days(self, days):
         datetime_list = self.find_datetimes()
@@ -349,5 +335,20 @@ class Metrics:
         plt.savefig(f"{self.path}/relative_error_specific_days_{stratus_days}.png")
         plt.close()
         
-
         
+    def save_metrics(self, stratus_days=None, non_stratus_days=None):
+        month_dir = self.path
+        metrics_file = os.path.join(month_dir, "metrics.txt")
+        with open(metrics_file, "w") as f:
+            f.write(f"Accuracy: {self.get_accuracy()}\n")
+            f.write(f"Mean Absolute Error: {self.get_mean_absolute_error().tolist()}\n")
+            f.write(f"Root Mean Squared Error: {self.get_rmse().tolist()}\n")
+            f.write(f"Mean Relative Error: {self.mean_relative_error().tolist()}\n")
+            if stratus_days:
+                f.write(f"Rmse stratus days: {self.get_rmse_for_specific_days(stratus_days)}\n")
+                f.write(f"Relative Error stratus days: {self.get_relative_error_for_specific_days(stratus_days)}\n")
+            if non_stratus_days:
+                f.write(f"Rmse non-stratus days: {self.get_rmse_for_specific_days(non_stratus_days)}\n")
+                f.write(f"Relative Error non-stratus days: {self.get_relative_error_for_specific_days(non_stratus_days)}\n")
+        print(f"Metrics saved to {metrics_file}")
+            
