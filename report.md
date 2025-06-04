@@ -63,7 +63,16 @@ The loss is:
 
 ## For the next time 
 - Change model size
-- Splitting data more accurately by including pca results  
+- Splitting data more accurately 
 - Adding idaweb data (e.g. pressure, clouds) as an input 
 - Evaluate the performance of the models obtained
 
+# 2025-05-05
+
+## Tasks
+
+1. I found a model size that gives acceptable results. In the output of the cnn I left a size of 16*16*32.
+2. I added the second view of the dole camera.
+3. Testing different models from which I selected the following.
+    1. "model_14" --> 1 view, prediction for the next 10 minutes
+    2. "model_15" --> 2 view, prediction for the next 10 minutes
