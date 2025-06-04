@@ -78,3 +78,48 @@ The loss is:
     2. "model_16" --> 2 view, prediction for the next 10 minutes
     3. "model_15" --> 2 view, prediction for the next 10 minutes, with a larger model size
     4. "model_3"  --> 2 view, prediction for the next 10 minutes with a final MLP bigger 
+### Results analysis
+
+#### Model Performance Metrics model_14
+
+- **Root Mean Squared Error (RMSE):**
+    - Nyon: **86.55**
+    - Dôle: **79.28**
+
+- **Mean Relative Error:**
+    - Nyon: **0.49**
+    - Dôle: **0.52**
+
+- **Stratus Days:**
+    - RMSE
+        - Nyon: **60.17**
+        - Dôle: **61.28**
+    - Relative Error
+        - Nyon: **0.57**
+        - Dôle: **0.17**
+
+- **Non-Stratus Days:**
+    - RMSE
+        - Nyon: **70.44**
+        - Dôle: **67.32**
+- **Observations of clear stratus days:**
+
+![str_1](models/model_14/metrics/2023-01/day_curve_2023-01-26.png)
+![str_2](models/model_14/metrics/2023-01/day_curve_2023-01-24.png)
+![str_4](models/model_14/metrics/2023-12/day_curve_2023-12-17.png)
+![str_4](models/model_14/metrics/2024-11/day_curve_2024-11-04.png)
+
+- **Observations of half stratus days:**
+
+
+![str_3](models/model_14/metrics/2023-09/day_curve_2023-09-02.png)
+![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-25.png)
+![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-28.png)
+
+**Pases for improvement**
+Problems with trend reversals :
+![str_2](models/model_14/metrics/2024-11/day_curve_2024-11-09.png)
+![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-20.png)
+![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-09.png)
+
+#### Model Performance Metrics model_16
