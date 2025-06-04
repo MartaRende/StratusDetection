@@ -145,6 +145,7 @@ for year, month in months:
             metrics.plot_day_curves(i)
         metrics.plot_random_days(exclude_days=stratus_days_for_month)
         metrics.save_metrics()
+        metrics.compute_and_save_metrics_by_month_for_days(stratus_days_for_month)
         print("strtaus days for month:", stratus_days)
 
 # Flatten all_expected into a 1D array
