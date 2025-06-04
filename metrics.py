@@ -375,3 +375,34 @@ class Metrics:
                 f.write(f"Relative Error non-stratus days: {self.get_global_relative_error_for_specific_days(non_stratus_days)}\n")
         print(f"Metrics saved to {metrics_file}")
             
+    def compute_and_save_metrics_by_month_for_days(self, days, label="stratus_days"):
+        # Flatten days
+        if isinstance(days, list) and len(days) > 0 and isinstance(days[0], list):
+            days = [item for sublist in days for item in sublist]
+        else:
+            days = [str(day) for day in days]
+
+        # Group days by month
+        from collections import defaultdict
+        month_day_map = defaultdict(list)
+        for day in days:
+            month = day[:7]  # "YYYY-MM"
+            month_day_map[month].append(day)
+
+        for month, month_days in month_day_map.items():
+            # Define output path for this month
+            month_dir = os.path.join(self.save_path, month)
+            os.makedirs(month_dir, exist_ok=True)
+            output_file = os.path.join(month_dir, f"metrics_{label}.txt")
+
+            # Compute metrics
+            rmse = self.get_global_rmse_for_specific_days(month_days)
+            rel_error = self.get_global_relative_error_for_specific_days(month_days)
+
+            with open(output_file, "w") as f:
+                f.write(f"Metrics for {label} - {month}\n")
+                f.write(f"Days: {month_days}\n")
+                f.write(f"Global RMSE: {rmse}\n")
+                f.write(f"Global Relative Error: {rel_error}\n")
+
+            print(f"Saved {label} metrics for {month} to {output_file}")

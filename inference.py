@@ -49,7 +49,8 @@ end_year = 2024
 stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(1, 2)]
+#+  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -145,6 +146,7 @@ for year, month in months:
             metrics.plot_day_curves(i)
         metrics.plot_random_days(exclude_days=stratus_days_for_month)
         metrics.save_metrics()
+        metrics.compute_and_save_metrics_by_month_for_days(stratus_days_for_month)
         print("Stratus days for month:", stratus_days)
 
 # Flatten for global metrics
