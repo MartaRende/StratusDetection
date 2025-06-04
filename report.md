@@ -75,4 +75,6 @@ The loss is:
 2. I added the second view of the dole camera.
 3. Testing different models from which I selected the following.
     1. "model_14" --> 1 view, prediction for the next 10 minutes
-    2. "model_15" --> 2 view, prediction for the next 10 minutes
+    2. "model_16" --> 2 view, prediction for the next 10 minutes
+    3. "model_15" --> 2 view, prediction for the next 10 minutes, with a larger model size
+    4. "model_3"  --> 2 view, prediction for the next 10 minutes with a final MLP bigger 
