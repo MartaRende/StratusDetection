@@ -335,7 +335,29 @@ class Metrics:
         plt.savefig(f"{self.path}/relative_error_specific_days_{stratus_days}.png")
         plt.close()
         
-        
+    def get_global_rmse_for_specific_days(self, days):
+        rmse_per_day = self.get_rmse_for_specific_days(days)
+        if not rmse_per_day:
+            return {"nyon": None, "dole": None}
+        nyon_rmse = [v["nyon"] for v in rmse_per_day.values() if v["nyon"] is not None]
+        dole_rmse = [v["dole"] for v in rmse_per_day.values() if v["dole"] is not None]
+        global_rmse = {
+            "nyon": np.mean(nyon_rmse) if nyon_rmse else None,
+            "dole": np.mean(dole_rmse) if dole_rmse else None
+        }
+
+        return global_rmse
+    def get_global_relative_error_for_specific_days(self, days):
+        rel_error_per_day = self.get_relative_error_for_specific_days(days)
+        if not rel_error_per_day:
+            return {"nyon": None, "dole": None}
+        nyon_rel_error = [v["nyon"] for v in rel_error_per_day.values() if v["nyon"] is not None]
+        dole_rel_error = [v["dole"] for v in rel_error_per_day.values() if v["dole"] is not None]
+        global_rel_error = {
+            "nyon": np.mean(nyon_rel_error) if nyon_rel_error else None,
+            "dole": np.mean(dole_rel_error) if dole_rel_error else None
+        }
+        return global_rel_error
     def save_metrics(self, stratus_days=None, non_stratus_days=None):
         month_dir = self.path
         metrics_file = os.path.join(month_dir, "metrics.txt")
@@ -345,10 +367,10 @@ class Metrics:
             f.write(f"Root Mean Squared Error: {self.get_rmse().tolist()}\n")
             f.write(f"Mean Relative Error: {self.mean_relative_error().tolist()}\n")
             if stratus_days:
-                f.write(f"Rmse stratus days: {self.get_rmse_for_specific_days(stratus_days)}\n")
-                f.write(f"Relative Error stratus days: {self.get_relative_error_for_specific_days(stratus_days)}\n")
+                f.write(f"Rmse stratus days: {self.get_global_rmse_for_specific_days(stratus_days)}\n")
+                f.write(f"Relative Error stratus days: {self.get_global_relative_error_for_specific_days(stratus_days)}\n")
             if non_stratus_days:
-                f.write(f"Rmse non-stratus days: {self.get_rmse_for_specific_days(non_stratus_days)}\n")
-                f.write(f"Relative Error non-stratus days: {self.get_relative_error_for_specific_days(non_stratus_days)}\n")
+                f.write(f"Rmse non-stratus days: {self.get_global_rmse_for_specific_days(non_stratus_days)}\n")
+                f.write(f"Relative Error non-stratus days: {self.get_global_rmse_for_specific_days(non_stratus_days)}\n")
         print(f"Metrics saved to {metrics_file}")
             
