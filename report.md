@@ -81,7 +81,8 @@ The loss is:
 ### Results analysis
 
 #### Model Performance Metrics model_14
-
+- **Loss**
+![str_1](models/model_14/loss.png)
 - **Root Mean Squared Error (RMSE):**
     - Nyon: **86.55**
     - Dôle: **79.28**
@@ -122,9 +123,15 @@ Problems with trend reversals :
 ![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-20.png)
 ![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-09.png)
 
+#### Model Performance Metrics model_15
+
+In model 15 I wanted to increase the cnn channel size from 32 to 64 and increased the mlp size what gave worse results so we will not analyze this model
+
 #### Model Performance Metrics model_16
 In front of these performances I decided to integrate a second view of the dole camera not touching to the structure of the model 14. 
 Obtaining the following perfromances:
+- **Loss**
+![str_1](models/model_16/loss.png)
 - **Mean Absolute Error (MAE):**
     - Nyon: **53.20**
     - Dôle: **62.51**
@@ -154,20 +161,46 @@ Obtaining the following perfromances:
         - Dôle: **0.48**
 - **Observations of clear stratus days:**
 
-![str_1](models/model_14/metrics/2023-01/day_curve_2023-01-26.png)
-![str_2](models/model_14/metrics/2023-01/day_curve_2023-01-24.png)
-![str_4](models/model_14/metrics/2023-12/day_curve_2023-12-17.png)
-![str_4](models/model_14/metrics/2024-11/day_curve_2024-11-04.png)
+According with statistics, the model performs less well
 
-- **Observations of half stratus days:**
+**Examples of obvious stratus that works not well**
+![str_2](models/model_16/metrics/2023-01/day_curve_2023-01-24.png)
+![str_2](models/model_16/metrics/2023-01/day_curve_2023-01-27.png)
 
 
-![str_3](models/model_14/metrics/2023-09/day_curve_2023-09-02.png)
-![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-25.png)
-![str_2](models/model_14/metrics/2024-10/day_curve_2024-10-28.png)
+**Examples of days on which it works well**
+![str_2](models/model_16/metrics/2024-01/day_curve_2024-01-14.png)
+![str_2](models/model_16/metrics/2024-01/day_curve_2024-01-13.png)
 
-**Pases for improvement**
-Problems with trend reversals :
-![str_2](models/model_14/metrics/2024-11/day_curve_2024-11-09.png)
-![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-20.png)
-![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-09.png)
+#### Model Performance Metrics model_3
+- **Loss**
+![str_2](models/model_3/loss.png)
+- **Mean Absolute Error (MAE):**
+    - Nyon: **51.96**
+    - Dôle: **62.27**
+
+- **Root Mean Squared Error (RMSE):**
+    - Nyon: **75.31**
+    - Dôle: **84.12**
+
+- **Mean Relative Error:**
+    - Nyon: **0.44**
+    - Dôle: **0.48**
+
+- **Stratus Days:**
+    - RMSE
+        - Nyon: **55.53**
+        - Dôle: **89.27**
+    - Relative Error
+        - Nyon: **0.63**
+        - Dôle: **0.37**
+
+- **Non-Stratus Days:**
+    - RMSE
+        - Nyon: **63.55**
+        - Dôle: **71.67**
+    - Relative Error
+        - Nyon: **0.45**
+        - Dôle: **0.48**
+        
+As we can see there are improvements in rmse but not in relative error so we can conclude that it shows no signs of strong improvement
