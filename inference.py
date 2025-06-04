@@ -139,8 +139,7 @@ for year, month in months:
         print(f"Mean Relative Error: {mre}")
         relative_error = metrics.get_relative_error()
         metrics.plot_relative_error()
-        delta = metrics.get_delta_between_expected_and_predicted()
-        metrics.plot_rmse(delta)
+        metrics.plot_rmse()
         for i in stratus_days_for_month:
             print(f"Stratus day: {i}")
             metrics.plot_day_curves(i)
