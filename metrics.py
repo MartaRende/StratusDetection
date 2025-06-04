@@ -345,6 +345,7 @@ class Metrics:
             "nyon": np.mean(nyon_rmse) if nyon_rmse else None,
             "dole": np.mean(dole_rmse) if dole_rmse else None
         }
+
         return global_rmse
     def get_global_relative_error_for_specific_days(self, days):
         rel_error_per_day = self.get_relative_error_for_specific_days(days)
