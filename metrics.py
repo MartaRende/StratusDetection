@@ -257,7 +257,7 @@ class Metrics:
             }
    
         return rmse_per_day
-    def get_mse_for_specific_days(self, days):
+    def get_absolute_error_for_specific_days(self, days):
         datetime_list = self.find_datetimes()
         df = pd.DataFrame({
             "datetime": datetime_list,
@@ -276,43 +276,19 @@ class Metrics:
             days = [str(day) for day in days]
         df_filtered = df[df["day"].isin(days)]
 
-        mse_per_day = {}
+        abs_error_per_day = {}
         for day in days:
             day_df = df_filtered[df_filtered["day"] == day]
             if day_df.empty:
                 continue
-            mse_nyon = ((day_df["predicted_nyon"] - day_df["expected_nyon"]) ** 2).mean()
-            mse_dole = ((day_df["predicted_dole"] - day_df["expected_dole"]) ** 2).mean()
-            mse_per_day[day] = {
-                "nyon": mse_nyon,
-                "dole": mse_dole
+            abs_error_nyon = (day_df["predicted_nyon"] - day_df["expected_nyon"]).abs().mean()
+            abs_error_dole = (day_df["predicted_dole"] - day_df["expected_dole"]).abs().mean()
+            abs_error_per_day[day] = {
+                "nyon": abs_error_nyon,
+                "dole": abs_error_dole
             }
-        return mse_per_day
-    def plot_mse_for_specific_days(self, days, stratus_days="stratus_days"):
-        if len(days) == 0:
-            print("No days provided for MSE calculation.")
-            return
-        mse_per_day = self.get_mse_for_specific_days(days)
-        if not mse_per_day:
-            print("No RMSE data available for the specified days.")
-            return
-
-        days_list = list(mse_per_day.keys())
-        # Square the RMSE values to get MSE
-        mse_nyon = [mse_per_day[day]["nyon"]**2 for day in days_list]
-        mse_dole = [mse_per_day[day]["dole"]**2 for day in days_list]
-
-        plt.figure(figsize=(12, 6))
-        plt.plot(days_list, mse_nyon, marker='o', linestyle='-', label='MSE Nyon')
-        plt.plot(days_list, mse_dole, marker='x', linestyle='--', label='MSE Dole')
-        plt.xlabel("Days")
-        plt.ylabel("MSE")
-        plt.title("MSE for Specific Days")
-        plt.xticks(rotation=45)
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(f"{self.path}/mse_specific_days_{stratus_days}.png")
-        plt.close()
+        return abs_error_per_day
+   
     
     def get_relative_error_for_specific_days(self, days):
         datetime_list = self.find_datetimes()
@@ -485,6 +461,30 @@ class Metrics:
 
             print(f"Saved {label} metrics for {month} to {output_file}")
 
+    def plot_rmse_for_specific_days(self, days, stratus_days="stratus_days"):
+        if len(days) == 0:
+            print("No days provided for RMSE calculation.")
+            return
+        rmse_per_day = self.get_rmse_for_specific_days(days)
+        if not rmse_per_day:
+            print("No RMSE data available for the specified days.")
+            return
+
+        days_list = list(rmse_per_day.keys())
+        rmse_nyon = [rmse_per_day[day]["nyon"] for day in days_list]
+        rmse_dole = [rmse_per_day[day]["dole"] for day in days_list]
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(days_list, rmse_nyon, marker='o', linestyle='-', label='RMSE Nyon')
+        plt.plot(days_list, rmse_dole, marker='x', linestyle='--', label='RMSE Dole')
+        plt.xlabel("Days")
+        plt.ylabel("RMSE")
+        plt.title("RMSE for Specific Days")
+        plt.xticks(rotation=45)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f"{self.path}/rmse_specific_days_{stratus_days}.png")
+        plt.close()
 
     def get_absolute_error(self):
         return (self.predicted - self.expected).abs().mean().tolist()
