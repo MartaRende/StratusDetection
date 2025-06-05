@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM =14  # or any number you want
+MODEL_NUM =7  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -104,9 +104,9 @@ for year, month in months:
         print(f"Total predictions: {total_predictions}")
         y_predicted = []
         final_expected = []
+        x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
+        x_images_tensor = torch.tensor(x_image, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
         for i in range(total_predictions):
-            x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
-            x_images_tensor = torch.tensor(x_image, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0)
             x_image_sample = x_images_tensor[idx_test].unsqueeze(0)
@@ -140,6 +140,8 @@ for year, month in months:
         relative_error = metrics.get_relative_error()
         metrics.plot_relative_error()
         metrics.plot_absolute_error()
+        metrics.plot_delta_btw_nyon_dole()
+        metrics.plot_absolute_error_delta_btw_nyon_dole()
         for i in stratus_days_for_month:
             print(f"Stratus day: {i}")
             metrics.plot_day_curves(i)
@@ -171,8 +173,8 @@ global_metrics.plot_rmse_for_specific_days(stratus_days)
 non_stratus_days = global_metrics.find_unique_days_non_startus(stratus_days)
 
 global_metrics.plot_rmse_for_specific_days(non_stratus_days, stratus_days="non_stratus_days")
-
+global_metrics.plot_absolute_error_delta_btw_nyon_dole()
 global_metrics.plot_relative_error_for_specific_days(stratus_days)
 global_metrics.plot_relative_error_for_specific_days(non_stratus_days, stratus_days="non_stratus_days_relative_error")
-
-global_metrics.save_metrics(stratus_days=stratus_days, non_stratus_days=non_stratus_days)
+global_metrics.plot_delta_btw_nyon_dole()
+global_metrics.save_metrics(stratus_days=stratus_days, non_stratus_days=non_stratus_days) 

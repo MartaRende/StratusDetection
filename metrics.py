@@ -488,3 +488,44 @@ class Metrics:
 
     def get_absolute_error(self):
         return (self.predicted - self.expected).abs().mean().tolist()
+
+
+    def get_delta_btw_nyon_dole(self):
+        delta_predicted = (self.predicted["nyon"] - self.predicted["dole"]).abs()
+        delta_expected = (self.expected["nyon"] - self.expected["dole"]).abs()
+        return delta_predicted, delta_expected
+    
+    def plot_delta_btw_nyon_dole(self, title="Delta between Nyon and Dole", xlabel="Datetime", ylabel="Delta"):
+        delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
+        datetime_list = self.find_datetimes()
+        xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetime_list)]
+        plt.figure(figsize=(12, 6))
+        plt.plot(delta_predicted, marker='o', linestyle='-', label='Predicted Delta')
+        plt.plot(delta_expected, marker='x', linestyle='--', label='Expected Delta')
+        plt.xticks(range(len(datetime_list)), xticks, rotation=45)
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f"{self.path}/delta_nyon_dole.png")
+        plt.close()
+    
+    def plot_absolute_error_delta_btw_nyon_dole(self, title="Absolute Error Delta between Nyon and Dole", xlabel="Datetime", ylabel="Absolute Error Delta"):
+        delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
+        abs_error_delta = (delta_predicted - delta_expected).abs()
+        datetime_list = self.find_datetimes()
+        xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetime_list)]
+        
+        plt.figure(figsize=(12, 6))
+        plt.plot(abs_error_delta, marker='o', linestyle='-', label='Absolute Error Delta')
+        plt.xticks(range(len(datetime_list)), xticks, rotation=45)
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f"{self.path}/absolute_error_delta_nyon_dole.png")
+        plt.close()
