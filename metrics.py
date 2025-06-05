@@ -498,7 +498,16 @@ class Metrics:
     def plot_delta_btw_nyon_dole(self, title="Delta between Nyon and Dole", xlabel="Datetime", ylabel="Delta"):
         delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
         datetime_list = self.find_datetimes()
-        xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetime_list)]
+        # Show day only once per day on x-axis
+        prev_day = None
+        xticks = []
+        for i, dt in enumerate(datetime_list):
+            day = str(dt)[:10] if dt else ""
+            if day != prev_day:
+                xticks.append(day)
+                prev_day = day
+            else:
+                xticks.append("")
         plt.figure(figsize=(12, 6))
         plt.plot(delta_predicted, marker='o', linestyle='-', label='Predicted Delta')
         plt.plot(delta_expected, marker='x', linestyle='--', label='Expected Delta')
@@ -516,8 +525,16 @@ class Metrics:
         delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
         abs_error_delta = (delta_predicted - delta_expected).abs()
         datetime_list = self.find_datetimes()
-        xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetime_list)]
-        
+        # Show day only once per day on x-axis
+        prev_day = None
+        xticks = []
+        for i, dt in enumerate(datetime_list):
+            day = str(dt)[:10] if dt else ""
+            if day != prev_day:
+                xticks.append(day)
+                prev_day = day
+            else:
+                xticks.append("")
         plt.figure(figsize=(12, 6))
         plt.plot(abs_error_delta, marker='o', linestyle='-', label='Absolute Error Delta')
         plt.xticks(range(len(datetime_list)), xticks, rotation=45)
