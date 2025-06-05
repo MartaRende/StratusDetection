@@ -25,16 +25,16 @@ class StratusModel(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),   # 64 x 64 --> 32 x 32
-            # nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
-            # nn.BatchNorm2d(128),
-            # nn.ReLU(),
-            # nn.MaxPool2d(2, 2),   # 32 x 32 --> 16 x 16
-            nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
+            nn.MaxPool2d(2, 2),   # 32 x 32 --> 16 x 16
+            # nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            # nn.BatchNorm2d(64),
+            # nn.ReLU(),
+            # nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
         )
-        self.cnn_output_size = 64 * 16 *16 
+        self.cnn_output_size = 128 * 16 * 16
         
         # MLP for meteorological data
         self.mlp_meteo = nn.Sequential(
@@ -47,12 +47,21 @@ class StratusModel(nn.Module):
             nn.Linear(64, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
+            nn.Linear(128, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
 
         )
         
         # Final classification head
         self.mlp_head = nn.Sequential(
-            nn.Linear(self.cnn_output_size + 128, 1024),
+            nn.Linear(self.cnn_output_size + 512, 2048),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(2048, 1024),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(1024, 512),
