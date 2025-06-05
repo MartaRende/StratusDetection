@@ -257,5 +257,6 @@ We can see that the rmse and relative error have increased. This increase has cl
 
 
 ## To do for next time:
-1. Image normalization
-2. Add the time series of images and weather data to the model
+
+1. Add the time series of images and weather data to the model
+2. Find right model size

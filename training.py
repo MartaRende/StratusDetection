@@ -95,7 +95,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 
 # Model creation
 
-model = StratusModel(input_data_size=16, output_size=2).to(device)
+model = StratusModel(input_data_size=15, output_size=2).to(device)
 # Loss function and optimizer
 loss = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
