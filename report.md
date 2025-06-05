@@ -78,6 +78,7 @@ The loss is:
     2. "model_16" --> 2 view, prediction for the next 10 minutes
     3. "model_15" --> 2 view, prediction for the next 10 minutes, with a larger model size
     4. "model_3"  --> 2 view, prediction for the next 10 minutes with a final MLP bigger 
+    5. "model_5" --> 1 view, prediction for the next 60 minutes with the same model stucture of model_14 
 ### Results analysis
 
 #### Model Performance Metrics model_14
@@ -122,7 +123,7 @@ Problems with trend reversals :
 ![str_2](models/model_14/metrics/2024-11/day_curve_2024-11-09.png)
 ![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-20.png)
 ![str_2](models/model_14/metrics/2024-12/day_curve_2024-12-09.png)
-
+![str_4](models/model_14/metrics/2023-12/day_curve_2023-12-22.png)
 #### Model Performance Metrics model_15
 
 In model 15 I wanted to increase the cnn channel size from 32 to 64 and increased the mlp size what gave worse results so we will not analyze this model
@@ -204,3 +205,57 @@ According with statistics, the model performs less well
         - Dôle: **0.48**
         
 As we can see there are improvements in rmse but not in relative error so we can conclude that it shows no signs of strong improvement
+#### Model Performance Metrics model_5
+
+The best results were obtained from model 14, I decided to keep the same model structure to try and make a startus prediction for the next hour
+
+The results are the following : 
+
+- **Loss**
+- **Loss**
+![str_2](models/model_5/loss.png)
+
+- **Mean Absolute Error (MAE):**
+    - Nyon: **84.30**
+    - Dôle: **92.12**
+
+- **Root Mean Squared Error (RMSE):**
+    - Nyon: **116.06**
+    - Dôle: **123.38**
+
+- **Mean Relative Error:**
+    - Nyon: **0.67**
+    - Dôle: **0.59**
+
+- **Stratus Days:**
+    - RMSE
+        - Nyon: **92.48**
+        - Dôle: **106.93**
+    - Relative Error
+        - Nyon: **0.66**
+        - Dôle: **0.29**
+
+- **Non-Stratus Days:**
+    - RMSE
+        - Nyon: **97.83**
+        - Dôle: **101.04**
+
+
+We can see that the rmse and relative error have increased. This increase has clearly impacted the performance
+
+
+**Examples of obvious stratus that works well**
+![str_2](models/model_5/metrics/2023-01/day_curve_2023-01-06.png)
+![str_2](models/model_5/metrics/2024-11/day_curve_2024-11-04.png)
+
+
+
+**Examples of days on which it works well**
+![str_2](models/model_5/metrics/2024-10/day_curve_2024-10-28.png)
+![str_2](models/model_5/metrics/2024-11/day_curve_2024-11-13.png)
+![str_2](models/model_5/metrics/2024-03/day_curve_2024-03-27.png)
+
+
+## To do for next time:
+1. Image normalization
+2. Add the time series of images and weather data to the model

@@ -32,7 +32,8 @@ class PrepareData:
         img_path = os.path.join(self.image_base_folder, dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
-            return np.array(img)
+            img_array = np.array(img, dtype=np.float32) / 255.0 # Normalize to [0, 1]
+            return img_array
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
 
@@ -267,7 +268,7 @@ class PrepareData:
                 # Convert degrees to radians, safely handling NaNs and non-numeric data
                 angle_rad = np.deg2rad(pd.to_numeric(df[var], errors="coerce").fillna(0))
                 df_processed[f"{var}_cos"] = np.cos(angle_rad)
-                df_processed[f"{var}_sin"] = np.sin(angle_rad)
+                df_processed[f"{var}_sin"] =  np.sin(angle_rad)
             else:
                 min_val = stats[var]["min"]
                 max_val = stats[var]["max"]
