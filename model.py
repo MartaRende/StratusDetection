@@ -11,9 +11,11 @@ class StratusModel(nn.Module):
         # CNN for image processing
         self.cnn = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(2, 2), # 512 x512 --> 256 x256
             nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),   # 256 x 256 --> 128 x 128
             nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),

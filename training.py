@@ -116,7 +116,7 @@ accuracies = {
     "test": []
 }
 
-patience = 6
+patience = 13
 best_val_loss = float('inf')
 epochs_no_improve = 0
 
