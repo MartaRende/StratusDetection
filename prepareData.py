@@ -32,7 +32,9 @@ class PrepareData:
         img_path = os.path.join(self.image_base_folder, image_view,dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
-            return np.array(img)
+            #Normalize image [0, 255] to [0, 1]
+            img = np.array(img, dtype=np.float32) / 255.0
+            return img
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
 
