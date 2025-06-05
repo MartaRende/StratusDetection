@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 class StratusModel(nn.Module):
-    def __init__(self, input_data_size=15, output_size=2):
+    def __init__(self, input_data_size=16, output_size=2):
         super(StratusModel, self).__init__()
         
         # CNN for image processing
