@@ -80,13 +80,13 @@ class Metrics:
 
 
 
-    def plot_rmse(self, title="RMSE", xlabel="Datetime", ylabel="RMSE"):
-        rmse = np.sqrt((self.predicted - self.expected) ** 2)
+    def plot_absolute_error(self, title="Absolute Error", xlabel="Datetime", ylabel="Absolute Error"):
+        abs_error = (self.predicted - self.expected).abs()
         datetimes = self.find_datetimes()
-
+        
         plt.figure(figsize=(12, 6))
-        for col in rmse.columns:
-            plt.plot(rmse[col], marker="o", linestyle="-", label=col)
+        for col in abs_error.columns:
+            plt.plot(abs_error[col], marker="o", linestyle="-", label=col)
 
         # Adjust x-axis ticks using datetimes
         xticks = [dt if i % 12 == 0 else "" for i, dt in enumerate(datetimes)]
@@ -98,7 +98,7 @@ class Metrics:
         plt.grid(True, linestyle="--", alpha=0.5)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(f"{self.path}/rmse.png")
+        plt.savefig(f"{self.path}/absolute_error.png")
         plt.close()
 
     def get_relative_error(self):
@@ -125,12 +125,18 @@ class Metrics:
         plt.savefig(f"{self.path}/relative_error.png")
         plt.close()
 
-    def get_rmse(self):
-        mse = ((self.predicted - self.expected) ** 2).mean()
+    def get_rmse(self, var_1=None, var_2=None):
+        if var_1 is None or var_2 is None:
+            var_1 = self.predicted
+            var_2 = self.expected
+        mse = ((var_1 - var_2) ** 2).mean()
         return np.sqrt(mse)
 
-    def mean_relative_error(self):
-        rel_error = ((self.predicted - self.expected).abs() / self.expected.replace(0, np.nan)).fillna(0)
+    def mean_relative_error(self, var_1=None, var_2=None):
+        if var_1 is None or var_2 is None:
+            var_1 = self.predicted
+            var_2 = self.expected
+        rel_error = ((var_1 - var_2).abs() / var_2.replace(0, np.nan)).fillna(0)
         return rel_error.mean()
 
     def plot_day_curves(self, day, title="Day Curves", xlabel="Hour", ylabel="Value"):
@@ -251,30 +257,61 @@ class Metrics:
             }
    
         return rmse_per_day
+    def get_mse_for_specific_days(self, days):
+        datetime_list = self.find_datetimes()
+        df = pd.DataFrame({
+            "datetime": datetime_list,
+            "expected_nyon": self.expected["nyon"],
+            "expected_dole": self.expected["dole"],
+            "predicted_nyon": self.predicted["nyon"],
+            "predicted_dole": self.predicted["dole"],
+        })
+        df = df[df["datetime"].notnull()]
+        df["day"] = df["datetime"].astype(str).str[:10]
 
-    def plot_rmse_for_specific_days(self, days, stratus_days="stratus_days"):
+        # Flatten days if needed
+        if isinstance(days, list) and len(days) > 0 and isinstance(days[0], list):
+            days = [item for sublist in days for item in sublist]
+        else:
+            days = [str(day) for day in days]
+        df_filtered = df[df["day"].isin(days)]
+
+        mse_per_day = {}
+        for day in days:
+            day_df = df_filtered[df_filtered["day"] == day]
+            if day_df.empty:
+                continue
+            mse_nyon = ((day_df["predicted_nyon"] - day_df["expected_nyon"]) ** 2).mean()
+            mse_dole = ((day_df["predicted_dole"] - day_df["expected_dole"]) ** 2).mean()
+            mse_per_day[day] = {
+                "nyon": mse_nyon,
+                "dole": mse_dole
+            }
+        return mse_per_day
+    def plot_mse_for_specific_days(self, days, stratus_days="stratus_days"):
         if len(days) == 0:
-            print("No days provided for RMSE calculation.")
+            print("No days provided for MSE calculation.")
             return
-        rmse_per_day = self.get_rmse_for_specific_days(days)
-        if not rmse_per_day:
+        mse_per_day = self.get_mse_for_specific_days(days)
+        if not mse_per_day:
             print("No RMSE data available for the specified days.")
             return
 
-        days_list = list(rmse_per_day.keys())
-        rmse_nyon = [rmse_per_day[day]["nyon"] for day in days_list]
-        rmse_dole = [rmse_per_day[day]["dole"] for day in days_list]
+        days_list = list(mse_per_day.keys())
+        # Square the RMSE values to get MSE
+        mse_nyon = [mse_per_day[day]["nyon"]**2 for day in days_list]
+        mse_dole = [mse_per_day[day]["dole"]**2 for day in days_list]
 
         plt.figure(figsize=(12, 6))
-        plt.plot(days_list, rmse_nyon, marker='o', linestyle='-', label='RMSE Nyon')
-        plt.plot(days_list, rmse_dole, marker='x', linestyle='--', label='RMSE Dole')
+        plt.plot(days_list, mse_nyon, marker='o', linestyle='-', label='MSE Nyon')
+        plt.plot(days_list, mse_dole, marker='x', linestyle='--', label='MSE Dole')
         plt.xlabel("Days")
-        plt.ylabel("RMSE")
-        plt.title("RMSE for Specific Days")
+        plt.ylabel("MSE")
+        plt.title("MSE for Specific Days")
         plt.xticks(rotation=45)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(f"{self.path}/rmse_specific_days_{stratus_days}.png")
+        plt.savefig(f"{self.path}/mse_specific_days_{stratus_days}.png")
         plt.close()
     
     def get_relative_error_for_specific_days(self, days):
@@ -334,7 +371,7 @@ class Metrics:
         plt.tight_layout()
         plt.savefig(f"{self.path}/relative_error_specific_days_{stratus_days}.png")
         plt.close()
-    
+        
     def get_global_rmse_for_specific_days(self, days):
         rmse_per_day = self.get_rmse_for_specific_days(days)
         if not rmse_per_day:
@@ -358,7 +395,6 @@ class Metrics:
             "dole": np.mean(dole_rel_error) if dole_rel_error else None
         }
         return global_rel_error
-        
     def save_metrics(self, stratus_days=None, non_stratus_days=None):
         month_dir = self.path
         metrics_file = os.path.join(month_dir, "metrics.txt")
@@ -374,7 +410,48 @@ class Metrics:
                 f.write(f"Rmse non-stratus days: {self.get_global_rmse_for_specific_days(non_stratus_days)}\n")
                 f.write(f"Relative Error non-stratus days: {self.get_global_relative_error_for_specific_days(non_stratus_days)}\n")
         print(f"Metrics saved to {metrics_file}")
-            
+    def get_mae_for_specific_days(self, days):
+        datetime_list = self.find_datetimes()
+        df = pd.DataFrame({
+            "datetime": datetime_list,
+            "expected_nyon": self.expected["nyon"],
+            "expected_dole": self.expected["dole"],
+            "predicted_nyon": self.predicted["nyon"],
+            "predicted_dole": self.predicted["dole"],
+        })
+        df = df[df["datetime"].notnull()]
+        df["day"] = df["datetime"].astype(str).str[:10]
+
+        # Flatten days if needed
+        if isinstance(days, list) and len(days) > 0 and isinstance(days[0], list):
+            days = [item for sublist in days for item in sublist]
+        else:
+            days = [str(day) for day in days]
+        df_filtered = df[df["day"].isin(days)]
+
+        mae_per_day = {}
+        for day in days:
+            day_df = df_filtered[df_filtered["day"] == day]
+            if day_df.empty:
+                continue
+            mae_nyon = (day_df["predicted_nyon"] - day_df["expected_nyon"]).abs().mean()
+            mae_dole = (day_df["predicted_dole"] - day_df["expected_dole"]).abs().mean()
+            mae_per_day[day] = {
+                "nyon": mae_nyon,
+                "dole": mae_dole
+            }
+        return mae_per_day
+    def get_global_mae_for_specific_days(self, days):
+        mae_per_day = self.get_mae_for_specific_days(days)
+        if not mae_per_day:
+            return {"nyon": None, "dole": None}
+        nyon_mae = [v["nyon"] for v in mae_per_day.values() if v["nyon"] is not None]
+        dole_mae = [v["dole"] for v in mae_per_day.values() if v["dole"] is not None]
+        global_mae = {
+            "nyon": np.mean(nyon_mae) if nyon_mae else None,
+            "dole": np.mean(dole_mae) if dole_mae else None
+        }
+        return global_mae
     def compute_and_save_metrics_by_month_for_days(self, days, label="stratus_days"):
         # Flatten days
         if isinstance(days, list) and len(days) > 0 and isinstance(days[0], list):
@@ -398,11 +475,16 @@ class Metrics:
             # Compute metrics
             rmse = self.get_global_rmse_for_specific_days(month_days)
             rel_error = self.get_global_relative_error_for_specific_days(month_days)
-
+            mae = self.get_global_mae_for_specific_days(month_days)
             with open(output_file, "w") as f:
                 f.write(f"Metrics for {label} - {month}\n")
                 f.write(f"Days: {month_days}\n")
                 f.write(f"Global RMSE: {rmse}\n")
                 f.write(f"Global Relative Error: {rel_error}\n")
+                f.write(f"Mean Absolute Error: {mae}\n")
 
             print(f"Saved {label} metrics for {month} to {output_file}")
+
+
+    def get_absolute_error(self):
+        return (self.predicted - self.expected).abs().mean().tolist()

@@ -138,7 +138,7 @@ for year, month in months:
         print(f"Mean Relative Error: {mre}")
 
         metrics.plot_relative_error()
-        metrics.plot_rmse()
+        metrics.plot_absolute_error()
 
         for i in stratus_days_for_month:
             print(f"Stratus day: {i}")
