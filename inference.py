@@ -168,12 +168,12 @@ print(f"Global Mean Absolute Error: {global_metrics_mae}")
 
 
 
-# global_metrics.plot_rmse_for_specific_days(stratus_days)
-# non_stratus_days = global_metrics.find_unique_days_non_startus(stratus_days)
+global_metrics.plot_rmse_for_specific_days(stratus_days)
+non_stratus_days = global_metrics.find_unique_days_non_startus(stratus_days)
 
-# global_metrics.plot_rmse_for_specific_days(non_stratus_days, stratus_days="non_stratus_days")
+global_metrics.plot_rmse_for_specific_days(non_stratus_days, stratus_days="non_stratus_days")
 
-# global_metrics.plot_relative_error_for_specific_days(stratus_days)
-# global_metrics.plot_relative_error_for_specific_days(non_stratus_days, stratus_days="non_stratus_days_relative_error")
+global_metrics.plot_relative_error_for_specific_days(stratus_days)
+global_metrics.plot_relative_error_for_specific_days(non_stratus_days, stratus_days="non_stratus_days_relative_error")
 
-# global_metrics.save_metrics(stratus_days=stratus_days, non_stratus_days=non_stratus_days)
+global_metrics.save_metrics(stratus_days=stratus_days, non_stratus_days=non_stratus_days)
