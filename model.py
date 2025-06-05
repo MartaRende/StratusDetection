@@ -11,7 +11,6 @@ class StratusModel(nn.Module):
         # CNN for image processing
         self.cnn = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(2, 2), # 512 x512 --> 256 x256
             nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
@@ -30,11 +29,12 @@ class StratusModel(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),   # 32 x 32 --> 16 x 16
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
         )
-        self.cnn_output_size = 64 * 8 *8 
+        self.cnn_output_size = 32 * 8 *8 
         
         # MLP for meteorological data
         self.mlp_meteo = nn.Sequential(
