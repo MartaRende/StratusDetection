@@ -36,7 +36,7 @@ all_weatherX = []
 all_imagesX = []
 allY = []
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA)
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-15")
 
 all_weatherX.append(x_meteo)
 all_imagesX.append(x_images)
@@ -212,7 +212,6 @@ def saveResults():
         with open("model.py", "r") as original_file:
             for line in original_file:
                 f.write(line)
-    # do the mse calculation on the test data
         
     # save test data taken from test_dataset
     test_save_path = os.path.join(currPath, "test_data.npz")
