@@ -67,17 +67,17 @@ The loss is:
 - Adding idaweb data (e.g. pressure, clouds) as an input 
 - Evaluate the performance of the models obtained
 
-# 2025-05-05
+# 2025-06-05
 
 ## Tasks
 
-1. I found a model size that gives acceptable results. In the output of the cnn I left a size of 16*16*32.
+1. I found a model size that gives acceptable results. In the output of the cnn I have a size of 16*16*32.
 2. I added the second view of the dole camera.
 3. Testing different models from which I selected the following.
     1. "model_14" --> 1 view, prediction for the next 10 minutes
     2. "model_16" --> 2 view, prediction for the next 10 minutes
     3. "model_15" --> 2 view, prediction for the next 10 minutes, with a larger model size
-    4. "model_3"  --> 2 view, prediction for the next 10 minutes with a final MLP bigger 
+    4. "model_3" and "model_4" --> 2 view, prediction for the next 10 minutes with a final MLP bigger 
     5. "model_5" --> 1 view, prediction for the next 60 minutes with the same model stucture of model_14 
 ### Results analysis
 
@@ -204,7 +204,7 @@ According with statistics, the model performs less well
         - Nyon: **0.45**
         - Dôle: **0.48**
         
-As we can see there are improvements in rmse but not in relative error so we can conclude that it shows no signs of strong improvement
+As we can see there are improvements in rmse but not in relative error so we can conclude that it shows no signs of strong improvement. In model 4 I increased the number of neurons in the mlp even more but gave no significant changes
 #### Model Performance Metrics model_5
 
 The best results were obtained from model 14, I decided to keep the same model structure to try and make a startus prediction for the next hour
@@ -255,6 +255,10 @@ We can see that the rmse and relative error have increased. This increase has cl
 ![str_2](models/model_5/metrics/2024-11/day_curve_2024-11-13.png)
 ![str_2](models/model_5/metrics/2024-03/day_curve_2024-03-27.png)
 
+
+4. Image normalization
+
+I then focused on the fact that the images were not being normalized for the moment. So I decided to normalize them to allow the model to have the same range of values for the input values. I tried various combinations of models structure with 1 camera view all showing decreasing loss without overfitting but no one allowed me to get better results than model_14.
 
 ## To do for next time:
 

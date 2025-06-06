@@ -317,6 +317,7 @@ class Metrics:
             # Avoid division by zero
             rel_error_nyon = ((day_df["predicted_nyon"] - day_df["expected_nyon"]).abs() / day_df["expected_nyon"].replace(0, np.nan)).fillna(0).mean()
             rel_error_dole = ((day_df["predicted_dole"] - day_df["expected_dole"]).abs() / day_df["expected_dole"].replace(0, np.nan)).fillna(0).mean()
+            
             rel_error_per_day[day] = {
                 "nyon": rel_error_nyon,
                 "dole": rel_error_dole
@@ -347,6 +348,11 @@ class Metrics:
         plt.tight_layout()
         plt.savefig(f"{self.path}/relative_error_specific_days_{stratus_days}.png")
         plt.close()
+    
+    def get_delta_btw_nyon_dole(self):
+        delta_predicted = (self.predicted["nyon"] - self.predicted["dole"]).abs()
+        delta_expected = (self.expected["nyon"] - self.expected["dole"]).abs()
+        return delta_predicted, delta_expected
         
     def get_global_rmse_for_specific_days(self, days):
         rmse_per_day = self.get_rmse_for_specific_days(days)
@@ -354,9 +360,13 @@ class Metrics:
             return {"nyon": None, "dole": None}
         nyon_rmse = [v["nyon"] for v in rmse_per_day.values() if v["nyon"] is not None]
         dole_rmse = [v["dole"] for v in rmse_per_day.values() if v["dole"] is not None]
+        delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
+        # Calculate RMSE for delta
+        delta_rmse = np.sqrt(np.mean((delta_predicted - delta_expected) ** 2))
         global_rmse = {
             "nyon": np.mean(nyon_rmse) if nyon_rmse else None,
-            "dole": np.mean(dole_rmse) if dole_rmse else None
+            "dole": np.mean(dole_rmse) if dole_rmse else None,
+            "delta": delta_rmse
         }
 
         return global_rmse
@@ -366,9 +376,13 @@ class Metrics:
             return {"nyon": None, "dole": None}
         nyon_rel_error = [v["nyon"] for v in rel_error_per_day.values() if v["nyon"] is not None]
         dole_rel_error = [v["dole"] for v in rel_error_per_day.values() if v["dole"] is not None]
+        delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
+        # Calculate relative error for delta
+        rel_error = [abs((pred - exp) / exp) if exp != 0 else 0 for pred, exp in zip(delta_predicted, delta_expected)]
         global_rel_error = {
             "nyon": np.mean(nyon_rel_error) if nyon_rel_error else None,
-            "dole": np.mean(dole_rel_error) if dole_rel_error else None
+            "dole": np.mean(dole_rel_error) if dole_rel_error else None,
+            "delta": np.mean(rel_error) if rel_error else None
         }
         return global_rel_error
     def save_metrics(self, stratus_days=None, non_stratus_days=None):
@@ -490,10 +504,7 @@ class Metrics:
         return (self.predicted - self.expected).abs().mean().tolist()
 
 
-    def get_delta_btw_nyon_dole(self):
-        delta_predicted = (self.predicted["nyon"] - self.predicted["dole"]).abs()
-        delta_expected = (self.expected["nyon"] - self.expected["dole"]).abs()
-        return delta_predicted, delta_expected
+    
     
     def plot_delta_btw_nyon_dole(self, title="Delta between Nyon and Dole", xlabel="Datetime", ylabel="Delta"):
         delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
