@@ -9,10 +9,11 @@ import sys
 from metrics import *
 import importlib
 from datetime import datetime, timedelta
+import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 17  # or any number you want
+MODEL_NUM = 14  # or any number you want
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -47,9 +48,11 @@ results = {}
 start_year = 2023
 end_year = 2024
 stratus_days = []
+non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 3)] 
+#+  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -70,8 +73,7 @@ for year, month in months:
         if len(x_meteo) == 0 or len(x_image) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
-        stratus_days_for_month = prepare_data.find_stratus_days()
-        stratus_days.append(stratus_days_for_month)
+        stratus_days_for_month, non_stratus_days_for_month = prepare_data.find_stratus_days()
         print(f"Stratus days: {stratus_days_for_month}")
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
@@ -127,28 +129,23 @@ for year, month in months:
         all_predicted.append(y_predicted)
         all_expected.append(final_expected)
 
+        stratus_days.append(stratus_days_for_month)
+        non_stratus_days.append(non_stratus_days_for_month)
     
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH, start_date=start_date, end_date=end_date)
-        accuracy = metrics.get_accuracy()
-        print(f"Accuracy: {accuracy * 100:.2f}%")
-        mae = metrics.get_mean_absolute_error()
-        print(f"Mean Absolute Error: {mae}")
-        rmse = metrics.get_rmse()
-        print(f"Root Mean Squared Error: {rmse}")
-        mre = metrics.mean_relative_error()
-        print(f"Mean Relative Error: {mre}")
-        relative_error = metrics.get_relative_error()
-        metrics.plot_relative_error()
-        metrics.plot_absolute_error()
-        metrics.plot_delta_btw_nyon_dole()
-        metrics.plot_absolute_error_delta_btw_nyon_dole()
-        for i in stratus_days_for_month:
-            print(f"Stratus day: {i}")
-            metrics.plot_day_curves(i)
-        metrics.plot_random_days(exclude_days=stratus_days_for_month)
-        metrics.save_metrics()
-        metrics.compute_and_save_metrics_by_month_for_days(stratus_days_for_month)
-        print("strtaus days for month:", stratus_days)
+       
+        metrics.plot_day_curves(stratus_days_for_month)
+        # Take up to 3 random non-stratus days and plot their curves
+        num_days_to_plot = min(3, len(non_stratus_days_for_month))
+        if num_days_to_plot > 0:
+            random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
+            print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
+            metrics.plot_day_curves(random_non_stratus_days)
+        else:
+            print("No non-stratus days to select for plotting.")
+        metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+        metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+
 
 # Flatten all_expected into a 1D array
 all_expected =  [item for sublist in all_expected for item in sublist]
@@ -157,24 +154,7 @@ all_predicted =  [item for sublist in all_predicted for item in sublist]
 global_metrics = Metrics(
     all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
 )
-global_metrics_mse  = global_metrics.get_rmse()
-print(f"Global RMSE: {global_metrics_mse}")
-print(f"Global Accuracy: {global_metrics.get_accuracy() * 100:.2f}%")
+global_metrics.save_metrics_report(
+    stratus_days=stratus_days, non_stratus_days=non_stratus_days
+)
 
-global_metrics_mre = global_metrics.mean_relative_error()
-print(f"Global Mean Relative Error: {global_metrics_mre}")
-
-global_metrics_mae = global_metrics.get_mean_absolute_error()
-print(f"Global Mean Absolute Error: {global_metrics_mae}")
-
-
-
-global_metrics.plot_rmse_for_specific_days(stratus_days)
-non_stratus_days = global_metrics.find_unique_days_non_startus(stratus_days)
-
-global_metrics.plot_rmse_for_specific_days(non_stratus_days, stratus_days="non_stratus_days")
-global_metrics.plot_absolute_error_delta_btw_nyon_dole()
-global_metrics.plot_relative_error_for_specific_days(stratus_days)
-global_metrics.plot_relative_error_for_specific_days(non_stratus_days, stratus_days="non_stratus_days_relative_error")
-global_metrics.plot_delta_btw_nyon_dole()
-global_metrics.save_metrics(stratus_days=stratus_days, non_stratus_days=non_stratus_days) 
