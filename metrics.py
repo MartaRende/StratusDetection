@@ -378,7 +378,11 @@ class Metrics:
         dole_rel_error = [v["dole"] for v in rel_error_per_day.values() if v["dole"] is not None]
         delta_predicted, delta_expected = self.get_delta_btw_nyon_dole()
         # Calculate relative error for delta
-        rel_error = [abs((pred - exp) / exp) if exp != 0 else 0 for pred, exp in zip(delta_predicted, delta_expected)]
+        rel_error = [
+    abs((pred - exp) / exp) if exp > 1e-8 else 0  # Avoid division by zero or small values
+    for pred, exp in zip(delta_predicted, delta_expected)
+]
+      
         global_rel_error = {
             "nyon": np.mean(nyon_rel_error) if nyon_rel_error else None,
             "dole": np.mean(dole_rel_error) if dole_rel_error else None,
