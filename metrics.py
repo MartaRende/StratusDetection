@@ -349,7 +349,8 @@ class Metrics:
         plt.savefig(f"{self.path}/relative_error_specific_days_{stratus_days}.png")
         plt.close()
     
-    def get_delta_btw_nyon_dole(self):
+    def get_delta_btw_nyon_dole(self, days=None):
+        
         delta_predicted = (self.predicted["nyon"] - self.predicted["dole"]).abs()
         delta_expected = (self.expected["nyon"] - self.expected["dole"]).abs()
         return delta_predicted, delta_expected

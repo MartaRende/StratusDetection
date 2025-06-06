@@ -264,3 +264,5 @@ I then focused on the fact that the images were not being normalized for the mom
 
 1. Add the time series of images and weather data to the model
 2. Find right model size
+3. Add statistics to better evaluate the model
+4. Add images to daily curves 
