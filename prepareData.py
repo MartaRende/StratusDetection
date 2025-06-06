@@ -32,14 +32,13 @@ class PrepareData:
         img_path = os.path.join(self.image_base_folder, dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
-            img_array = np.array(img) # Normalize to [0, 1]
+            img_array = np.array(img, dtype=np.float32) / 255.0 # Normalize to [0, 1]
             return img_array
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
 
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
-        log_vars = ["RR", "RS"]
-        angle_var = "DD"
+
         stats = {}
 
         if var_order is None:
@@ -52,19 +51,13 @@ class PrepareData:
             test_norm = (test_df - min_vals) / range_vals
             return train_norm.fillna(0), validation_norm.fillna(0), test_norm.fillna(0), {"min": min_vals, "max": max_vals}
         for var in var_order:
-            if var == angle_var:
-                continue
+    
             values = train_df[var]
             stats[var] = {"min": values.min(), "max": values.max()}
 
         def process(df):
             df_processed = pd.DataFrame()
             for var in var_order:
-                if var == angle_var:
-                    angle_rad = np.deg2rad(pd.to_numeric(df[var], errors="coerce").fillna(0))
-                    df_processed[f"{var}_cos"] = np.cos(angle_rad)
-                    df_processed[f"{var}_sin"] = np.sin(angle_rad)
-                else:
                     min_val = stats[var]["min"]
                     max_val = stats[var]["max"]
                     range_val = max_val - min_val
@@ -260,16 +253,10 @@ class PrepareData:
 
     def normalize_data_test(self, data, var_order=None, stats=None):
         df = pd.DataFrame(data, columns=var_order)
-        angle_var = "DD"
         df_processed = pd.DataFrame()
 
         for var in var_order:
-            if var == angle_var:
-                # Convert degrees to radians, safely handling NaNs and non-numeric data
-                angle_rad = np.deg2rad(pd.to_numeric(df[var], errors="coerce").fillna(0))
-                df_processed[f"{var}_cos"] = np.cos(angle_rad)
-                df_processed[f"{var}_sin"] =  np.sin(angle_rad)
-            else:
+            
                 min_val = stats[var]["min"]
                 max_val = stats[var]["max"]
                 range_val = max_val - min_val if max_val != min_val else 1e-8
