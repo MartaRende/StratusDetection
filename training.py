@@ -183,6 +183,8 @@ def saveResults():
     print("Saved model to ", currPath)
     plt.figure()
     for key in losses:
+        if key == "test":
+            continue
         plt.plot(losses[key], label=f"{key.capitalize()} loss")
     plt.yscale("log")
     plt.legend()
