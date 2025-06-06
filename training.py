@@ -99,7 +99,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 model = StratusModel(input_data_size=16, output_size=2).to(device)
 # Loss function and optimizer
 loss = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer, mode="min", factor=0.1, patience=3
 )
@@ -117,13 +117,10 @@ accuracies = {
     "test": []
 }
 
-patience = 7
-best_val_loss = float('inf')
-epochs_no_improve = 0
 
 print("len(data_test):", len(prepare_data.test_data))
 
-num_epochs = 70
+num_epochs = 100
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:
@@ -160,20 +157,11 @@ for epoch in range(num_epochs):
 
         if step == "eval":
             scheduler.step(avg_loss)
-            if avg_loss < best_val_loss:
-                best_val_loss = avg_loss
-                epochs_no_improve = 0
-                best_model_state = model.state_dict()  
-            else:
-                epochs_no_improve += 1
 
     print(
         f"Epoch [{epoch+1}/{num_epochs}], Loss: {losses['train'][-1]:.4f}, Val loss : {losses['eval'][-1]:.4f}, Test loss : {losses['test'][-1]:.4f}"
     )
-    
-    if epochs_no_improve >= patience:
-        print(f"Early stopping triggered at epoch {epoch+1}")
-        break
+
 
 #
 MODEL_BASE_PATH = "./models/"

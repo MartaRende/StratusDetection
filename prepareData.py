@@ -33,7 +33,7 @@ class PrepareData:
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             #Normalize image [0, 255] to [0, 1]
-            img = np.array(img, dtype=np.float32) / 255.0
+            img = np.array(img)
             return img
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
