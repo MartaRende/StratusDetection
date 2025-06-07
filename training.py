@@ -14,17 +14,18 @@ print(f"Device is : {device}")
 print(os.system("whoami"))
 print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 # add an argument to the script to change certain parameters
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/1/"
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
+num_views = 0
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/1"
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
         FP_IMAGES = os.path.normpath(FP_IMAGES)
     if len(sys.argv) > 2:
         if sys.argv[2] == "1":
-            FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/1"
+            num_views = 1
         elif sys.argv[2] == "2":
-            FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
+            num_views = 2
 
 
 
@@ -40,8 +41,8 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 all_weatherX = []
 all_imagesX = []
 allY = []
-prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA)
-x_meteo, x_images, y = prepare_data.load_data()
+prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views)
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-15")
 
 all_weatherX.append(x_meteo)
 all_imagesX.append(x_images)
@@ -76,14 +77,24 @@ class SimpleDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.y)
     def __getitem__(self, idx):
-        img = torch.tensor(self.images[idx], dtype=torch.float32)
-        if img.ndim == 3:
-            img = img.permute(2, 0, 1)
-        return (
-            torch.tensor(self.weather[idx], dtype=torch.float32),
-            img,
-            torch.tensor(self.y[idx], dtype=torch.float32)
-        )
+        if num_views == 2:
+            img1, img2 = self.images[idx]
+            img1 = torch.tensor(img1, dtype=torch.float32).permute(2, 0, 1)
+            img2 = torch.tensor(img2, dtype=torch.float32).permute(2, 0, 1)
+            return (
+                torch.tensor(self.weather[idx], dtype=torch.float32),
+                img1,
+                img2,
+                torch.tensor(self.y[idx], dtype=torch.float32)
+            )
+        else:
+            img = self.images[idx]
+            img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1)
+            return (
+                torch.tensor(self.weather[idx], dtype=torch.float32),
+                img,
+                torch.tensor(self.y[idx], dtype=torch.float32)
+            )
 
 train_dataset = SimpleDataset(weather_train, images_train, y_train)
 validation_dataset = SimpleDataset(weather_validation, images_validation, y_validation)
@@ -100,7 +111,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 
 # Model creation
 
-model = StratusModel(input_data_size=16, output_size=2).to(device)
+model = StratusModel(input_data_size=16, output_size=2, num_views=num_views).to(device)
 # Loss function and optimizer
 loss = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
@@ -140,15 +151,25 @@ for epoch in range(num_epochs):
             model.eval()
         curr_loss = 0
         nbr_items = 0
-        for weather_x, images_x, labels in currLoader:
-            weather_x, images_x, labels = weather_x.to(device), images_x.to(device), labels.to(device)
-            if torch.isnan(weather_x).any() or torch.isnan(images_x).any() or torch.isnan(labels).any():
+        
+        for batch in currLoader:
+            if num_views == 2:
+                weather_x, img1, img2, labels = batch
+                weather_x, img1, img2, labels = weather_x.to(device), img1.to(device), img2.to(device), labels.to(device)
+                images_x = (img1, img2)
+            else:
+                weather_x, images_x, labels = batch
+                weather_x, images_x, labels = weather_x.to(device), images_x.to(device), labels.to(device)
+            if torch.isnan(weather_x).any() or (isinstance(images_x, tuple) and (torch.isnan(images_x[0]).any() or torch.isnan(images_x[1]).any())) or (not isinstance(images_x, tuple) and torch.isnan(images_x).any()) or torch.isnan(labels).any():
                 print("NaN in input data!")
-            if torch.isinf(weather_x).any() or torch.isinf(images_x).any() or torch.isinf(labels).any():
+            if torch.isinf(weather_x).any() or (isinstance(images_x, tuple) and (torch.isinf(images_x[0]).any() or torch.isinf(images_x[1]).any())) or (not isinstance(images_x, tuple) and torch.isinf(images_x).any()) or torch.isinf(labels).any():
                 print("Inf in input data")
 
             optimizer.zero_grad()
-            y_pred = model(weather_x, images_x)
+            if num_views == 2:
+                y_pred = model(weather_x, images_x[0], images_x[1])
+            else:
+                y_pred = model(weather_x, images_x)
             class_loss = loss(y_pred, labels)
             if step == "train":
                 class_loss.backward()

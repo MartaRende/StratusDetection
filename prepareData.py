@@ -6,11 +6,13 @@ from datetime import datetime, timedelta
 import random
 
 class PrepareData:
-    def __init__(self, fp_images, fp_weather):
+    def __init__(self, fp_images, fp_weather, num_views=1):
         self.image_base_folder = fp_images
         self.fp_weather = fp_weather
         self.data = self._load_weather_data()
         self.test_data = []
+        self.num_views = num_views
+        
 
     def _load_weather_data(self):
         npz_file = np.load(self.fp_weather, allow_pickle=True)
@@ -25,11 +27,11 @@ class PrepareData:
         
         return df
 
-    def get_image_for_datetime(self, dt):
+    def get_image_for_datetime(self, dt, view=1):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
-        img_filename = f"1159_1_{date_str}_{time_str}.jpeg"
-        img_path = os.path.join(self.image_base_folder, dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
+        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
+        img_path = os.path.join(self.image_base_folder, str(view), dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             img_array = np.array(img) # Normalize to [0, 1]
@@ -98,7 +100,7 @@ class PrepareData:
         df['datetime_next'] = df['datetime'] + timedelta(minutes=10)
 
         valid_indices = []
-      
+    
         for idx, row in df.iterrows():
             meteo_row = row[[
                 "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
@@ -108,9 +110,13 @@ class PrepareData:
             if meteo_row.isnull().any():
                 print(f"Skipping row {idx} due to NaN values in meteo data.")
                 continue
-
-            img_array = self.get_image_for_datetime(row['datetime'])
-            if np.all(img_array == 0):
+            img_array_1 = self.get_image_for_datetime(row['datetime'])
+            if self.num_views > 1:
+                img_array_2 = self.get_image_for_datetime(row['datetime'], view=2)
+                img_array = [img_array_1, img_array_2]  # Store as a list of two images
+            else:
+                img_array = img_array_1  # Store as a single image
+            if np.all(img_array_1 == 0) or (self.num_views > 1 and np.all(img_array_2 == 0)):
                 print(f"Skipping row {idx} due to missing image data.")
                 continue
 
@@ -126,12 +132,11 @@ class PrepareData:
 
         # Convert to numpy arrays
         x_meteo = np.array(x_meteo)
-        x_images = np.array(x_images)
+        x_images = np.array(x_images)  
         y = np.array(y)
 
         # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
-       
 
         return x_meteo, x_images, y
 

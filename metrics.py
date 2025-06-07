@@ -45,6 +45,7 @@ class Metrics:
                  fp_images: Optional[str] = None,
                  start_date: Optional[str] = None,
                  end_date: Optional[str] = None,
+                 num_views: int = 1,
                  stats_for_month: bool = True,
                  tolerance: float = 20.0,
                  plot_config: Optional[PlotConfig] = None,
@@ -69,6 +70,7 @@ class Metrics:
         self._setup_paths(save_path)
         self._initialize_configurations(stats_for_month, tolerance, plot_config, log_level)
         self.image_base_folder = fp_images if fp_images else ""
+        self.num_views = num_views
 
     def _initialize_data(self, expected, predicted, data):
         """Initialize and normalize data structures"""
@@ -88,11 +90,11 @@ class Metrics:
         self._dole_values = self.data["gre000z0_dole"].to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
 
-    def get_image_for_datetime(self, dt):
+    def get_image_for_datetime(self, dt, view=1):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
-        img_filename = f"1159_2_{date_str}_{time_str}.jpeg"
-        img_path = os.path.join(self.image_base_folder, dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
+        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
+        img_path = os.path.join(self.image_base_folder, str(view),dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             img_array = np.array(img) # Normalize to [0, 1]
@@ -481,6 +483,7 @@ class Metrics:
                 img_width = 1.0 / num_images
                 for i, idx in enumerate(indices):
                     dt = day_datetimes[idx]
+                    
                     img = self.get_image_for_datetime(dt)
                     # Place each image in its own axes, horizontally aligned at the bottom
                     left = i * img_width

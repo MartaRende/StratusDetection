@@ -22,14 +22,17 @@ model = StratusModel()
 
 
 npz_file = f"{MODEL_PATH}/test_data.npz"
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/1/"
+num_views = 0
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = (
-            "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/1"
-        )
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
         FP_IMAGES = os.path.normpath(FP_IMAGES)
+    if len(sys.argv) > 2:
+        if sys.argv[2] == "1":
+            num_views = 1
+        elif sys.argv[2] == "2":
+            num_views = 2
 
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
@@ -66,10 +69,10 @@ for year, month in months:
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
-        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file)
-        x_meteo, x_image, y_expected = prepare_data.load_data(start_date=start_date, end_date=end_date)
+        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views)
+        x_meteo, x_images, y_expected = prepare_data.load_data(start_date=start_date, end_date=end_date)
     
-        if len(x_meteo) == 0 or len(x_image) == 0 or len(y_expected) == 0:
+        if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
         stratus_days_for_month, non_stratus_days_for_month = prepare_data.find_stratus_days()
@@ -106,13 +109,28 @@ for year, month in months:
         y_predicted = []
         final_expected = []
         x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
-        x_images_tensor = torch.tensor(x_image, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
+        if num_views == 2:
+            x_image_view1 = x_images[:, 0, :, :, :]  # Extract the first image view
+            x_image_view2 = x_images[:, 1, :, :, :]  # Extract the second image view
+            x_image_tensor1 = torch.tensor(x_image_view1, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
+            x_image_tensor2 = torch.tensor(x_image_view2, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
+        else:
+            x_images_tensor1 = torch.tensor(x_images, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
         for i in range(total_predictions):
             idx_test = i
-            x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0)
-            x_image_sample = x_images_tensor[idx_test].unsqueeze(0)
-            y = model(x_meteo_sample, x_image_sample)
-            y = y.squeeze(0).cpu().numpy()
+            x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
+            y = None
+            if num_views == 2:
+                x_images_tensor = [x_image_tensor1, x_image_tensor2]
+                x_image_sample = [x_images_tensor[0][idx_test].unsqueeze(0), x_images_tensor[1][idx_test].unsqueeze(0)]
+                y = model(x_meteo_sample, x_image_sample[0], x_image_sample[1])
+                y = y.squeeze(0).cpu().numpy()
+            else:
+                x_images_tensor = x_images_tensor1
+                x_image_sample = x_images_tensor[idx_test].unsqueeze(0)
+                y = model(x_meteo_sample, x_image_sample)
+                y = y.squeeze(0).cpu().numpy()
+                
             expected = y_expected[idx_test]
             min_nyon = stats_label["gre000z0_nyon"]["min"]
             max_nyon = stats_label["gre000z0_nyon"]["max"]
