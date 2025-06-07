@@ -91,7 +91,7 @@ class Metrics:
         self._dole_values = self.data["gre000z0_dole"].to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
 
-    def get_image_for_datetime(self, dt, view=2):
+    def get_image_for_datetime(self, dt, view=1):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
         img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
@@ -99,11 +99,10 @@ class Metrics:
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             img_array = np.array(img) # Normalize to [0, 1]
-            print(f"Image found for {dt}: {img_path}")
             return img_array
         else:
             print(f"Image not found for {dt}: {img_path}")
-            return np.zeros((512, 512, 3), dtype=np.uint)
+            return []
         
     def _setup_datetime_filters(self, start_date, end_date):
         """Initialize datetime range filters"""
@@ -438,6 +437,9 @@ class Metrics:
                 self.logger.warning(f"No data found for day {day}")
                 continue
 
+            # Ensure datetimes are unique (keep first occurrence)
+            day_df = day_df.drop_duplicates(subset=["datetime"])
+
             month = day_df["month"].iloc[0]
             month_dir = os.path.join(self.save_path, month)
             os.makedirs(month_dir, exist_ok=True)
@@ -487,7 +489,19 @@ class Metrics:
                     dt = day_datetimes[idx]
                     
                     img = self.get_image_for_datetime(dt)
-                    # Place each image in its own axes, horizontally aligned at the bottom
+                    # Check if the image is completely black (all zeros)
+                    if np.all(img == 0):
+                        self.logger.warning(f"Image for {dt} is completely black.")
+                    else:
+                        # Optional: normalize for visibility if dynamic range is too low
+                        if img.max() - img.min() < 1e-3:
+                            print(f"Warning: Image for {dt} has very low dynamic range.")
+                            img = (img - img.min()) / (img.max() - img.min() + 1e-6)
+
+                    # Ensure RGB format if needed
+                    if img.ndim == 2:
+                        print(f"Converting grayscale image for {dt} to RGB.")
+                        img = np.stack([img] * 3, axis=-1)# Place each image in its own axes, horizontally aligned at the bottom
                     left = i * img_width
                     ax_img = fig.add_axes([left, -0.1, img_width, 0.25])
                     ax_img.imshow(img)

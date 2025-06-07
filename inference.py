@@ -165,14 +165,14 @@ for year, month in months:
         metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
 
 
-# Flatten all_expected into a 1D array
-all_expected =  [item for sublist in all_expected for item in sublist]
-all_predicted =  [item for sublist in all_predicted for item in sublist]
+# # Flatten all_expected into a 1D array
+# all_expected =  [item for sublist in all_expected for item in sublist]
+# all_predicted =  [item for sublist in all_predicted for item in sublist]
 
-global_metrics = Metrics(
-    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
-)
-global_metrics.save_metrics_report(
-    stratus_days=stratus_days, non_stratus_days=non_stratus_days
-)
+# global_metrics = Metrics(
+#     all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
+# )
+# global_metrics.save_metrics_report(
+#     stratus_days=stratus_days, non_stratus_days=non_stratus_days
+# )
 
