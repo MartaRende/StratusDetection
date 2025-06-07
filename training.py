@@ -20,6 +20,11 @@ if len(sys.argv) > 1:
         print("Train on chacha")
         FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/1"
         FP_IMAGES = os.path.normpath(FP_IMAGES)
+    if len(sys.argv) > 2:
+        if sys.argv[2] == "1":
+            FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/1"
+        elif sys.argv[2] == "2":
+            FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
 
 
 
@@ -95,7 +100,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 
 # Model creation
 
-model = StratusModel(input_data_size=15, output_size=2).to(device)
+model = StratusModel(input_data_size=16, output_size=2).to(device)
 # Loss function and optimizer
 loss = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
