@@ -37,7 +37,7 @@ class StratusModel(nn.Module):
             nn.Linear(input_data_size, 64),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(64, 64),
+            nn.Linear(64, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
 
@@ -46,16 +46,25 @@ class StratusModel(nn.Module):
         
         # Final classification head
         self.mlp_head = nn.Sequential(
-            nn.Linear(self.cnn_output_size * factor + 64, 128),
+            nn.Linear(self.cnn_output_size * factor + 126, 2048),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(128, 64),
+            nn.Linear(2048, 2048),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(64, 32),
+            nn.Linear(2048, 1024),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(32, output_size) 
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, output_size) 
         )
 
     def forward(self, meteo_data, image_1=None, image_2=None):

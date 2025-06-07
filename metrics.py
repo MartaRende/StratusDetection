@@ -71,6 +71,7 @@ class Metrics:
         self._initialize_configurations(stats_for_month, tolerance, plot_config, log_level)
         self.image_base_folder = fp_images if fp_images else ""
         self.num_views = num_views
+        self.test = 0
 
     def _initialize_data(self, expected, predicted, data):
         """Initialize and normalize data structures"""
@@ -98,6 +99,7 @@ class Metrics:
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             img_array = np.array(img) # Normalize to [0, 1]
+            print(f"Image found for {dt}: {img_path}")
             return img_array
         else:
             print(f"Image not found for {dt}: {img_path}")

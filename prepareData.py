@@ -13,7 +13,6 @@ class PrepareData:
         self.test_data = []
         self.num_views = num_views
         
-
     def _load_weather_data(self):
         npz_file = np.load(self.fp_weather, allow_pickle=True)
 
@@ -35,6 +34,7 @@ class PrepareData:
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             img_array = np.array(img) # Normalize to [0, 1]
+          
             return img_array
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
