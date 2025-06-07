@@ -14,11 +14,11 @@ print(f"Device is : {device}")
 print(os.system("whoami"))
 print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 # add an argument to the script to change certain parameters
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/1/"
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2"
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/1"
         FP_IMAGES = os.path.normpath(FP_IMAGES)
 
 
@@ -116,9 +116,6 @@ accuracies = {
     "test": []
 }
 
-patience = 13
-best_val_loss = float('inf')
-epochs_no_improve = 0
 
 print("len(data_test):", len(prepare_data.test_data))
 
@@ -159,20 +156,13 @@ for epoch in range(num_epochs):
 
         if step == "eval":
             scheduler.step(avg_loss)
-            if avg_loss < best_val_loss:
-                best_val_loss = avg_loss
-                epochs_no_improve = 0
-                best_model_state = model.state_dict()  
-            else:
-                epochs_no_improve += 1
+       
 
     print(
         f"Epoch [{epoch+1}/{num_epochs}], Loss: {losses['train'][-1]:.4f}, Val loss : {losses['eval'][-1]:.4f}, Test loss : {losses['test'][-1]:.4f}"
     )
     
-    if epochs_no_improve >= patience:
-        print(f"Early stopping triggered at epoch {epoch+1}")
-        break
+   
 
 #
 MODEL_BASE_PATH = "./models/"
@@ -194,6 +184,8 @@ def saveResults():
     print("Saved model to ", currPath)
     plt.figure()
     for key in losses:
+        if key == "test":
+            continue
         plt.plot(losses[key], label=f"{key.capitalize()} loss")
     plt.yscale("log")
     plt.legend()

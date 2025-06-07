@@ -22,12 +22,12 @@ model = StratusModel()
 
 
 npz_file = f"{MODEL_PATH}/test_data.npz"
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/2/"
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159/1/"
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
         FP_IMAGES = (
-            "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/2"
+            "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159/1"
         )
         FP_IMAGES = os.path.normpath(FP_IMAGES)
 

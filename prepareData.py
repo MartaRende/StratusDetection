@@ -28,7 +28,7 @@ class PrepareData:
     def get_image_for_datetime(self, dt):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
-        img_filename = f"1159_2_{date_str}_{time_str}.jpeg"
+        img_filename = f"1159_1_{date_str}_{time_str}.jpeg"
         img_path = os.path.join(self.image_base_folder, dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
