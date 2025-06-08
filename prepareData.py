@@ -155,9 +155,8 @@ class PrepareData:
         weather_df['gap_abs'] = weather_df['gre000z0_dole'] - weather_df['gre000z0_nyon']
 
         # Calculate the median and MAD of the difference
-        median_gap = np.median(weather_df['gap_abs'])
-        mad_gap = np.median(np.abs(weather_df['gap_abs'] - median_gap))
-
+        median_gap = 10
+        mad_gap = 44
         # Calculate the Modified Z-Score
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 

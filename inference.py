@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 21  # or any number you want
+MODEL_NUM = 23  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -55,7 +55,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(12, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -77,7 +77,7 @@ for year, month in months:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
         stratus_days_for_month, non_stratus_days_for_month = prepare_data.find_stratus_days()
-        print(f"Stratus days: {stratus_days_for_month}")
+        print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
             var_order=[
