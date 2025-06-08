@@ -42,7 +42,7 @@ all_weatherX = []
 all_imagesX = []
 allY = []
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views)
-x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-15")
+x_meteo, x_images, y = prepare_data.load_data()
 
 all_weatherX.append(x_meteo)
 all_imagesX.append(x_images)
@@ -135,7 +135,7 @@ accuracies = {
 
 print("len(data_test):", len(prepare_data.test_data))
 
-num_epochs = 70
+num_epochs = 100
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
     for step in ["train", "eval", "test"]:
