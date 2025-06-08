@@ -1,3 +1,54 @@
+# Problem Introduction
+L'objectif de ce projet est de détecter la présence de la couche et de prévoir à court terme (prévision pour les 6 prochaines heures) sa disparition ou son apparition. Le stratus est une accumulation de nuages présente dans le canton de Vaud. La particularité de cette accumulation de nuages est qu'elle est très basse, donc si nous pouvions nous déplacer sur une montagne suffisamment haute, nous pourrions voir une accumulation de nuages recouvrant la plaine du canton de Vaud. Heureusement pour nous, nous disposons d'une caméra, grâce aux images de météo suisse, qui nous permet de nous placer juste au-dessus du startus et d'avoir une bonne vue de la plaine vaudoise. Cette caméra est située à la Dôle et sera utilisée dans le cadre de ce projet. Afin de mieux comprendre les images dont nous disposons et le phénomène météorologique que nous essayons d'étudier, nous allons examiner de quoi nous parlons. Voici quelques exemples d'images disponibles. [TODO] METTRE DES PHOTOS DE LA DÔLE.
+
+
+Maintenant que nous avons une vue d'ensemble du problème, nous pouvons comprendre plus en détail quelles sont les caractéristiques de ce phénomène météorologique.
+Voici quelques recherches effectuées: 
+
+### Différence entre le brouillard et le stratus :
+- **Distance du sol** :  
+- **Visibilité** :
+    - Brouillard :  < 1 km  
+    - Stratus : > 1 km  
+(Source : [MétéoSuisse](https://www.meteosuisse.admin.ch/portrait/meteosuisse-blog/fr/2025/02/grisailles-frequentes-semestre-hiver.html))
+
+### Facteurs qui affectent la présence du brouillard ou du stratus :
+(Source : [Météonews](https://meteonews.ch/fr/News/N14196/Brouillard-et-stratus-%E2%80%93-Compagnons-de-la-saison-froide)
+)
+- **La direction du vent** :  
+    - Si le vent vient du **Nord-Est** : c'est la bise (transport de l'air continental → froid et lourd). Comme l'air est froid et lourdes, le brouillard monte et crée ainsi du stratus.  
+    - **Si la bise est plus forte** on a un stratus avec une limite supérieure plus haute.
+    - **Bise faible** : limite supérieure < 1000 m.
+    - **Bise moyenne** : limite supérieure ≤ 1500 m.
+    - **Bise forte** : limite supérieure > 2000 m.  
+
+
+### Comment le stratus disparaît-il ?
+- **Grâce au rayonnement solaire** : Le soleil chauffe la couche froide, ce qui rend la dissipation plus difficile en hiver.
+- **Le vent** : Si le vent amène de l'air chaud (vent de sud-ouest à ouest) ou de l'air sec (foehn).
+- **Arrivée d'une perturbation** : Changement de pression ou de température.
+- **Modification de la pression atmosphérique**.
+- Plus la limite supérieure est élevée, plus les chances de dissolution sont faibles, mais d'autres facteurs jouent également un rôle.  
+(Source : [MétéoSuisse](https://www.meteosuisse.admin.ch/portrait/meteosuisse-blog/fr/2024/10/limite-superieure-brouillard.html))
+
+### Formation du stratus :  
+Source : [MétéoSuisse](https://www.meteosuisse.admin.ch/meteo/meteo-et-climat-de-a-a-z/brouillard/le-plateau-une-region-a-brouillard.html#:~:text=,remplie%20sur%20le%20Plateau%20suisse)  
+La bise est souvent présente lors de la formation du stratus.  
+Source : [Agrometeo](https://api.agrometeo.ch/storage/uploads/Web_Wetterlagen_FR_low.pdf)
+
+- Dans une situation anticyclonique stable, il y a une **inversion thermique**.  
+- Dans le cas du stratus, on a une inversion thermique (l'air est plus chaud en hauteur qu'au sol). Cette inversion est créée par des anticyclones. L'air froid emprisonné près du sol est souvent humide, surtout après des nuits claires où le refroidissement radiatif est important. Lorsque l'humidité atteint le point de saturation, elle se condense et forme des nuages bas appelés stratus.  
+  - **Inversion thermique** : Se forme avec une situation anticyclonique stable, qui prévoit des pressions atmosphériques élevées, poussant l'air froid en bas (source : [MétéoSuisse](https://www.meteosuisse.admin.ch/meteo/meteo-et-climat-de-a-a-z/brouillard/le-plateau-une-region-a-brouillard.html#:~:text=,remplie%20sur%20le%20Plateau%20suisse)) → Données très importantes, il faut regarder la pression.
+- Faible ensoleillement ou soleil bas.
+- Vent faible dans les couches basses de l’atmosphère (à l’exception de la bise) : condition satisfaite en situation de haute pression.
+- **Topographie** : L’air froid et humide doit pouvoir s’accumuler dans un bassin (ex. la région suisse entre les Alpes et le Jura) → ce qui crée une inversion thermique.
+- Ciel clair → satisfait en conditions de haute pression.
+- Humidité élevée : Comme l’air froid peut contenir moins d’humidité que l’air chaud, la vapeur d’eau finit par se condenser et former du brouillard ou du stratus.
+
+### La saison influence la présence du stratus :
+Le stratus est plus présent en **hiver** et **automne**, et la vitesse à laquelle il peut disparaître varie.  
+*À voir si diviser les études en saisons pourrait avoir des avantages.*
+
 # 2025-05-27
 
 ## Tasks
