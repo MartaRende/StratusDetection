@@ -35,9 +35,9 @@ class PrepareData:
         if os.path.exists(img_path):
             img = Image.open(img_path).convert("RGB")
             #normalize images
-            img = img.resize((512, 512))
-            img_array = np.asarray(img, dtype=np.float32) / 255.0
-          
+            # img = img.resize((512, 512))
+            # img_array = np.array(img, dtype=np.float32) / 255.0
+            img_array = np.array(img)
             return img_array
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
@@ -162,7 +162,7 @@ class PrepareData:
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 
         # Define a threshold to identify outliers
-        threshold = 3.5
+        threshold = 3
         weather_df['large_gap_mod_zscore'] = weather_df['gap_abs_mod_zscore'] > threshold
 
         # Filter the data considered outliers
