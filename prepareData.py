@@ -160,8 +160,8 @@ class PrepareData:
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 
         # Define a threshold to identify outliers
-        threshold = 4.7
-        weather_df['large_gap_mod_zscore'] = weather_df['gap_abs_mod_zscore'].abs() > threshold
+        threshold = 3.5
+        weather_df['large_gap_mod_zscore'] = weather_df['gap_abs_mod_zscore'] > threshold
 
         # Filter the data considered outliers
         large_gap_data = weather_df[weather_df['large_gap_mod_zscore']]
