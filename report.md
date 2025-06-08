@@ -49,6 +49,15 @@ Source : [Agrometeo](https://api.agrometeo.ch/storage/uploads/Web_Wetterlagen_FR
 Le stratus est plus présent en **hiver** et **automne**, et la vitesse à laquelle il peut disparaître varie.  
 *À voir si diviser les études en saisons pourrait avoir des avantages.*
 
+Comme on le voit, il existe donc plusieurs facteurs météorologiques qui influencent l'apparition et la disparition du stratus. Actuellement, Météo Suisse utilise certaines de ces données pour prédire ce phénomène météorologique. Malheureusement, dans certains cas, ces données ne sont pas suffisantes ou nécessitent une intervention humaine pour garantir l'exactitude des prévisions et les réaliser de manière autonome.
+
+Dans ce projet, je vais donc essayer de créer un modèle qui, au lieu d'utiliser uniquement les données météorologiques, utilise également les images de Dôle afin d'obtenir le plus d'informations possible. 
+Pour réaliser ce projet, je dispose de deux années d'images et de deux années de données météorologiques Inca avec un timestamp de 10 minutes, plus des données de la plateforme idaweb, afin d'obtenir des informations supplémentaires qui ne sont pas disponibles dans les données Inca.
+
+Dans notre cas, comment pouvons-nous déterminer s'il y a un stratus à un moment donné ? Pour résumer, ce phénomène est un phénomène qui obscurcit la plaine vaudoise, ce qui veut dire que dans la plaine nous n'aurons pas de soleil, contrairement à la Dôle où il y aura du soleil. Donc, pour savoir si on est en présence d'un stratus à un moment donné, il suffit de mesurer la puissance d'irradiation donnée par le soleil à la Dôle et en plaine. Les deux données d'irradiation, ainsi que toutes les autres données météorologiques, sont disponibles grâce aux stations météorologiques de la dôle et de nyon (en plaine). Si la différence de rayonnement entre dôle et nyon est importante, cela signifie que nous avons un startus.
+
+
+On pourrait alors mesurer la couverture nuageuse des deux stations, mais pour l'instant on ne dispose que d'un pourcentage qui indique à quel point le ciel est couvert et qui est beaucoup moins fiable (voici les résultats). La prévision des stratus nocturnes est donc un cas isolé que nous laissons de côté pour l'instant.
 # 2025-05-27
 
 ## Tasks
