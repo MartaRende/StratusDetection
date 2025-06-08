@@ -13,15 +13,10 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 19  # or any number you want
-MODEL_PATH = f"models/model_{MODEL_NUM}"
-module_path = f"models.model_{MODEL_NUM}.model"
-module = importlib.import_module(module_path)
-StratusModel = getattr(module, "StratusModel")
-model = StratusModel()
+MODEL_NUM = 21  # or any number you want
+
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
-npz_file = f"{MODEL_PATH}/test_data.npz"
 num_views = 1
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
@@ -33,7 +28,13 @@ if len(sys.argv) > 1:
             num_views = 1
         elif sys.argv[2] == "2":
             num_views = 2
+MODEL_PATH = f"models/model_{MODEL_NUM}"
+module_path = f"models.model_{MODEL_NUM}.model"
+module = importlib.import_module(module_path)
+StratusModel = getattr(module, "StratusModel")
+npz_file = f"{MODEL_PATH}/test_data.npz"
 
+model = StratusModel(16, 2, num_views)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
