@@ -36,7 +36,7 @@ class PrepareData:
             img = Image.open(img_path).convert("RGB")
             #normalize images
             # img = img.resize((512, 512))
-            img_array = np.array(img, dtype=np.float32) / 255.0
+            img_array = np.array(img)
             # img_array = np.array(img)
             return img_array
         else:
