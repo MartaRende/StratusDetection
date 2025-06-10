@@ -253,39 +253,56 @@ def saveResults():
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)
     print("All data saved to", currPath)
     
-    train_metrics = Metrics(
-        y_train.tolist(),
-        model(weather_train, images_train) if num_views == 1 else model(weather_train, images_train[0], images_train[1]),
-        data=None,
-        save_path=f"{MODEL_BASE_PATH}/train_stats",
-        start_date="2023-01-01",
-        end_date="2024-12-31",
-        stats_for_month=False
-    )
-    train_metrics.save_metrics_report(stratus_days=train_stratus_days, non_stratus_days=train_non_stratus_days)
+    model.eval()
+    with torch.no_grad():
+        def predict(weather_np, images_np):
+            x_weather = torch.tensor(weather_np, dtype=torch.float32, device=device)
+            if num_views == 2:
+                img1 = torch.tensor(images_np[0], dtype=torch.float32, device=device).permute(0, 3, 1, 2)
+                img2 = torch.tensor(images_np[1], dtype=torch.float32, device=device).permute(0, 3, 1, 2)
+                return model(x_weather, img1, img2).cpu().numpy()
+            else:
+                x_images = torch.tensor(images_np, dtype=torch.float32, device=device).permute(0, 3, 1, 2)
+                return model(x_weather, x_images).cpu().numpy()
 
-    val_metrics = Metrics(
-        y_validation.tolist(),
-        model(weather_validation, images_validation) if num_views == 1 else model(weather_validation, images_validation[0], images_validation[1]),
-        data=None,
-        save_path=f"{MODEL_BASE_PATH}/validation_stats",
-        start_date="2023-01-01",
-        end_date="2024-12-31",
-        stats_for_month=False
-    )
-    val_metrics.save_metrics_report(stratus_days=validation_stratus_days, non_stratus_days=validation_non_stratus_days)
+        # Train metrics
+        preds_train = predict(weather_train, images_train)
+        train_metrics = Metrics(
+            y_train.tolist(),
+            preds_train,
+            data=None,
+            save_path=f"{MODEL_BASE_PATH}/train_stats",
+            start_date="2023-01-01",
+            end_date="2024-12-31",
+            stats_for_month=False
+        )
+        train_metrics.save_metrics_report(stratus_days=train_stratus_days, non_stratus_days=train_non_stratus_days)
 
-    test_metrics = Metrics(
-        y_test.tolist(),
-        model.predict(weather_test, images_test) if num_views == 1 else model(weather_test, images_test[0], images_test[1]),
-        data=None,
-        save_path=f"{MODEL_BASE_PATH}/test_stats",
-        start_date="2023-01-01",
-        end_date="2024-12-31",
-        stats_for_month=False
-    )
-    test_metrics.save_metrics_report(stratus_days=test_stratus_days, non_stratus_days=test_non_stratus_days)
-        
+        # Validation metrics
+        preds_val = predict(weather_validation, images_validation)
+        val_metrics = Metrics(
+            y_validation.tolist(),
+            preds_val,
+            data=None,
+            save_path=f"{MODEL_BASE_PATH}/validation_stats",
+            start_date="2023-01-01",
+            end_date="2024-12-31",
+            stats_for_month=False
+        )
+        val_metrics.save_metrics_report(stratus_days=validation_stratus_days, non_stratus_days=validation_non_stratus_days)
+
+        # Test metrics
+        preds_test = predict(weather_test, images_test)
+        test_metrics = Metrics(
+            y_test.tolist(),
+            preds_test,
+            data=None,
+            save_path=f"{MODEL_BASE_PATH}/test_stats",
+            start_date="2023-01-01",
+            end_date="2024-12-31",
+            stats_for_month=False
+        )
+        test_metrics.save_metrics_report(stratus_days=test_stratus_days, non_stratus_days=test_non_stratus_days)
 
     
 
