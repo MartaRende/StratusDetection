@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 23  # or any number you want
+MODEL_NUM = 24  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -41,7 +41,7 @@ model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device)
 model = model.to(device)
 model.eval()
 # load data test of npz file
-
+import ipdb ; ipdb.set_trace()
 data = np.load(npz_file, allow_pickle=True)
 stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
 stats_input = stats["stats_input"].item()
@@ -57,7 +57,8 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(12, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 2)] 
+#+  [(2023, m) for m in range(12, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -78,7 +79,9 @@ for year, month in months:
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
+        import ipdb ; ipdb.set_trace()
         stratus_days_for_month, non_stratus_days_for_month = prepare_data.find_stratus_days(stratus_days_stats_loaded[0],stratus_days[1])
+        import ipdb ; ipdb.set_trace()
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
