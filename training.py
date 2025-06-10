@@ -258,11 +258,11 @@ def saveResults():
         def predict(weather_np, images_np):
             x_weather = torch.tensor(weather_np, dtype=torch.float32, device=device)
             if num_views == 2:
-                img1 = torch.tensor(images_np[0], dtype=torch.float32, device=device).permute(2, 0, 1)
-                img2 = torch.tensor(images_np[1], dtype=torch.float32, device=device).permute(2, 0, 1)
+                img1 = torch.tensor(images_np[0], dtype=torch.float32, device=device).permute(0, 3, 1, 2)
+                img2 = torch.tensor(images_np[1], dtype=torch.float32, device=device).permute(0, 3, 1, 2)
                 return model(x_weather, img1, img2).cpu().numpy()
             else:
-                x_images = torch.tensor(images_np, dtype=torch.float32, device=device).permute(2, 0, 1)
+                x_images = torch.tensor(images_np, dtype=torch.float32, device=device).permute(0, 3, 1, 2)
                 return model(x_weather, x_images).cpu().numpy()
 
         # Train metrics
