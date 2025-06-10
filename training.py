@@ -1,3 +1,4 @@
+from metrics import Metrics
 from prepareData import PrepareData
 import torch    
 import os
@@ -62,7 +63,14 @@ weather_train, weather_test, images_train, images_test, y_train, y_test = prepar
 weather_train, weather_validation, images_train, images_validation, y_train, y_validation = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
+# Find stratus days for the training set
+train_stratus_days, train_non_stratus_days, (train_median_gap, train_mad_gap) = prepare_data.find_stratus_days(weather_train)
 
+# Find stratus days for the validation set
+validation_stratus_days, validation_non_stratus_days, (validation_median_gap, validation_mad_gap) = prepare_data.find_stratus_days(weather_validation)
+
+# Find stratus days for the test set
+test_stratus_days, test_non_stratus_days, (test_median_gap, test_mad_gap) = prepare_data.find_stratus_days(weather_test)
 
 # normalize the data
 weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(weather_train,weather_validation,weather_test, var_order=["gre000z0_nyon", "gre000z0_dole","RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD","pres"])
@@ -245,6 +253,39 @@ def saveResults():
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)
     print("All data saved to", currPath)
     
+    train_metrics = Metrics(
+        y_train.tolist(),
+        model.predict(weather_train, images_train),
+        data=None,
+        save_path=f"{MODEL_BASE_PATH}/train_stats",
+        start_date="2023-01-01",
+        end_date="2024-12-31",
+        stats_for_month=False
+    )
+    train_metrics.save_metrics_report(stratus_days=train_stratus_days, non_stratus_days=train_non_stratus_days)
+
+    val_metrics = Metrics(
+        y_validation.tolist(),
+        model.predict(weather_validation, images_validation),
+        data=None,
+        save_path=f"{MODEL_BASE_PATH}/validation_stats",
+        start_date="2023-01-01",
+        end_date="2024-12-31",
+        stats_for_month=False
+    )
+    val_metrics.save_metrics_report(stratus_days=validation_stratus_days, non_stratus_days=validation_non_stratus_days)
+
+    test_metrics = Metrics(
+        y_test.tolist(),
+        model.predict(weather_test, images_test),
+        data=None,
+        save_path=f"{MODEL_BASE_PATH}/test_stats",
+        start_date="2023-01-01",
+        end_date="2024-12-31",
+        stats_for_month=False
+    )
+    test_metrics.save_metrics_report(stratus_days=test_stratus_days, non_stratus_days=test_non_stratus_days)
+        
 
     
 
