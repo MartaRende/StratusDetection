@@ -134,7 +134,7 @@ accuracies = {
 
 
 print("len(data_test):", len(prepare_data.test_data))
-
+print("stratus_days_stats:", prepare_data.stats_stratus_days)
 num_epochs = 1
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
@@ -240,7 +240,7 @@ def saveResults():
     stats_save_path = os.path.join(currPath, "stats.npz")
     np.savez(stats_save_path, stats_input=stats_input, stats_label=stats_label)
     # Save a tuple using numpy
-    stratus_days_stats = prepare_data.stratus_days_stats
+    stratus_days_stats = prepare_data.stats_stratus_days
     print("Stratus days stats:", stratus_days_stats)
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)
     print("All data saved to", currPath)
