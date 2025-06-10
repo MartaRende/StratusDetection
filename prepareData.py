@@ -333,8 +333,9 @@ class PrepareData:
         y_test_df = pd.DataFrame(y_test, columns=label_names)
 
         # Prepare train and test arrays for x_images
-        x_images_train = np.array([x_images[indices] for indices in train_sequences])
-        x_images_test = np.array([x_images[indices] for indices in test_sequences])
+        
+        x_images_train = np.array([x_images[indices[-1]] for indices in train_sequences])
+        x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
     
         # Prepare test data for evaluation
         test_datetimes = self.data.loc[[indices[-1] for indices in test_sequences], 'datetime'].values
@@ -346,82 +347,63 @@ class PrepareData:
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
-        import ipdb
-        ipdb.set_trace()
-        return x_meteo_train_df, x_meteo_test_df, x_images_train, x_images_test, y_train_df, y_test_df
+
+        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df
 
 
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
-        # Get unique days from the sequences (using last day in each sequence)
+        # Ensure datetime and date_str columns exist
         if 'date_str' not in x_meteo_seq.columns:
             x_meteo_seq['date_str'] = x_meteo_seq['datetime'].dt.strftime('%Y-%m-%d')
-      
+        
         # Get train and validation days
-        train_days, val_days = self.get_train_validation_days(x_meteo_seq['date_str'].unique(), validation_ratio)
+        unique_days = x_meteo_seq['date_str'].unique()
+        train_days, val_days = self.get_train_validation_days(unique_days, validation_ratio)
 
-        # Get train and validation indices based on date_str
-        train_indices = x_meteo_seq[x_meteo_seq['date_str'].isin(train_days)].index
-        val_indices = x_meteo_seq[x_meteo_seq['date_str'].isin(val_days)].index
+        # Generate valid sequences (10-minute intervals)
+        sequence_indices = []
+        for i in range(len(x_meteo_seq) - self.seq_length + 1):
+            seq_window = x_meteo_seq.iloc[i:i+self.seq_length]
+            time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
+            if all(diff == 10 for diff in time_diffs):
+                sequence_indices.append(list(range(i, i + self.seq_length)))
 
-        # Create sequence indices (3 timestamps per sequence)
-        def generate_sequence_indices():
-            sequence_indices = []
-            for i in range(len(x_meteo_seq) - self.seq_length):
-                seq_window = x_meteo_seq.iloc[i:i+self.seq_length]
-                time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
-                if all(diff == 10 for diff in time_diffs):  # Ensure 10-minute intervals
-                    sequence_indices.append(range(i, i + self.seq_length))
-            return sequence_indices
-
-        sequence_indices = generate_sequence_indices()
-
-        # Filter sequences based on train and validation indices
-        train_sequences = [indices for indices in sequence_indices if all(idx in train_indices for idx in indices)]
-        val_sequences = [indices for indices in sequence_indices if all(idx in val_indices for idx in indices)]
-
-        # Prepare train and validation DataFrames for x_meteo
-        column_names = [
-            f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
-                "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
-                "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
-            ]
+        # Split sequences into train/validation
+        train_sequences = [
+            indices for indices in sequence_indices 
+            if all(x_meteo_seq.iloc[idx]['date_str'] in train_days for idx in indices)
         ]
-        label_names = ["gre000z0_nyon", "gre000z0_dole"]
-        import ipdb
-        ipdb.set_trace()
-        x_meteo_train = np.array([x_meteo_seq[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
-        x_meteo_val = np.array([x_meteo_seq[indices[-1]] for indices in val_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
+        val_sequences = [
+            indices for indices in sequence_indices 
+            if all(x_meteo_seq.iloc[idx]['date_str'] in val_days for idx in indices)
+        ]
 
-        x_images_train = np.array([x_images_seq[indices] for indices in train_sequences])
-        x_images_val = np.array([x_images_seq[indices] for indices in val_sequences])
+        # Prepare features and labels
+        column_names = [col for col in x_meteo_seq.columns if col not in ['datetime_t0','datetiem_t1','datetime_t2' 'date_str_t0', 'date_str_t2', 'date_str_t1']]
+        
+        # Use iloc for positional indexing
+        x_meteo_train = np.array([x_meteo_seq.loc[indices[-1], column_names].values
+                         for indices in train_sequences])
+        x_meteo_val = np.array([x_meteo_seq.loc[indices[-1], column_names].values
+                         for indices in val_sequences])
+   
+        x_images_train = np.array([x_images_seq[indices[-1]] for indices in train_sequences])
+        x_images_val = np.array([x_images_seq[indices[-1]] for indices in val_sequences])
+    
+        
+        y_train = np.array([y_seq.iloc[indices[-1]] for indices in train_sequences])
+        y_val = np.array([y_seq.iloc[indices[-1]] for indices in val_sequences])
 
-        y_train = np.array([y_seq[indices[-1]] for indices in train_sequences])
-        y_val = np.array([y_seq[indices[-1]] for indices in val_sequences])
-
-        # Prepare train and validation DataFrames for y (labels)
-        y_train_df = pd.DataFrame(y_train, columns=label_names)
-        y_val_df = pd.DataFrame(y_val, columns=label_names)
-        import ipdb
-        ipdb.set_trace()
-        # Prepare train and validation datetimes
-        train_datetimes = x_meteo_seq[[indices[-1] for indices in train_sequences], 'datetime'].values
-        val_datetimes = x_meteo_seq[[indices[-1] for indices in val_sequences], 'datetime'].values
-
-        # Add datetime columns
+        # Create DataFrames
         x_meteo_train_df = pd.DataFrame(x_meteo_train, columns=column_names)
         x_meteo_val_df = pd.DataFrame(x_meteo_val, columns=column_names)
-
-        x_meteo_train_df['datetime'] = train_datetimes
-        x_meteo_val_df['datetime'] = val_datetimes
-
-        y_train_df['datetime'] = train_datetimes
-        y_val_df['datetime'] = val_datetimes
-
-        import ipdb
-        ipdb.set_trace()
-        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df
-            
         
+      
+    
+        y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
+        y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
+
+        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df
 
     def normalize_data_test(self, data, var_order=None, stats=None):
         df = pd.DataFrame(data, columns=var_order)

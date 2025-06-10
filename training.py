@@ -15,7 +15,7 @@ print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 
 # Set image folder path and views based on script args
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
-num_views = 0
+num_views = 1
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -36,14 +36,15 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-15")
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-08")
 print("Data after filter:", x_meteo.shape, x_images.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
 all_weatherX = x_meteo
 all_imagesX = x_images
 allY = y
-
+import ipdb
+ipdb.set_trace()  # Debugging breakpoint to inspect variables
 # Initial split into train/test sets
 weather_train, images_train, y_train, weather_test, images_test, y_test  = prepare_data.split_data(
     all_weatherX, all_imagesX, allY
@@ -91,29 +92,41 @@ class SimpleDataset(torch.utils.data.Dataset):
         self.weather = weather
         self.images = images
         self.y = y
-
+        
     def __len__(self):
         return len(self.y)
-
+    
     def __getitem__(self, idx):
-        weather_x = torch.tensor(self.weather[idx], dtype=torch.float32)
-        y_val = torch.tensor(self.y[idx], dtype=torch.float32)
-        if num_views == 2:
-            img1, img2 = self.images[idx]
-            img1 = torch.tensor(img1, dtype=torch.float32).permute(0, 3, 1, 2)
-            img2 = torch.tensor(img2, dtype=torch.float32).permute(0, 3, 1, 2)
-            return weather_x, img1, img2, y_val
-        else:
-            # If images are in shape (N, 3, 512, 512, 3), select the correct image for this idx
-            # self.images[idx] has shape (3, 512, 512, 3)
-            img = torch.tensor(self.images[idx], dtype=torch.float32).permute(0, 3, 1, 2)  # (3, 512, 512, 3) -> (3, 3, 512, 512)
-            return weather_x, img, y_val
+        weather_x = torch.tensor(self.weather[idx], dtype=torch.float32).view(3, -1)
 
+        y_val = torch.tensor(self.y[idx], dtype=torch.float32)
+        
+        # Handle images based on num_views
+        img_data = self.images[idx]  # Shape: (3, 2, 512, 512, 3)
+        
+        if num_views == 2:
+            # For 2 views, select both cameras for all timesteps
+            img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)  # (3, 512, 512, 3) -> (3, 3, 512, 512)
+            img2 = torch.tensor(img_data[:, 1], dtype=torch.float32).permute(0, 3, 1, 2)
+            print("img1 shape: here" , img1.shape)
+  
+            return weather_x, img1, img2, y_val
+        
+        else:
+            # For single view, just take first camera
+            print("img_data shape:", img_data.shape)
+            print(img_data.shape)
+            img = torch.tensor(img_data, dtype=torch.float32).permute(0, 3, 1, 2)
+      
+            print("img shape:", img.shape)
+            return weather_x, img, y_val
+import ipdb
+ipdb.set_trace()  # Debugging breakpoint to inspect variables
 # Create datasets and loaders
 train_dataset = SimpleDataset(weather_train, images_train, y_train)
 validation_dataset = SimpleDataset(weather_validation, images_validation, y_validation)
 test_dataset = SimpleDataset(weather_test, images_test, y_test)
-
+ipdb.set_trace()  # Debugging breakpoint to inspect variables
 print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))
@@ -121,9 +134,9 @@ print("test_dataset size:", len(test_dataset))
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
-
+ipdb.set_trace()  # Debugging breakpoint to inspect variables
 # Instantiate model, loss, optimizer, scheduler
-model = StratusModel(input_data_size=16, output_size=2, num_views=num_views).to(device)
+model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
