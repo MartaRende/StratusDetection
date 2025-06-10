@@ -71,17 +71,15 @@ class StratusModel(nn.Module):
         if self.num_views == 2:
             # If two views are provided, process both images
             image_1 = self.cnn(image_1)
-            image_1 = image_1.reshape(image_1.size(0), -1)
-
+            image_1 = image_1.view(image_1.size(0), -1)
             image_2 = self.cnn(image_2)
-            image_2 = image_2.reshape(image_2.size(0), -1)
-            
+            image_2 = image_2.view(image_2.size(0), -1)
             # Combine features from both images
             z_img = torch.cat([image_1, image_2], dim=1)
         else:
         # Process image through CNN
             z_img = self.cnn(image_1)
-            z_img = z_img.reshape(z_img.size(0), -1)  # Flatten to [batch_size, 2048]
+            z_img = z_img.view(z_img.size(0), -1)  # Flatten to [batch_size, 2048]
         
         # Process meteo data
         z_meteo = self.mlp_meteo(meteo_data)
