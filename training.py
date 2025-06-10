@@ -255,7 +255,7 @@ def saveResults():
     
     train_metrics = Metrics(
         y_train.tolist(),
-        model.predict(weather_train, images_train),
+        model(weather_train, images_train),
         data=None,
         save_path=f"{MODEL_BASE_PATH}/train_stats",
         start_date="2023-01-01",
@@ -266,7 +266,7 @@ def saveResults():
 
     val_metrics = Metrics(
         y_validation.tolist(),
-        model.predict(weather_validation, images_validation),
+        model(weather_validation, images_validation),
         data=None,
         save_path=f"{MODEL_BASE_PATH}/validation_stats",
         start_date="2023-01-01",
