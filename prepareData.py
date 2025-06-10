@@ -159,7 +159,6 @@ class PrepareData:
         if median_gap is None and mad_gap is None:
             median_gap = np.median(weather_df['gap_abs'])
             mad_gap = np.median(np.abs(weather_df['gap_abs'] - median_gap))
-        self.stats_stratus_days = (median_gap, mad_gap)
         # Calculate the Modified Z-Score
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 
@@ -207,12 +206,12 @@ class PrepareData:
         non_stratus_days = sorted(set(df['datetime'].dt.strftime('%Y-%m-%d').unique()) - set(stratus_days))
   
         
-        return stratus_days,non_stratus_days
+        return stratus_days,non_stratus_days, (median_gap, mad_gap)
     
     def get_train_validation_days(self, train_days, split_ratio=0.2):
         train_days = list(train_days)
         # Use self.data to find stratus days
-        stratus_days,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
+        stratus_days,_,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
         print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
@@ -229,7 +228,7 @@ class PrepareData:
         return train_days, test_days
     
     def get_test_train_days(self, split_ratio=0.8):
-        stratus_days, _= self.find_stratus_days()
+        stratus_days, _,self.stats_stratus_days= self.find_stratus_days()
         all_days = self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist()
         print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)

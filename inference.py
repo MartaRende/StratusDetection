@@ -80,7 +80,7 @@ for year, month in months:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
         import ipdb ; ipdb.set_trace()
-        stratus_days_for_month, non_stratus_days_for_month = prepare_data.find_stratus_days(stratus_days_stats_loaded[0],stratus_days[1])
+        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(stratus_days_stats_loaded[0],stratus_days[1])
         import ipdb ; ipdb.set_trace()
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         x_meteo = prepare_data.normalize_data_test(
