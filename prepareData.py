@@ -13,6 +13,7 @@ class PrepareData:
         self.data = self._load_weather_data()
         self.test_data = []
         self.num_views = num_views
+        self.stats_stratus_days = None
         
     def _load_weather_data(self):
         npz_file = np.load(self.fp_weather, allow_pickle=True)

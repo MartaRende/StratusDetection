@@ -241,6 +241,7 @@ def saveResults():
     np.savez(stats_save_path, stats_input=stats_input, stats_label=stats_label)
     # Save a tuple using numpy
     stratus_days_stats = prepare_data.stratus_days_stats
+    print("Stratus days stats:", stratus_days_stats)
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)
     print("All data saved to", currPath)
 
