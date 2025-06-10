@@ -255,7 +255,7 @@ def saveResults():
     
     train_metrics = Metrics(
         y_train.tolist(),
-        model(weather_train, images_train),
+        model(weather_train, images_train) if num_views == 1 else model(weather_train, images_train[0], images_train[1]),
         data=None,
         save_path=f"{MODEL_BASE_PATH}/train_stats",
         start_date="2023-01-01",
@@ -266,7 +266,7 @@ def saveResults():
 
     val_metrics = Metrics(
         y_validation.tolist(),
-        model(weather_validation, images_validation),
+        model(weather_validation, images_validation) if num_views == 1 else model(weather_validation, images_validation[0], images_validation[1]),
         data=None,
         save_path=f"{MODEL_BASE_PATH}/validation_stats",
         start_date="2023-01-01",
@@ -277,7 +277,7 @@ def saveResults():
 
     test_metrics = Metrics(
         y_test.tolist(),
-        model.predict(weather_test, images_test),
+        model.predict(weather_test, images_test) if num_views == 1 else model(weather_test, images_test[0], images_test[1]),
         data=None,
         save_path=f"{MODEL_BASE_PATH}/test_stats",
         start_date="2023-01-01",
