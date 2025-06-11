@@ -447,7 +447,7 @@ class Metrics:
             # Find the first hour of the day in the data (if available)
             first_hour = None
             if not day_df.empty:
-                first_hour = day_df["datetime"].dt.hour.min()
+                first_hour = str(day_df["datetime"].dt.hour.min())
             # Create complete 10-minute time range for the day
             start_time = pd.to_datetime(day+first_hour)
             end_time = pd.to_datetime(day + " 23:59:59")
