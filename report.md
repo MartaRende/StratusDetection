@@ -327,3 +327,332 @@ Je me suis ensuite concentré sur le fait que les images n’étaient pas encore
 2. Trouver la bonne taille de modèle
 3. Ajouter des statistiques pour mieux évaluer le modèle
 4. Ajouter des images aux courbes journalières
+
+# 2025-06-12
+## Tasks
+1. Ajout d'images sur les graphiques de prédiction et eet l'ajout d'un timestamp fixed
+2. Ajout de quelque metrique globale
+
+3. model_19 --> J'ai essayé de faire un train en supprimant l'early-stopping et en utilisant la vue numéro 1 au lieu de la vue numéro 2 et j'ai obtenu les résultats suivants :$
+
+### Rapport de métriques
+
+- **Loss**
+
+![str_2](models/model_19/loss.png)
+### Rapport détaillé des métriques
+
+#### Résumé global
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 49.34     | 49.88     |
+| **RMSE**                      | 73.98     | 69.39     |
+| **Erreur relative moyenne**    | 0.44      | 0.46      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 55.50
+- **RMSE** : 88.09
+
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 41.90     | 43.98     |
+| **RMSE**                      | 54.88     | 53.24     |
+| **Erreur relative moyenne**    | 0.50      | 0.29      |
+
+- **Delta Nyon-Dôle** : MAE = 62.64, RMSE = 79.56
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 47.69     | 48.68     |
+| **RMSE**                      | 63.53     | 62.25     |
+| **Erreur relative moyenne**    | 0.43      | 0.49      |
+
+- **Delta Nyon-Dôle** : MAE = 51.35, RMSE = 72.58
+
+### Quelques exemples de résultats
+![str_2](models/model_19/metrics/2023-01/day_curve_2023-01-27.png)
+![str_2](models/model_19/metrics/2023-03/day_curve_2023-03-02.png)
+![str_2](models/model_19/metrics/2023-03/day_curve_2023-03-05.png)
+![str_2](models/model_19/metrics/2023-09/day_curve_2023-09-07.png)
+![str_2](models/model_19/metrics/2024-10/day_curve_2024-10-16.png)
+![str_2](models/model_19/metrics/2024-10/day_curve_2024-10-28.png)
+![str_2](models/model_19/metrics/2024-10/day_curve_2024-10-30.png)
+![str_2](models/model_19/metrics/2024-11/day_curve_2024-11-01.png)
+![str_2](models/model_19/metrics/2024-12/day_curve_2024-12-07.png)
+
+
+
+
+
+
+
+Après avoir effectué ces changements, j'ai refait une inférence sur le modèle 14, le meilleur modèle, pour comparer les changements. Ci-dessous, j'ai pris les mesures du modèle 14 et je les ai comparées à mon nouveau modèle.
+
+### Rapport de métriques détaillé (model_14)
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 56.30     | 55.06     |
+| **RMSE**                      | 86.55     | 79.28     |
+| **Erreur relative moyenne**    | 0.49      | 0.52      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 70.30
+- **RMSE** : 114.48
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 48.74     | 50.05     |
+| **RMSE**                      | 60.17     | 61.28     |
+| **Erreur relative moyenne**    | 0.57      | 0.17      |
+
+- **Delta Nyon-Dôle** : MAE = 79.26, RMSE = 97.99
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 55.26     | 53.11     |
+| **RMSE**                      | 72.50     | 68.53     |
+| **Erreur relative moyenne**    | 0.49      | 0.59      |
+
+- **Delta Nyon-Dôle** : MAE = 65.87, RMSE = 90.61
+
+---
+
+### Comparaison avec les statistiques du modèle actuel (model_19)
+
+| Métrique                      | Model_14 (Nyon/Dôle) | Model_19 (Nyon/Dôle) |
+|-------------------------------|----------------------|----------------------|
+| **MAE**                       | 56.30 / 55.06        | 49.34 / 49.88        |
+| **RMSE**                      | 86.55 / 79.28        | 73.98 / 69.39        |
+| **Erreur relative moyenne**    | 0.49 / 0.52          | 0.44 / 0.46          |
+
+#### Delta Nyon-Dôle
+
+| Métrique      | Model_14 | Model_19 |
+|---------------|----------|----------|
+| **MAE**       | 70.30    | 55.50    |
+| **RMSE**      | 114.48   | 88.09    |
+
+#### Jours de stratus
+
+| Métrique      | Model_14 (Nyon/Dôle) | Model_19 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 48.74 / 50.05        | 41.90 / 43.98        |
+| **RMSE**      | 60.17 / 61.28        | 54.88 / 53.24        |
+| **Erreur rel.** | 0.57 / 0.17        | 0.50 / 0.29          |
+
+#### Jours sans stratus
+
+| Métrique      | Model_14 (Nyon/Dôle) | Model_19 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 55.26 / 53.11        | 47.69 / 48.68        |
+| **RMSE**      | 72.50 / 68.53        | 63.53 / 62.25        |
+| **Erreur rel.** | 0.49 / 0.59        | 0.43 / 0.49          |
+
+---
+
+### Synthèse
+
+- **Le modèle 19 améliore toutes les métriques principales** (MAE, RMSE, erreur relative) par rapport au modèle 14, aussi bien globalement que pour les jours de stratus et sans stratus.
+- **Les écarts entre Nyon et Dôle** (delta) sont également réduits, ce qui indique une meilleure cohérence du modèle.
+- **Conclusion** : Le modèle 19 apporte une amélioration nette par rapport au modèle 14 sur l’ensemble des métriques.
+
+4. model_20 --> j'ai voulu répéter un test en ajoutant la vue de la deuxième caméra de la dôle sans l'early stopping
+
+### Rapport de métriques détaillé (model_20)
+
+- **Loss**
+
+![str_2](models/model_20/loss.png)
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 51.78     | 53.76     |
+| **RMSE**                      | 72.67     | 75.31     |
+| **Erreur relative moyenne**    | 0.42      | 0.46      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 63.16
+- **RMSE** : 97.04
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 48.29     | 47.22     |
+| **RMSE**                      | 59.23     | 58.41     |
+| **Erreur relative moyenne**    | 0.51      | 0.19      |
+
+- **Delta Nyon-Dôle** : MAE = 76.69, RMSE = 96.49
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 49.99     | 52.17     |
+| **RMSE**                      | 64.53     | 67.39     |
+| **Erreur relative moyenne**    | 0.40      | 0.49      |
+
+- **Delta Nyon-Dôle** : MAE = 57.67, RMSE = 79.54
+
+### Quelques exemples de résultats
+![str_2](models/model_20/metrics/2023-01/day_curve_2023-01-25.png)
+![str_2](models/model_20/metrics/2023-01/day_curve_2023-01-29.png)
+![str_2](models/model_20/metrics/2023-02/day_curve_2023-02-08.png)
+[str_2](models/model_20/metrics/2023-02/day_curve_2023-02-25.png)
+[str_2](models/model_20/metrics/2023-03/day_curve_2023-03-09.png)
+[str_2](models/model_20/metrics/2023-09/day_curve_2023-09-18.png)
+[str_2](models/model_20/metrics/2023-12/day_curve_2023-12-19.png)
+[str_2](models/model_20/metrics/2024-02/day_curve_2023-02-18.png)
+[str_2](models/model_20/metrics/2024-03/day_curve_2023-03-08.png)
+
+### Comparaison entre le modèle 19 et le modèle 20
+
+| Métrique                      | Model_19 (Nyon/Dôle) | Model_20 (Nyon/Dôle) |
+|-------------------------------|----------------------|----------------------|
+| **MAE**                       | 49.34 / 49.88        | 51.78 / 53.76        |
+| **RMSE**                      | 73.98 / 69.39        | 72.67 / 75.31        |
+| **Erreur relative moyenne**    | 0.44 / 0.46          | 0.42 / 0.46          |
+
+#### Delta Nyon-Dôle
+
+| Métrique      | Model_19 | Model_20 |
+|---------------|----------|----------|
+| **MAE**       | 55.50    | 63.16    |
+| **RMSE**      | 88.09    | 97.04    |
+
+#### Jours de stratus
+
+| Métrique      | Model_19 (Nyon/Dôle) | Model_20 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 41.90 / 43.98        | 48.29 / 47.22        |
+| **RMSE**      | 54.88 / 53.24        | 59.23 / 58.41        |
+| **Erreur rel.** | 0.50 / 0.29        | 0.51 / 0.19          |
+
+#### Jours sans stratus
+
+| Métrique      | Model_19 (Nyon/Dôle) | Model_20 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 47.69 / 48.68        | 49.99 / 52.17        |
+| **RMSE**      | 63.53 / 62.25        | 64.53 / 67.39        |
+| **Erreur rel.** | 0.43 / 0.49        | 0.40 / 0.49          |
+
+#### Synthèse
+
+- Le modèle 19 présente de meilleures performances globales que le modèle 20 sur la plupart des métriques (MAE, RMSE, delta Nyon-Dôle), aussi bien pour les jours de stratus que sans stratus.
+- L’ajout de la seconde vue caméra dans le modèle 20 n’apporte pas d’amélioration significative et dégrade même légèrement les résultats par rapport au modèle 19.
+- Le modèle 19 reste donc le plus performant à ce stade.
+
+5. Modification de la méthode de sélection des jours de stratus --> Pour l'instant, je me suis basé sur la médiane pour définir si un jour est caractérisé par un stratus. Cependant, en analysant les résultats, je me suis rendue compte que cette métrique n'était plus suffisante car elle excluait les jours où le stratus était présent pendant quelques heures. J'ai donc voulu chercher une méthode alternative qui conserverait plus d'informations en trouvant le z-score modifié.[modified z-score 1](https://www.ibm.com/docs/en/cognos-analytics/12.0.x?topic=terms-modified-z-score)
+[modified z-score 2](https://docs.oracle.com/en/cloud/saas/tax-reporting-cloud/ustrc/insights_metrics_MODIFIED_Z_SCORE.html)
+
+Par conséquent, selon les sources trouvées, le z-score modifié pourrait être utile dans mon cas puisqu'il consiste à détecter les valeurs outliers lorsqu'on a des données qui ne sont pas normalement distribuées. J'ai donc utilisé la différence entre l'irradiation de la Dôle et celle de Nyon mesurée à chaque 10 minutes comme métrique pour trouver les valeurs outliers. J'ai ensuite appliqué la formule et considéré la présence de plus de deux valeurs outliers par jour comme un jour de stratus
+
+6. model_23 --> Après avoir changé la méthode de filtrage des jours avec et sans stratus, j'ai voulu réessayer un train avec deux vues et la même structure que celle utilisée dans le modèle 20
+### Rapport de métriques détaillé (model_23)
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 49.58     | 50.65     |
+| **RMSE**                      | 74.01     | 73.56     |
+| **Erreur relative moyenne**    | 0.43      | 0.50      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 63.46
+- **RMSE** : 98.44
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 51.51     | 48.57     |
+| **RMSE**                      | 67.91     | 62.81     |
+| **Erreur relative moyenne**    | 0.47      | 0.20      |
+
+- **Delta Nyon-Dôle** : MAE = 73.96, RMSE = 98.63
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 46.04     | 47.49     |
+| **RMSE**                      | 61.11     | 60.81     |
+| **Erreur relative moyenne**    | 0.41      | 0.55      |
+
+- **Delta Nyon-Dôle** : MAE = 56.13, RMSE = 76.56
+
+---
+
+### Quelques exemples de résultats
+![str_2](models/model_23/metrics/2023-01/day_curve_2023-01-25.png)
+![str_2](models/model_23/metrics/2023-02/day_curve_2023-02-16.png)
+![str_2](models/model_23/metrics/2023-03/day_curve_2023-03-27.png)
+![str_2](models/model_23/metrics/2023-11/day_curve_2023-11-29.png)
+![str_2](models/model_23/metrics/2023-12/day_curve_2023-12-29.png)
+### Comparaison des modèles 19, 20 et 23
+
+| Métrique                      | Model_19 (Nyon/Dôle) | Model_20 (Nyon/Dôle) | Model_23 (Nyon/Dôle) |
+|-------------------------------|----------------------|----------------------|----------------------|
+| **MAE**                       | 49.34 / 49.88        | 51.78 / 53.76        | 49.58 / 50.65        |
+| **RMSE**                      | 73.98 / 69.39        | 72.67 / 75.31        | 74.01 / 73.56        |
+| **Erreur relative moyenne**    | 0.44 / 0.46          | 0.42 / 0.46          | 0.43 / 0.50          |
+
+#### Delta Nyon-Dôle
+
+| Métrique      | Model_19 | Model_20 | Model_23 |
+|---------------|----------|----------|----------|
+| **MAE**       | 55.50    | 63.16    | 63.46    |
+| **RMSE**      | 88.09    | 97.04    | 98.44    |
+
+#### Jours de stratus
+
+| Métrique      | Model_19 (Nyon/Dôle) | Model_20 (Nyon/Dôle) | Model_23 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|----------------------|
+| **MAE**       | 41.90 / 43.98        | 48.29 / 47.22        | 51.51 / 48.57        |
+| **RMSE**      | 54.88 / 53.24        | 59.23 / 58.41        | 67.91 / 62.81        |
+| **Erreur rel.** | 0.50 / 0.29        | 0.51 / 0.19          | 0.47 / 0.20          |
+
+#### Jours sans stratus
+
+| Métrique      | Model_19 (Nyon/Dôle) | Model_20 (Nyon/Dôle) | Model_23 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|----------------------|
+| **MAE**       | 47.69 / 48.68        | 49.99 / 52.17        | 46.04 / 47.49        |
+| **RMSE**      | 63.53 / 62.25        | 64.53 / 67.39        | 61.11 / 60.81        |
+| **Erreur rel.** | 0.43 / 0.49        | 0.40 / 0.49          | 0.41 / 0.55          |
+
+---
+
+### Synthèse comparative
+
+- **Globalement**, le modèle 19 reste le plus performant sur la plupart des métriques (MAE, RMSE, delta Nyon-Dôle).
+- **Le modèle 23** est très proche du modèle 19 en termes de MAE et RMSE globaux, mais n’apporte pas d’amélioration significative, notamment sur les jours de stratus où les erreurs augmentent légèrement.
+- **Le modèle 20** reste moins performant que les deux autres, en particulier sur les deltas et certains jours spécifiques.
