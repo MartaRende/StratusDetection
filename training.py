@@ -16,6 +16,7 @@ print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 # Set image folder path and views based on script args
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 num_views = 1
+seq_len = 3  # Number of timesteps
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -23,6 +24,8 @@ if len(sys.argv) > 1:
         FP_IMAGES = os.path.normpath(FP_IMAGES)
     if len(sys.argv) > 2:
         num_views = int(sys.argv[2])
+    if len(sys.argv) > 3:
+        seq_len = int(sys.argv[3])
 
 if not os.path.exists(FP_IMAGES):
     print(f"Path {FP_IMAGES} does not exist. Please check the path.")
@@ -33,7 +36,7 @@ print("FP_IMAGES:", FP_IMAGES)
 FP_WEATHER_DATA = "data/complete_data.npz"
 
 # Initialize data loader
-prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views)
+prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
 x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-06")
@@ -54,7 +57,7 @@ weather_train, images_train, y_train, weather_validation, images_validation, y_v
     weather_train, images_train, y_train
 )
 var_order = []
-for i in range(3):
+for i in range(seq_len):
     var_order.append("gre000z0_nyon_t" + str(i))
     var_order.append("gre000z0_dole_t" + str(i))
     var_order.append("RR_t" + str(i))
@@ -123,7 +126,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 # Instantiate model, loss, optimizer, scheduler
-model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views).to(device)
+model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)

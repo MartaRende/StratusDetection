@@ -18,6 +18,7 @@ MODEL_NUM = 28  # or any number you want
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
 num_views = 1
+seq_len = 3  # Number of time steps in the sequence
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -28,6 +29,8 @@ if len(sys.argv) > 1:
             num_views = 1
         elif sys.argv[2] == "2":
             num_views = 2
+    if len(sys.argv) > 3:
+        seq_len = int(sys.argv[3])
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -36,7 +39,7 @@ npz_file = f"{MODEL_PATH}/test_data.npz"
 fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
 loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
 stratus_days_stats_loaded = loaded["stratus_days_stats"]
-model = StratusModel(15, 2, num_views)
+model = StratusModel(15, 2, num_views,seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
@@ -71,7 +74,7 @@ for year, month in months:
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
-        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views)   
+        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_len=seq_len)   
         x_meteo, x_images, y_expected = prepare_data.load_data(start_date=start_date, end_date=end_date)
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
@@ -79,7 +82,7 @@ for year, month in months:
         stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=stratus_days_stats_loaded[0],mad_gap=stratus_days_stats_loaded[1])
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         var_order = []
-        for i in range(3):
+        for i in range(seq_len):
             var_order.append("gre000z0_nyon_t" + str(i))
             var_order.append("gre000z0_dole_t" + str(i))
             var_order.append("RR_t" + str(i))
