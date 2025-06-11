@@ -574,7 +574,6 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 
 6. model_23 --> Après avoir changé la méthode de filtrage des jours avec et sans stratus, j'ai voulu réessayer un train avec deux vues et la même structure que celle utilisée dans le modèle 20
 ### Rapport de métriques détaillé (model_23)
-### Rapport de métriques détaillé (model_23)
 
 | Métrique                      | Nyon      | Dôle      |
 |-------------------------------|-----------|-----------|

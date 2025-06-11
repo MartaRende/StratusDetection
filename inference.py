@@ -95,8 +95,7 @@ for year, month in months:
             var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
-            
-            
+      
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
             var_order=var_order,

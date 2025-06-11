@@ -417,8 +417,9 @@ class PrepareData:
         N, T, F = arr.shape
 
         # Reshape to (145, 45)
-        new_N = 145
+        new_N = N
         new_F = 45
+     
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
         df = pd.DataFrame(flat, columns=var_order)
