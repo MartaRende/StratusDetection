@@ -56,8 +56,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 2)] 
-#+  [(2023, m) for m in range(12, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -136,10 +135,10 @@ for year, month in months:
                 pred = model(x_meteo_sample, img_seq)
                 
             expected = y_expected[idx_test]
-            min_nyon = stats_label["gre000z0_nyon"]["min"]
-            max_nyon = stats_label["gre000z0_nyon"]["max"]
-            min_dole = stats_label["gre000z0_dole"]["min"]
-            max_dole = stats_label["gre000z0_dole"]["max"]
+            min_nyon = stats_label["gre000z0_nyon_t0"]["min"]
+            max_nyon = stats_label["gre000z0_nyon_t0"]["max"]
+            min_dole = stats_label["gre000z0_dole_t0"]["min"]
+            max_dole = stats_label["gre000z0_dole_t0"]["max"]
             y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
             y[1] = y[1] * (max_dole - min_dole) + min_dole
             expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
