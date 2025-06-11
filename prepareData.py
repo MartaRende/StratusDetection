@@ -198,6 +198,7 @@ class PrepareData:
         if median_gap is None and mad_gap is None:
             median_gap = np.median(weather_df['gap_abs'])
             mad_gap = np.median(np.abs(weather_df['gap_abs'] - median_gap))
+        print(f"Median gap: {median_gap}, MAD gap: {mad_gap}")
         # Calculate the Modified Z-Score
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 
