@@ -347,7 +347,7 @@ class PrepareData:
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
-
+    
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df
 
 
