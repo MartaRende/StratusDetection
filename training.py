@@ -43,14 +43,12 @@ print("Data after filter:", x_meteo.shape, x_images.shape, y.shape)
 all_weatherX = x_meteo
 all_imagesX = x_images
 allY = y
-import ipdb
-ipdb.set_trace()  # Debugging breakpoint to inspect variables
+
 # Initial split into train/test sets
 weather_train, images_train, y_train, weather_test, images_test, y_test  = prepare_data.split_data(
     all_weatherX, all_imagesX, allY
 )
-import ipdb 
-ipdb.set_trace()  # Debugging breakpoint to inspect variables
+
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation = prepare_data.split_train_validation(
     weather_train, images_train, y_train
@@ -72,8 +70,6 @@ for i in range(3):
     var_order.append("SU_t" + str(i))
     var_order.append("DD_t" + str(i))
     var_order.append("pres_t" + str(i))
-import ipdb
-ipdb.set_trace()  # Debugging breakpoint to inspect variables
 
 # Normalize input data
 weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(
@@ -109,24 +105,19 @@ class SimpleDataset(torch.utils.data.Dataset):
             img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)  # (3, 512, 512, 3) -> (3, 3, 512, 512)
             img2 = torch.tensor(img_data[:, 1], dtype=torch.float32).permute(0, 3, 1, 2)
             print("img1 shape: here" , img1.shape)
-  
             return weather_x, img1, img2, y_val
         
         else:
             # For single view, just take first camera
-            print("img_data shape:", img_data.shape)
             print(img_data.shape)
             img = torch.tensor(img_data, dtype=torch.float32).permute(0, 3, 1, 2)
-      
             print("img shape:", img.shape)
             return weather_x, img, y_val
-import ipdb
-ipdb.set_trace()  # Debugging breakpoint to inspect variables
+
 # Create datasets and loaders
 train_dataset = SimpleDataset(weather_train, images_train, y_train)
 validation_dataset = SimpleDataset(weather_validation, images_validation, y_validation)
 test_dataset = SimpleDataset(weather_test, images_test, y_test)
-ipdb.set_trace()  # Debugging breakpoint to inspect variables
 print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))
@@ -134,7 +125,6 @@ print("test_dataset size:", len(test_dataset))
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
-ipdb.set_trace()  # Debugging breakpoint to inspect variables
 # Instantiate model, loss, optimizer, scheduler
 model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views).to(device)
 loss_fn = torch.nn.MSELoss()

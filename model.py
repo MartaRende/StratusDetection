@@ -9,11 +9,27 @@ class StratusModel(nn.Module):
         self.input_feature_size = input_feature_size  # Should be 15 (features per timestep)
 
         # CNN for image processing (unchanged)
+         # CNN for image processing
         self.cnn = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            # ... [rest of your CNN layers] ...
+            nn.MaxPool2d(2, 2), # 512 x512 --> 256 x256
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 256 x 256 --> 128 x 128
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 128 x 128 --> 64 x 64
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 64 x 64 --> 32 x 32
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 32 x 32 --> 16 x 16
+            # nn.Conv2d(32, 16, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
+        
         )
         self.cnn_output_size = 32 * 16 * 16  # = 8192 per image
 
@@ -35,8 +51,24 @@ class StratusModel(nn.Module):
         # Final MLP head (unchanged)
         self.mlp_head = nn.Sequential(
             nn.Linear(mlp_input_size, 2048),
-            # ... [rest of your head layers] ...
-            nn.Linear(256, output_size)
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(2048, 2048),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(2048, 1024),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, output_size) 
         )
     def forward(self, meteo_seq, image_seq_1=None, image_seq_2=None):
         batch_size = meteo_seq.size(0)
@@ -52,6 +84,8 @@ class StratusModel(nn.Module):
                 img2_feat= self.cnn(img2_t).reshape(batch_size, -1)
                 img_features.append(torch.cat([img1_feat, img2_feat], dim=1))
             else:
+                img1_t = image_seq_1[:, t]
+                img1_feat = self.cnn(img1_t).reshape(batch_size, -1)
                 img_features.append(img1_feat)
 
             meteo_t = meteo_seq[:, t]
@@ -61,7 +95,6 @@ class StratusModel(nn.Module):
         z_meteo = torch.cat(meteo_features, dim=1)
         z       = torch.cat([z_img, z_meteo], dim=1)
 
-        # DEBUG: print what size you’re actually feeding into the head
-        print(f"→ z_img: {z_img.shape}, z_meteo: {z_meteo.shape}, concatenated z: {z.shape}")
+        print(f"z_img: {z_img.shape}, z_meteo: {z_meteo.shape}, concatenated z: {z.shape}")
 
         return self.mlp_head(z)
