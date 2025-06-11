@@ -33,9 +33,9 @@ module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
-fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
-loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
-stratus_days_stats_loaded = loaded["stratus_days_stats"]
+# fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
+# loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
+# stratus_days_stats_loaded = loaded["stratus_days_stats"]
 model = StratusModel(16, 2, num_views)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
@@ -56,8 +56,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 2)] 
-#+  [(2023, m) for m in range(12, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -79,7 +78,7 @@ for year, month in months:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
    
-        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(stratus_days_stats_loaded[0],stratus_days[1])
+        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(16,37)
       
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         x_meteo = prepare_data.normalize_data_test(
