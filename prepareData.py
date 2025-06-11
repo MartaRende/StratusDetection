@@ -341,13 +341,17 @@ class PrepareData:
         test_datetimes = self.data.loc[[indices[-1] for indices in test_sequences], 'datetime'].values
         x_meteo_test_df['datetime'] = test_datetimes
         y_test_df['datetime'] = test_datetimes
-        self.test_data = x_meteo_test_df.to_dict('records')
+      
 
         # Also add datetime to train df for reference
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
-    
+        test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
+
+        # Rename columns to remove '_t0' suffix
+        test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
+        self.test_data = test_data.to_dict('records')
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df
 
 
@@ -418,7 +422,7 @@ class PrepareData:
 
         # Reshape to (145, 45)
         new_N = N
-        new_F = 45
+        new_F = 15 * self.seq_length  # 15 features per time step, seq_length = 3
      
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
