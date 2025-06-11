@@ -405,24 +405,41 @@ class PrepareData:
 
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df
 
+        
     def normalize_data_test(self, data, var_order=None, stats=None):
-        df = pd.DataFrame(data, columns=var_order)
-        angle_var = "DD"
-        df_processed = pd.DataFrame()
+        arr = np.array(data)
+        original_ndim = arr.ndim
 
+
+        if arr.ndim == 2:
+            arr = arr[:, np.newaxis, :]  # Add the time dimension: (N, 1, F)
+
+        N, T, F = arr.shape
+
+        # Reshape to (145, 45)
+        new_N = 145
+        new_F = 45
+        flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
+        flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
+        df = pd.DataFrame(flat, columns=var_order)
+        df_out = pd.DataFrame()
+
+        
         for var in var_order:
-            if var == angle_var:
-                # Convert degrees to radians, safely handling NaNs and non-numeric data
-                angle_rad = np.deg2rad(pd.to_numeric(df[var], errors="coerce").fillna(0))
-                df_processed[f"{var}_cos"] = np.cos(angle_rad)
-                df_processed[f"{var}_sin"] =  np.sin(angle_rad)
-            else:
-                min_val = stats[var]["min"]
-                max_val = stats[var]["max"]
-                range_val = max_val - min_val if max_val != min_val else 1e-8
-                df_processed[var] = ((df[var] - min_val) / range_val).fillna(0)
+            col = df[var].astype(float).fillna(0)
+            mn = stats[var]["min"]
+            mx = stats[var]["max"]
+            rng = mx - mn if mx != mn else 1e-8
+            df_out[var] = ((col - mn) / rng).fillna(0)
 
-        return df_processed.values
+        flat_out = df_out.values
+        new_F = 15
+        reshaped = flat_out.reshape(N, T, new_F)
+
+        if original_ndim == 2:
+            return reshaped[:, 0, :]  #
+        return reshaped
+
 
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
         filtered_df = self.filter_data(start_date, end_date, take_all_seasons)

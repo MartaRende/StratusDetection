@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 24  # or any number you want
+MODEL_NUM = 28  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -36,7 +36,7 @@ npz_file = f"{MODEL_PATH}/test_data.npz"
 fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
 loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
 stratus_days_stats_loaded = loaded["stratus_days_stats"]
-model = StratusModel(16, 2, num_views)
+model = StratusModel(15, 2, num_views)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
@@ -73,13 +73,10 @@ for year, month in months:
     with torch.no_grad():
         prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views)   
         x_meteo, x_images, y_expected = prepare_data.load_data(start_date=start_date, end_date=end_date)
-    
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
-   
-        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=stratus_days_stats_loaded[0],mad_gap=stratus_days[1])
-      
+        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=stratus_days_stats_loaded[0],mad_gap=stratus_days_stats_loaded[1])
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         var_order = []
         for i in range(3):
@@ -98,16 +95,18 @@ for year, month in months:
             var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
+            
+            
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
             var_order=var_order,
             stats=stats_input,
         )
-        y_expected = prepare_data.normalize_data_test(
-            y_expected,
-            var_order=["gre000z0_nyon_t0", "gre000z0_dole_t0"],
-            stats=stats_label,
-        )
+        # y_expected = prepare_data.normalize_data_test(
+        #     y_expected,
+        #     var_order=["gre000z0_nyon_t0", "gre000z0_dole_t0"],
+        #     stats=stats_label,
+        # )
 
         total_predictions = len(x_meteo)
         print(f"Total predictions: {total_predictions}")
@@ -129,20 +128,20 @@ for year, month in months:
             if num_views == 2:
                 img_seq1 = x_images_tensor1[i].unsqueeze(0)
                 img_seq2 = x_images_tensor2[i].unsqueeze(0)
-                pred = model(x_meteo_sample, img_seq1, img_seq2)
+                y = model(x_meteo_sample, img_seq1, img_seq2)
             else:
                 img_seq = x_images_tensor[i].unsqueeze(0)
-                pred = model(x_meteo_sample, img_seq)
-                
+                y = model(x_meteo_sample, img_seq)
+            y = y.squeeze(0).cpu().numpy()
             expected = y_expected[idx_test]
-            min_nyon = stats_label["gre000z0_nyon_t0"]["min"]
-            max_nyon = stats_label["gre000z0_nyon_t0"]["max"]
-            min_dole = stats_label["gre000z0_dole_t0"]["min"]
-            max_dole = stats_label["gre000z0_dole_t0"]["max"]
+            min_nyon = stats_label["gre000z0_nyon"]["min"]
+            max_nyon = stats_label["gre000z0_nyon"]["max"]
+            min_dole = stats_label["gre000z0_dole"]["min"]
+            max_dole = stats_label["gre000z0_dole"]["max"]
             y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
             y[1] = y[1] * (max_dole - min_dole) + min_dole
-            expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
-            expected[1] = expected[1] * (max_dole - min_dole) + min_dole
+            # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
+            # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)
             final_expected.append(expected)
          
