@@ -36,7 +36,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-08")
+x_meteo, x_images, y = prepare_data.load_data()
 print("Data after filter:", x_meteo.shape, x_images.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -104,14 +104,12 @@ class SimpleDataset(torch.utils.data.Dataset):
             # For 2 views, select both cameras for all timesteps
             img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)  # (3, 512, 512, 3) -> (3, 3, 512, 512)
             img2 = torch.tensor(img_data[:, 1], dtype=torch.float32).permute(0, 3, 1, 2)
-            print("img1 shape: here" , img1.shape)
             return weather_x, img1, img2, y_val
         
         else:
             # For single view, just take first camera
             print(img_data.shape)
             img = torch.tensor(img_data, dtype=torch.float32).permute(0, 3, 1, 2)
-            print("img shape:", img.shape)
             return weather_x, img, y_val
 
 # Create datasets and loaders
