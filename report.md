@@ -1,8 +1,10 @@
 # Introduction au problème
 
-L'objectif de ce projet est de détecter la présence de la couche de stratus et de prévoir à court terme (prévision pour les 6 prochaines heures) sa disparition ou son apparition. Le stratus est une accumulation de nuages présente dans le canton de Vaud. Sa particularité est d’être très bas : si l’on se place sur une montagne suffisamment haute, on peut observer une mer de nuages recouvrant la plaine vaudoise. Heureusement, nous disposons d’une caméra, grâce aux images de MétéoSuisse, qui nous permet de nous placer juste au-dessus du stratus et d’avoir une bonne vue de la plaine vaudoise. Cette caméra est située à la Dôle et sera utilisée dans le cadre de ce projet. Afin de mieux comprendre les images dont nous disposons et le phénomène météorologique étudié, nous allons préciser le contexte. Voici quelques exemples d’images disponibles. [TODO] METTRE DES PHOTOS DE LA DÔLE.
+L'objectif de ce projet est de détecter la présence de la couche de stratus et de prévoir à court terme (prévision pour les 6 prochaines heures) sa disparition ou son apparition. Le stratus est une accumulation de nuages présente dans le canton de Vaud. Sa particularité est d’être très bas : si l’on se place sur une montagne suffisamment haute, on peut observer une mer de nuages recouvrant la plaine vaudoise. Heureusement, nous disposons d’une caméra, grâce aux images de MétéoSuisse, qui nous permet de nous placer juste au-dessus du stratus et d’avoir une bonne vue de la plaine vaudoise. Cette caméra est située à la Dôle et sera utilisée dans le cadre de ce projet. Afin de mieux comprendre les images dont nous disposons et le phénomène météorologique étudié, nous allons préciser le contexte. Voici quelques exemples d’images disponibles.
+
+
 ![Non Stratus](analysis/non_startus_dole.jpeg)
-<>
+
 ![Stratus](analysis/startus_dole.jpeg)
 
 
@@ -121,9 +123,7 @@ Néanmoins, même une telle étude pca peut faire peNéanmoins, même une étude
 
 ### 6. Quelques statistiques réalisées (mae, mse, accuracy, erreur relative pour chaque point)
 
-### 7. Setup sur chacha fait et premier entraînement lancé. Résultats peu satisfaisants probablement à cause de la taille du réseau de neurones trop petite
-
-La loss est :
+### 7. Setup sur chacha fait et premier entraînement lancé. 
 
 ![loss](models/model_1/loss.png)
 
@@ -330,10 +330,10 @@ Je me suis ensuite concentré sur le fait que les images n’étaient pas encore
 
 # 2025-06-12
 ## Tasks
-1. Ajout d'images sur les graphiques de prédiction et eet l'ajout d'un timestamp fixed
-2. Ajout de quelque metrique globale
+### 1. Ajout d'images sur les graphiques de prédiction et eet l'ajout d'un timestamp fixed
+### 2. Ajout de quelque metrique globale
 
-3. model_19 --> J'ai essayé de faire un train en supprimant l'early-stopping et en utilisant la vue numéro 1 au lieu de la vue numéro 2 et j'ai obtenu les résultats suivants :$
+### 3. model_19 --> J'ai essayé de faire un train en supprimant l'early-stopping et en utilisant la vue numéro 1 au lieu de la vue numéro 2 et j'ai obtenu les résultats suivants :$
 
 ### Rapport de métriques
 
@@ -476,7 +476,7 @@ Après avoir effectué ces changements, j'ai refait une inférence sur le modèl
 - **Les écarts entre Nyon et Dôle** (delta) sont également réduits, ce qui indique une meilleure cohérence du modèle.
 - **Conclusion** : Le modèle 19 apporte une amélioration nette par rapport au modèle 14 sur l’ensemble des métriques.
 
-4. model_20 --> j'ai voulu répéter un test en ajoutant la vue de la deuxième caméra de la dôle sans l'early stopping
+### 4. model_20 --> j'ai voulu répéter un test en ajoutant la vue de la deuxième caméra de la dôle sans l'early stopping
 
 ### Rapport de métriques détaillé (model_20)
 
@@ -523,12 +523,12 @@ Après avoir effectué ces changements, j'ai refait une inférence sur le modèl
 ![str_2](models/model_20/metrics/2023-01/day_curve_2023-01-25.png)
 ![str_2](models/model_20/metrics/2023-01/day_curve_2023-01-29.png)
 ![str_2](models/model_20/metrics/2023-02/day_curve_2023-02-08.png)
-[str_2](models/model_20/metrics/2023-02/day_curve_2023-02-25.png)
-[str_2](models/model_20/metrics/2023-03/day_curve_2023-03-09.png)
-[str_2](models/model_20/metrics/2023-09/day_curve_2023-09-18.png)
-[str_2](models/model_20/metrics/2023-12/day_curve_2023-12-19.png)
-[str_2](models/model_20/metrics/2024-02/day_curve_2023-02-18.png)
-[str_2](models/model_20/metrics/2024-03/day_curve_2023-03-08.png)
+![str_2](models/model_20/metrics/2023-02/day_curve_2023-02-25.png)
+![str_2](models/model_20/metrics/2023-03/day_curve_2023-03-09.png)
+![str_2](models/model_20/metrics/2023-09/day_curve_2023-09-18.png)
+![str_2](models/model_20/metrics/2023-12/day_curve_2023-12-19.png)
+![str_2](models/model_20/metrics/2024-02/day_curve_2024-02-18.png)
+T[str_2](models/model_20/metrics/2024-03/day_curve_2024-03-08.png)
 
 ### Comparaison entre le modèle 19 et le modèle 20
 
@@ -567,13 +567,17 @@ Après avoir effectué ces changements, j'ai refait une inférence sur le modèl
 - L’ajout de la seconde vue caméra dans le modèle 20 n’apporte pas d’amélioration significative et dégrade même légèrement les résultats par rapport au modèle 19.
 - Le modèle 19 reste donc le plus performant à ce stade.
 
-5. Modification de la méthode de sélection des jours de stratus --> Pour l'instant, je me suis basé sur la médiane pour définir si un jour est caractérisé par un stratus. Cependant, en analysant les résultats, je me suis rendue compte que cette métrique n'était plus suffisante car elle excluait les jours où le stratus était présent pendant quelques heures. J'ai donc voulu chercher une méthode alternative qui conserverait plus d'informations en trouvant le z-score modifié.[modified z-score 1](https://www.ibm.com/docs/en/cognos-analytics/12.0.x?topic=terms-modified-z-score)
+### 5. Modification de la méthode de sélection des jours de stratus --> Pour l'instant, je me suis basé sur la médiane pour définir si un jour est caractérisé par un stratus. Cependant, en analysant les résultats, je me suis rendue compte que cette métrique n'était plus suffisante car elle excluait les jours où le stratus était présent pendant quelques heures. J'ai donc voulu chercher une méthode alternative qui conserverait plus d'informations en trouvant le z-score modifié.[modified z-score 1](https://www.ibm.com/docs/en/cognos-analytics/12.0.x?topic=terms-modified-z-score)
 [modified z-score 2](https://docs.oracle.com/en/cloud/saas/tax-reporting-cloud/ustrc/insights_metrics_MODIFIED_Z_SCORE.html)
 
 Par conséquent, selon les sources trouvées, le z-score modifié pourrait être utile dans mon cas puisqu'il consiste à détecter les valeurs outliers lorsqu'on a des données qui ne sont pas normalement distribuées. J'ai donc utilisé la différence entre l'irradiation de la Dôle et celle de Nyon mesurée à chaque 10 minutes comme métrique pour trouver les valeurs outliers. J'ai ensuite appliqué la formule et considéré la présence de plus de deux valeurs outliers par jour comme un jour de stratus
 
-6. model_23 --> Après avoir changé la méthode de filtrage des jours avec et sans stratus, j'ai voulu réessayer un train avec deux vues et la même structure que celle utilisée dans le modèle 20
+### 6. model_23 --> Après avoir changé la méthode de filtrage des jours avec et sans stratus, j'ai voulu réessayer un train avec deux vues et la même structure que celle utilisée dans le modèle 20
 ### Rapport de métriques détaillé (model_23)
+**Loss**
+
+[loss](models/model_23/loss.png)
+
 
 | Métrique                      | Nyon      | Dôle      |
 |-------------------------------|-----------|-----------|
@@ -617,7 +621,8 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 ![str_2](models/model_23/metrics/2023-02/day_curve_2023-02-16.png)
 ![str_2](models/model_23/metrics/2023-03/day_curve_2023-03-27.png)
 ![str_2](models/model_23/metrics/2023-11/day_curve_2023-11-29.png)
-![str_2](models/model_23/metrics/2023-12/day_curve_2023-12-29.png)
+![str_2](models/model_23/metrics/2023-12/day_curve_2023-12-17.png)
+![str_2](models/model_23/metrics/2024-01/day_curve_2024-01-14.png)
 ### Comparaison des modèles 19, 20 et 23
 #### Tableau comparatif des modèles 19, 20 et 23
 
@@ -660,3 +665,5 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 - **La nouvelle méthode de sélection des jours de stratus** (modèle 23) semble améliorer la détection et la cohérence des résultats, en particulier pour les jours sans stratus.
 
 **Conclusion** : Le modèle 23, avec la nouvelle méthode de filtrage, offre les meilleures performances globales et une meilleure robustesse sur l’ensemble des cas testés.
+
+### 7. Code adapté pour pouvoir traiter une serie d'images et données meteo pour avoir un sequence temporelle 
