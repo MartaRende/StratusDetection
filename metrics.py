@@ -447,9 +447,12 @@ class Metrics:
             # Find the first hour of the day in the data (if available)
             first_hour = None
             if not day_df.empty:
-                first_hour = str(day_df["datetime"].dt.hour.min())
+                first_datetime = day_df["datetime"].min()
+                last_datetime = day_df["datetime"].max()
+            import ipdb 
+            ipdb.set_trace()
             # Create complete 10-minute time range for the day
-            start_time = pd.to_datetime(day+first_hour)
+            start_time = pd.to_datetime(first_datetime)
             end_time = pd.to_datetime(day + " 23:59:59")
             full_time_range = pd.date_range(start=start_time, end=end_time, freq='10T')
             full_hours = [t.hour + t.minute/60 for t in full_time_range]
