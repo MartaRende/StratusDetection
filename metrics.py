@@ -420,7 +420,6 @@ class Metrics:
     def plot_day_curves(self, days: List[str]) -> None:
         """
         Plot comparison curves for multiple specific days with corresponding images displayed at the bottom.
-        Forces x-axis to show 10-minute intervals regardless of data availability.
 
         Args:
             days: List of dates in format 'YYYY-MM-DD'
@@ -444,40 +443,31 @@ class Metrics:
             month = day_df["month"].iloc[0]
             month_dir = os.path.join(self.save_path, month)
             os.makedirs(month_dir, exist_ok=True)
-            # Find the first hour of the day in the data (if available)
-            first_hour = None
-            if not day_df.empty:
-                first_datetime = day_df["datetime"].min()
-                last_datetime = day_df["datetime"].max()
-            import ipdb 
-            ipdb.set_trace()
-            # Create complete 10-minute time range for the day
-            start_time = pd.to_datetime(first_datetime)
-            end_time = pd.to_datetime(day + " 23:59:59")
-            full_time_range = pd.date_range(start=start_time, end=end_time, freq='10T')
-            full_hours = [t.hour + t.minute/60 for t in full_time_range]
 
-            # Create figure with subplots
+            # Get datetimes for this day
+            day_datetimes = day_df["datetime"].tolist()
+            # Plot only a subset of images (e.g., 6 evenly spaced images)
+            num_images = min(6, len(day_datetimes))
+            if num_images > 1:
+                indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int)
+            else:
+                indices = [0]
+
+            # Create figure with subplots: curves on top, images at the bottom
             fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
 
             # Top subplot for curves
             ax1 = fig.add_subplot(gs[0])
 
-            # Plot each variable with interpolation for missing points
             for var in ["nyon", "dole"]:
-                # Reindex data to complete time range
-                temp_df = day_df.set_index('datetime').reindex(full_time_range)
-                
-                # Plot expected values
-                ax1.plot(full_hours, temp_df[f"expected_{var}"],
+                ax1.plot(day_df["hour"], day_df[f"expected_{var}"],
                         'o-', color=self.plot_config.colors[var],
                         markersize=self.plot_config.marker_size,
                         linewidth=self.plot_config.line_width,
                         label=f'Expected {var.capitalize()}')
 
-                # Plot predicted values
-                ax1.plot(full_hours, temp_df[f"predicted_{var}"],
+                ax1.plot(day_df["hour"], day_df[f"predicted_{var}"],
                         'x--', color=self.plot_config.colors[var],
                         markersize=self.plot_config.marker_size,
                         linewidth=self.plot_config.line_width,
@@ -485,39 +475,43 @@ class Metrics:
 
             ax1.set_title(f"Day Curves - {day}", fontsize=self.plot_config.fontsize["title"])
             ax1.set_ylabel("Value", fontsize=self.plot_config.fontsize["labels"])
-            ax1.set_xticks(np.arange(0, 24, 2))  # Show ticks every 2 hours
-            ax1.set_xticks(np.arange(0, 24, 1/6), minor=True)  # Minor ticks every 10 minutes
-            ax1.grid(True, which='both')
             ax1.legend()
+            ax1.grid(True)
 
-            # Bottom subplot for images
+            # Set x-axis ticks every 10 minutes
+            # Convert "hour" column to datetime.time for proper sorting and tick placement
+            times = pd.to_datetime(day_df["hour"], format="%H:%M").dt.time
+            ax1.set_xticks([
+                t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 10 == 0
+            ])
+            ax1.set_xticklabels([
+                t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 10 == 0
+            ], rotation=45)
+
+            # Bottom subplot for images using get_image_for_datetime
             ax2 = fig.add_subplot(gs[1])
             ax2.axis('off')
 
-            # Display images (6 evenly spaced from available datetimes)
-            day_datetimes = day_df["datetime"].tolist()
-            num_images = min(6, len(day_datetimes))
-            if num_images > 1:
-                indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int)
-            else:
-                indices = [0]
-
+            # Display images horizontally at the bottom
             if num_images > 0:
                 img_width = 1.0 / num_images
                 for i, idx in enumerate(indices):
                     dt = day_datetimes[idx]
-                    img = self.get_image_for_datetime(dt)
                     
+                    img = self.get_image_for_datetime(dt)
+                    # Check if the image is completely black (all zeros)
                     if np.all(img == 0):
                         self.logger.warning(f"Image for {dt} is completely black.")
-                        continue
-                    
-                    if img.max() - img.min() < 1e-3:
-                        img = (img - img.min()) / (img.max() - img.min() + 1e-6)
-                    
+                    else:
+                        # Optional: normalize for visibility if dynamic range is too low
+                        if img.max() - img.min() < 1e-3:
+                            print(f"Warning: Image for {dt} has very low dynamic range.")
+                            img = (img - img.min()) / (img.max() - img.min() + 1e-6)
+
+                    # Ensure RGB format if needed
                     if img.ndim == 2:
-                        img = np.stack([img] * 3, axis=-1)
-                    
+                        print(f"Converting grayscale image for {dt} to RGB.")
+                        img = np.stack([img] * 3, axis=-1)# Place each image in its own axes, horizontally aligned at the bottom
                     left = i * img_width
                     ax_img = fig.add_axes([left, -0.1, img_width, 0.25])
                     ax_img.imshow(img)
@@ -532,29 +526,38 @@ class Metrics:
             )
             plt.close()
 
-        # Original difference plot (unchanged)
-        fig, ax = plt.subplots(figsize=self.plot_config.figsize)
-        for var in ["nyon", "dole"]:
-            ax.plot(day_df["hour"],
-                    (day_df[f"expected_{var}"] - day_df[f"predicted_{var}"]),
-                    'o-', color=self.plot_config.colors[var],
-                    markersize=self.plot_config.marker_size,
-                    linewidth=self.plot_config.line_width,
-                    label=f'{var.capitalize()} Difference')
+            # Original difference plot (unchanged)
+            fig, ax = plt.subplots(figsize=self.plot_config.figsize)
+            for var in ["nyon", "dole"]:
+                ax.plot(day_df["hour"],
+                        (day_df[f"expected_{var}"] - day_df[f"predicted_{var}"]),
+                        'o-', color=self.plot_config.colors[var],
+                        markersize=self.plot_config.marker_size,
+                        linewidth=self.plot_config.line_width,
+                        label=f'{var.capitalize()} Difference')
 
-        ax.set_title(f"Day Curves - {day} (Difference)",
-                    fontsize=self.plot_config.fontsize["title"])
-        ax.set_xlabel("Hour", fontsize=self.plot_config.fontsize["labels"])
-        ax.set_ylabel("Difference", fontsize=self.plot_config.fontsize["labels"])
-        ax.legend()
-        ax.grid(True)
-        plt.tight_layout()
-        plt.savefig(
-            os.path.join(month_dir, f"day_curve_diff_{day}.png"),
-            dpi=self.plot_config.dpi,
-            bbox_inches='tight'
-        )
-        plt.close()
+            ax.set_title(f"Day Curves - {day} (Difference)",
+                        fontsize=self.plot_config.fontsize["title"])
+            ax.set_xlabel("Hour", fontsize=self.plot_config.fontsize["labels"])
+            ax.set_ylabel("Difference", fontsize=self.plot_config.fontsize["labels"])
+            ax.legend()
+            ax.grid(True)
+
+            # Set x-axis ticks every 10 minutes for the difference plot
+            ax.set_xticks([
+                t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 10 == 0
+            ])
+            ax.set_xticklabels([
+                t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 10 == 0
+            ], rotation=45)
+
+            plt.tight_layout()
+            plt.savefig(
+                os.path.join(month_dir, f"day_curve_diff_{day}.png"),
+                dpi=self.plot_config.dpi,
+                bbox_inches='tight'
+            )
+            plt.close()
     def plot_delta_absolute_error(self, days: List[str], prefix: str = "stratus_days", subdirectory = None) -> None:
         """
         Plot absolute error of delta (nyon-dole) for the given days, saving in the corresponding month directory.
