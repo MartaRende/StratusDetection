@@ -746,7 +746,6 @@ class Metrics:
             # Compute all metrics
             metrics = self.get_global_metrics_for_days(month_days)
             delta_metrics = self.get_delta_metrics_for_days(month_days)
-            
             # Save report
             report_path = os.path.join(month_dir, f"metrics_{label}.txt")
             with open(report_path, 'w') as f:
@@ -755,7 +754,10 @@ class Metrics:
                 f.write(f"Global RMSE: {metrics.get('rmse', {})}\n")
                 f.write(f"Global Relative Error: {metrics.get('relative_error', {})}\n")
                 f.write(f"Global MAE: {metrics.get('mae', {})}\n")
-                f.write(f"Delta Nyon-Dole Stats: {delta_metrics['global']}\n")
+                if delta_metrics and "global" in delta_metrics and delta_metrics["global"]:
+                    f.write(f"Delta Nyon-Dole Stats: {delta_metrics['global']}\n")
+                else:
+                    f.write("Delta Nyon-Dole Stats: No data available\n")
             self.logger.info(f"Saved {label} metrics for {month} to {report_path}")
 
             # Plot metrics in the month directory
