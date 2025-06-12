@@ -10,19 +10,19 @@ class StratusModel(nn.Module):
 
         # CNN 
         self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(3 * seq_len, 64, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.Conv2d(3 * seq_len, 128, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(128,128, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
-            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
-            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
         )
@@ -32,16 +32,16 @@ class StratusModel(nn.Module):
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_feature_size * seq_len, 64),
+            nn.Linear(input_feature_size * seq_len, 1024),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(64, 128),
+            nn.Linear(1024, 1024),
             nn.ReLU(),
             nn.Dropout(0.3),
         )
 
         img_total_dim = self.cnn_output_size * (2 if num_views == 2 else 1)
-        meteo_total_dim = 128
+        meteo_total_dim = 1024
         mlp_input_size = img_total_dim + meteo_total_dim
 
         # MLP final

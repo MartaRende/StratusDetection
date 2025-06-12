@@ -667,3 +667,89 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 **Conclusion** : Le modèle 23, avec la nouvelle méthode de filtrage, offre les meilleures performances globales et une meilleure robustesse sur l’ensemble des cas testés.
 
 ### 7. Code adapté pour pouvoir traiter une serie d'images et données meteo pour avoir un sequence temporelle 
+
+### 8. modèle 0 --> essai d'un premier modèle avec temps intégré (séquence de trois images)
+
+**Loss**
+
+![str2](models/model_0/loss.png)
+
+## Synthèse des métriques et comparaison des modèles
+
+### Résultats du modèle séquentiel (modèle 0)
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 47.90     | 48.16     |
+| **RMSE**                      | 70.47     | 70.32     |
+| **Erreur relative moyenne**    | 0.32      | 0.33      |
+
+
+#### Delta Nyon-Dôle
+
+- **MAE** : 52.93
+- **RMSE** : 84.76
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 44.17     | 41.55     |
+| **RMSE**                      | 55.35     | 55.53     |
+| **Erreur relative moyenne**    | 0.36      | 0.15      |
+
+- **Delta Nyon-Dôle** : MAE = 56.80, RMSE = 77.84
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 46.39     | 46.88     |
+| **RMSE**                      | 59.95     | 60.03     |
+| **Erreur relative moyenne**    | 0.32      | 0.37      |
+
+- **Delta Nyon-Dôle** : MAE = 50.45, RMSE = 68.19
+
+---
+
+### Comparaison avec les modèles 19 et 23
+
+| Métrique                      | Modèle 0 (Nyon/Dôle) | Modèle 19 (Nyon/Dôle) | Modèle 23 (Nyon/Dôle) |
+|-------------------------------|----------------------|-----------------------|-----------------------|
+| **MAE**                       | 47.90 / 48.16        | 49.34 / 49.88         | 46.43 / 48.71         |
+| **RMSE**                      | 70.47 / 70.32        | 73.98 / 69.39         | 69.56 / 70.98         |
+| **Erreur relative moyenne**    | 0.32 / 0.33          | 0.44 / 0.46           | 0.39 / 0.50           |
+
+**Delta Nyon-Dôle**
+
+| Métrique      | Modèle 0 | Modèle 19 | Modèle 23 |
+|---------------|----------|-----------|-----------|
+| **MAE**       | 52.93    | 55.50     | 59.34     |
+| **RMSE**      | 84.76    | 88.09     | 93.09     |
+
+#### Jours de stratus
+
+| Métrique      | Modèle 0 (Nyon/Dôle) | Modèle 19 (Nyon/Dôle) | Modèle 23 (Nyon/Dôle) |
+|---------------|----------------------|-----------------------|-----------------------|
+| **MAE**       | 44.17 / 41.55        | 41.90 / 43.98         | 48.45 / 48.23         |
+| **RMSE**      | 55.35 / 55.53        | 54.88 / 53.24         | 64.16 / 62.38         |
+| **Erreur rel.** | 0.36 / 0.15        | 0.50 / 0.29           | 0.41 / 0.19           |
+
+#### Jours sans stratus
+
+| Métrique      | Modèle 0 (Nyon/Dôle) | Modèle 19 (Nyon/Dôle) | Modèle 23 (Nyon/Dôle) |
+|---------------|----------------------|-----------------------|-----------------------|
+| **MAE**       | 46.39 / 46.88        | 47.69 / 48.68         | 43.50 / 45.39         |
+| **RMSE**      | 59.95 / 60.03        | 63.53 / 62.25         | 57.54 / 58.33         |
+| **Erreur rel.** | 0.32 / 0.37        | 0.43 / 0.49           | 0.39 / 0.56           |
+
+---
+
+### Analyse comparative
+
+- **Le modèle séquentiel (modèle 0) obtient des résultats très proches du modèle 23 sur les métriques globales (MAE, RMSE), et reste compétitif avec le modèle 19.**
+- **Pour les jours de stratus, le modèle 19 reste légèrement meilleur en MAE et RMSE, mais le modèle 0 présente une erreur relative plus faible.**
+- **Pour les jours sans stratus, le modèle 23 reste le plus performant, mais le modèle 0 est très proche.**
+- **Le modèle 0 montre une bonne robustesse globale, notamment grâce à l’intégration de la séquence temporelle, et confirme l’intérêt de cette approche pour la détection du stratus.**
+
+---
