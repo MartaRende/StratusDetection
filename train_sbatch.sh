@@ -11,4 +11,4 @@
 #SBATCH --error=logs/%x_%j.err       # standard error
 #SBATCH --nodelist=chacha            # nodes to use
 #module purge
-apptainer exec --nv --bind /data/datasets/photocast:/data/datasets/photocast /data/datasets/marta.rende/train.sif python3 -u inference.py 1 1
+apptainer exec --nv --bind /data/datasets/photocast:/data/datasets/photocast /data/datasets/marta.rende/train.sif python3 -u training.py 1 1
