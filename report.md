@@ -752,4 +752,10 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 - **Pour les jours sans stratus, le modèle 23 reste le plus performant, mais le modèle 0 est très proche.**
 - **Le modèle 0 montre une bonne robustesse globale, notamment grâce à l’intégration de la séquence temporelle, et confirme l’intérêt de cette approche pour la détection du stratus.**
 
+
+
 ---
+## Pour la prochaine fois 
+1. Améliorer les résultats du modèle actuel. 
+2. Essayez de faire des prévisions à une heure, deux heures, etc.
+3. Mettez dans le résultat non seulement les prévisions au temps t+1 mais aussi celles au temps t+2, t+3, etc.
