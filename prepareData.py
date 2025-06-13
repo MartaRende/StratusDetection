@@ -61,7 +61,21 @@ class PrepareData:
         
         return df
 
-  
+    def get_image_for_datetime(self, dt, view=1):
+        date_str = dt.strftime('%Y-%m-%d')
+        time_str = dt.strftime('%H%M')
+        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
+        img_path = os.path.join(self.image_base_folder, str(view), dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), img_filename)
+        if os.path.exists(img_path):
+            img = Image.open(img_path).convert("RGB")
+            #normalize images
+            # img = img.resize((512, 512))
+            img_array = np.array(img)
+            # img_array = np.array(img)
+            return img_array
+        else:
+            return np.zeros((512, 512, 3), dtype=np.uint8)
+
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
         log_vars = ["RR", "RS"]
         angle_var = "DD"
@@ -105,7 +119,7 @@ class PrepareData:
 
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
-        months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
+        months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3,4, 9, 10, 11, 12]        
 
         mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
                (self.data['datetime'].dt.date <= pd.to_datetime(end_date).date()) & \
