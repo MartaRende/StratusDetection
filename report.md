@@ -758,4 +758,4 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 ## Pour la prochaine fois 
 1. Améliorer les résultats du modèle actuel. 
 2. Essayez de faire des prévisions à une heure, deux heures, etc.
-3. Mettez dans le résultat non seulement les prévisions au temps t+1 mais aussi celles au temps t+2, t+3, etc.
+3. Mettre dans les output non seulement les prévisions au temps t+1 mais aussi celles au temps t+2, t+3, etc.
