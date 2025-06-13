@@ -19,10 +19,6 @@ class PrepareData:
         self.stats_stratus_days = None
         self.seq_length = seq_length
         self.num_workers = num_workers  # Number of parallel workers
-        self.meteo_features = [
-        "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
-        "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
-    ]
     
     def _parallel_load_images(self, datetimes, view=1):
         """Load images in parallel for a sequence"""
@@ -109,7 +105,7 @@ class PrepareData:
 
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
-        months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3,4, 9, 10, 11, 12]        
+        months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
 
         mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
                (self.data['datetime'].dt.date <= pd.to_datetime(end_date).date()) & \
@@ -133,91 +129,78 @@ class PrepareData:
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
         ]
         
-        # First collect all valid sequences
-        valid_windows = []
+        # Iterate through possible sequence starting points
         for i in range(len(df) - self.seq_length):
+            # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
             next_point = df.iloc[i+self.seq_length]
             
-            # Check for continuity
+            # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
             if not all(diff == 10 for diff in time_diffs):
-                print(f"Skipping sequence starting at index {i} due to time discontinuity.")
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
                 continue
                 
-            if (next_point['datetime'] - seq_window.iloc[-1]['datetime']) != timedelta(minutes=10):
-                print(f"Skipping sequence starting at index {i} due to last point not being 10 minutes apart.")
+            # Check if next point is exactly 10 minutes after last sequence point
+            last_seq_time = seq_window.iloc[-1]['datetime']
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
                 continue
                 
+            # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
             if np.isnan(meteo_sequence).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological features.")
+                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
                 continue
                 
-            target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
-            if pd.isnull(target).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in target variables.")
-                continue
-                
-            valid_windows.append((i, seq_window, next_point))
-        
-        # Process valid windows in parallel
-        with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
-            futures = []
-            for i, seq_window, next_point in valid_windows:
-                futures.append(executor.submit(
-                    self._process_sequence_window,
-                    i, seq_window, next_point
-                ))
+            # Prepare image sequence
+            img_sequence = []
+            valid_images = True
+            for _, row in seq_window.iterrows():
+                img = self.get_image_for_datetime(row['datetime'])
+                if np.all(img == 0):  # Missing image
+                    print(f"Skipping sequence starting at index {i} due to missing image for datetime {row['datetime']}.")
+                    valid_images = False
+                    break
+                if self.num_views > 1:
+                    img2 = self.get_image_for_datetime(row['datetime'], view=2)
+                    if np.all(img2 == 0):
+                        print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
+                        valid_images = False
+                        break
+                    img_sequence.append([img, img2])
+                else:
+                    img_sequence.append(img)
             
-            for future in futures:
-                result = future.result()
-                if result is not None:
-                    i, meteo_seq, img_seq, target = result
-                    x_meteo_seq.append(meteo_seq)
-                    x_images_seq.append(img_seq)
-                    y_seq.append(target)
-                    valid_indices.append(i)
+            if not valid_images:
+                print(f"Skipping sequence starting at index {i} due to missing images.")
+                continue
+                
+            # Prepare target (next time step after sequence)
+            
+            target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
+            # Use pd.isnull to handle all types safely
+            if pd.isnull(target).any():
+                print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
+                continue
+                
+            # Add to sequences
+            x_meteo_seq.append(meteo_sequence)
+            x_images_seq.append(np.array(img_sequence))
+            y_seq.append(target)
+            valid_indices.append(i)
         
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)
         y_seq = np.array(y_seq)
         
+        # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
         
         return x_meteo_seq, x_images_seq, y_seq
-    
-    def _process_sequence_window(self, i, seq_window, next_point):
-        """Process a single sequence window (called in parallel)"""
-        # Load images for view 1
-        img_seq_view1 = self._parallel_load_images(seq_window['datetime'], view=1)
-        
-        if self.num_views > 1:
-            # Load images for view 2
-            img_seq_view2 = self._parallel_load_images(seq_window['datetime'], view=2)
-            
-            # Check for missing images
-            if np.any([np.all(img == 0) for img in img_seq_view1]) or \
-               np.any([np.all(img == 0) for img in img_seq_view2]):
-                return None
-                
-            img_seq = np.stack([
-                np.stack([img1, img2]) 
-                for img1, img2 in zip(img_seq_view1, img_seq_view2)
-            ], axis=0)
-        else:
-            if np.any([np.all(img == 0) for img in img_seq_view1]):
-                return None
-            img_seq = img_seq_view1
-            
-        return (
-            i,
-            seq_window[self.meteo_features].values,
-            img_seq,
-            next_point[["gre000z0_nyon", "gre000z0_dole"]].values
-        )
+
 
     def find_stratus_days(self, df=None, median_gap=None, mad_gap=None):
         if df is None:
