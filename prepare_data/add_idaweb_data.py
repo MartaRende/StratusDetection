@@ -41,7 +41,7 @@ if 'pres_x' in df.columns and 'pres_y' in df.columns:
 import ipdb
 ipdb.set_trace()
 df['pres'] = pd.to_numeric(df['pres'], errors='coerce')
-npz_file = "data/complete_data.npz"
+npz_file = "data/complete_data_pres.npz"
 np.savez_compressed(npz_file, dole=df.to_dict(orient='records'))
 # load the npz file to check if it worked
 npz_data = np.load(npz_file, allow_pickle=True)
