@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 4  # or any number you want
+MODEL_NUM = 5  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -39,7 +39,7 @@ npz_file = f"{MODEL_PATH}/test_data.npz"
 fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
 loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
 stratus_days_stats_loaded = loaded["stratus_days_stats"]
-model = StratusModel(14, 2, num_views,seq_len)
+model = StratusModel(15, 2, num_views,seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
@@ -95,6 +95,7 @@ for year, month in months:
             var_order.append("TG_t" + str(i))
             var_order.append("Z0_t" + str(i))
             var_order.append("ZS_t" + str(i))
+            var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
       

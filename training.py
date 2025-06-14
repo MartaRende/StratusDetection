@@ -33,7 +33,7 @@ else:
     print(f"Path {FP_IMAGES} exists.")
 
 print("FP_IMAGES:", FP_IMAGES)
-FP_WEATHER_DATA = "data/data2.npz"
+FP_WEATHER_DATA = "data/complete_data.npz"
 
 # Initialize data loader
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
@@ -70,6 +70,7 @@ for i in range(seq_len):
     var_order.append("TG_t" + str(i))
     var_order.append("Z0_t" + str(i))
     var_order.append("ZS_t" + str(i))
+    var_order.append("SU_t" + str(i))
     var_order.append("DD_t" + str(i))
     var_order.append("pres_t" + str(i))
 
@@ -125,7 +126,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 # Instantiate model, loss, optimizer, scheduler
-model = StratusModel(input_feature_size=14, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
+model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5)

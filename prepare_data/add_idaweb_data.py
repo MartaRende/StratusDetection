@@ -6,7 +6,7 @@ def read_txt_file(filepath):
         lines = file.readlines()
     return [line.strip() for line in lines]
 
-data = np.load("data/complete_data.npz", allow_pickle=True)
+data = np.load("data/data.npz", allow_pickle=True)
 df = pd.DataFrame(data['dole'])
 df = pd.json_normalize(df[0])
 
