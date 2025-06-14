@@ -150,8 +150,6 @@ class PrepareData:
             if i + self.seq_length + 5 >= len(df):
                 break  
             next_point = df.iloc[i + self.seq_length + 5]
-            import ipdb 
-            ipdb.set_trace()
         
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
