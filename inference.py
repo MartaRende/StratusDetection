@@ -95,7 +95,6 @@ for year, month in months:
             var_order.append("TG_t" + str(i))
             var_order.append("Z0_t" + str(i))
             var_order.append("ZS_t" + str(i))
-            var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
       

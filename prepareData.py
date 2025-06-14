@@ -140,7 +140,7 @@ class PrepareData:
         # Define the meteorological features to use
         meteo_features = [
             "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
-            "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
+            "CT", "FF", "RS", "TG", "Z0", "ZS", "DD", "pres"
         ]
         
         # Iterate through possible sequence starting points
@@ -350,7 +350,7 @@ class PrepareData:
         column_names = [
             f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
                 "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
-                "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
+                "CT", "FF", "RS", "TG", "Z0", "ZS", "DD", "pres"
             ]
         ]
         label_names = ["gre000z0_nyon", "gre000z0_dole"]
