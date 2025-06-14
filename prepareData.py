@@ -147,8 +147,8 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            next_point = df.iloc[i+self.seq_length]
-            
+            next_point = df.iloc[i+self.seq_length+6]
+        
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
             if not all(diff == 10 for diff in time_diffs):
@@ -157,10 +157,10 @@ class PrepareData:
                 
             # Check if next point is exactly 10 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
+       
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=70):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
                 continue
-                
             # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
             if np.isnan(meteo_sequence).any():
