@@ -24,7 +24,6 @@ def get_grid_indices(x_grid, y_grid, coordinates):
     return indices
 
 import traceback
-
 def process_file(fp, datetimes, coordinates, idaweb_data):
     """Process a single NetCDF file for a list of datetime strings."""
     try:
@@ -36,6 +35,7 @@ def process_file(fp, datetimes, coordinates, idaweb_data):
             y_grid = nc.variables['y'][:]
             grid_indices = get_grid_indices(x_grid, y_grid, coordinates)
 
+            nan_counts = defaultdict(int)
             results = []
             for dt_str in datetimes:
                 if dt_str not in all_datetimes_str:
@@ -47,15 +47,16 @@ def process_file(fp, datetimes, coordinates, idaweb_data):
                     point_data = {}
                     point_data["datetime"] = dt_str
                     has_nan = False
-                    for var in ['RR', 'TD', 'WG', 'TT', 'CT', 'FF', 'RS', 'TG', 'Z0', 'ZS', 'SU', 'DD']:
+                    for var in ['RR', 'TD', 'WG', 'TT', 'CT', 'FF', 'RS', 'TG', 'Z0', 'ZS', 'DD']:
                         try:
                             value = float(nc.variables[var][idx, iy, ix]) if var in nc.variables else np.nan
                         except Exception as e:
                             print(f"Error processing variable '{var}' in file '{fp}' at datetime '{dt_str}': {e}")
-                            traceback.print_exc()  # Print the full stack trace
+                            traceback.print_exc()
                             value = np.nan
                         point_data[var] = value
                         if np.isnan(value):
+                            nan_counts[var] += 1
                             has_nan = True
                     # Merge IDAWeb if available
                     for loc in ["nyon", "dole"]:
@@ -64,14 +65,22 @@ def process_file(fp, datetimes, coordinates, idaweb_data):
                             point_data[key] = idaweb_data[loc][dt_str]["gre000z0"]
                         else:
                             point_data[key] = np.nan
+                            print(f"NaN detected: variable '{key}' at datetime '{dt_str}' in file '{fp}'")
+                            nan_counts[key] += 1
+                            has_nan = True
                     if not has_nan:
                         data_entry = point_data
                 if data_entry:
                     results.append(data_entry)
+            # Print total NaN count for each column
+            if nan_counts:
+                print(f"NaN summary for file '{fp}':")
+                for var, count in nan_counts.items():
+                    print(f"  {var}: {count} NaN values")
             return results
     except Exception as e:
         print(f"Error processing file '{fp}': {e}")
-        traceback.print_exc()  # Print the full stack trace
+        traceback.print_exc()
         return []
 def group_data_by_location(processed_data):
     grouped = {"nyon": [], "dole": []}
@@ -184,7 +193,7 @@ class PreProcessData:
 if __name__ == "__main__":
     import time
     start_date = "2023-01-01T00:00:00"
-    end_date = "2023-01-01T23:50:00"
+    end_date = "2024-12-31T23:50:00"
     fp_inca = "/home/marta/Projects/tb/data/weather/inca/"
     fp_images = "/home/marta/Projects/tb/data/images/mch/1159/2/2023"
     fp_global_rayonnement = "data/rayonnement_global"
