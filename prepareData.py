@@ -119,7 +119,7 @@ class PrepareData:
 
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
-        months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3,4, 9, 10, 11, 12]        
+        months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
 
         mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
                (self.data['datetime'].dt.date <= pd.to_datetime(end_date).date()) & \
