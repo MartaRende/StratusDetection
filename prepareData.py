@@ -147,7 +147,10 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            next_point = df.iloc[i+self.seq_length+6]
+            if i + self.seq_length + 6 >= len(df):
+                break  
+            next_point = df.iloc[i + self.seq_length + 6]
+ 
         
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
