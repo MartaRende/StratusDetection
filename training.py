@@ -131,8 +131,8 @@ loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
 
-losses = {"train": [], "eval": [], "test": []}
-accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
+losses = {"train": [], "val": [], "test": []}
+accuracies = {"train": [], "val": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
 num_epochs = 100  # Increase as needed
@@ -140,11 +140,11 @@ num_epochs = 100  # Increase as needed
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
 
-    for step in ["train", "eval", "test"]:
+    for step in ["train", "val", "test"]:
         if step == "train":
             model.train()
             loader = train_loader
-        elif step == "eval":
+        elif step == "val":
             model.eval()
             loader = validation_loader
         else:
@@ -184,11 +184,11 @@ for epoch in range(num_epochs):
         avg_loss = total_loss / count
         losses[step].append(avg_loss)
 
-        if step == "eval":
+        if step == "val":
             scheduler.step(avg_loss)
 
     print(f"Epoch [{epoch + 1}/{num_epochs}] - Train Loss: {losses['train'][-1]:.4f}, "
-          f"Validation Loss: {losses['eval'][-1]:.4f}, Test Loss: {losses['test'][-1]:.4f}")
+          f"Validation Loss: {losses['val'][-1]:.4f}, Test Loss: {losses['test'][-1]:.4f}")
 
 
 #
@@ -214,6 +214,23 @@ def saveResults():
         if key == "test":
             continue
         plt.plot(losses[key], label=f"{key.capitalize()} loss")
+    # Plot log scale for first 15 epochs, then linear for the rest
+    if len(losses["train"]) > 15:
+        plt.yscale("log")
+        plt.xlim(0, 15)
+        plt.legend()
+        plt.title("Loss (log scale, first 15 epochs)")
+        plt.savefig(currPath + "/loss_log_first15.png")
+        plt.clf()
+        for key in losses:
+            if key == "test":
+                continue
+            plt.plot(range(15, len(losses[key])), losses[key][15:], label=f"{key.capitalize()} loss")
+        plt.yscale("linear")
+        plt.title("Loss (linear scale, after epoch 15)")
+        plt.legend()
+        plt.savefig(currPath + "/loss_linear_after15.png")
+
     plt.yscale("log")
     plt.legend()
     plt.title("Loss")
