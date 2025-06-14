@@ -129,13 +129,13 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5)
 
 losses = {"train": [], "val": [], "test": []}
 accuracies = {"train": [], "val": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 100  # Increase as needed
+num_epochs = 2  # Increase as needed
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
