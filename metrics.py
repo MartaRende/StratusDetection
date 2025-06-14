@@ -475,7 +475,7 @@ class Metrics:
 
             ax1.set_title(f"Day Curves - {day}", fontsize=self.plot_config.fontsize["title"])
             ax1.set_ylabel("Radiation (W/m²)", fontsize=self.plot_config.fontsize["labels"])
-            ax1.set_xlabel("Hour", fontsize=self.plot_config.fontsize["labels"])
+            ax1.set_xlabel("Hours", fontsize=self.plot_config.fontsize["labels"])
             ax1.legend()
             ax1.grid(True)
 
