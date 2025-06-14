@@ -157,7 +157,7 @@ class PrepareData:
                 
             # Check if next point is exactly 10 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
                 continue
                 
