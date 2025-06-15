@@ -42,10 +42,10 @@ class StratusModel(nn.Module):
         self.mlp_meteo = nn.Sequential(
             nn.Linear(input_feature_size * seq_len, 256),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
         )
 
         img_total_dim = self.cnn_output_size * (2 if num_views == 2 else 1)
@@ -54,19 +54,16 @@ class StratusModel(nn.Module):
 
         # MLP final
         self.mlp_head = nn.Sequential(
-            nn.Linear(mlp_input_size, 512),
+            nn.Linear(mlp_input_size, 256),
             nn.ReLU(),           
-            nn.Dropout(0.5),
-            nn.Linear(512, 512),
+            nn.Dropout(0.7),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Dropout(0.7),
+            nn.Linear(256, 128),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256, output_size)
+            nn.Linear(128, output_size)
         )
 
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
