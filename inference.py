@@ -78,7 +78,7 @@ for year, month in months:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
    
-        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(16,37)
+        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=16,mad_gap=37)
       
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         x_meteo = prepare_data.normalize_data_test(
