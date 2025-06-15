@@ -101,7 +101,7 @@ class PrepareData:
         y = []
 
         df = df.sort_values('datetime').reset_index(drop=True)
-        df['datetime_next'] = df['datetime'] + timedelta(minutes=10)
+        df['datetime_next'] = df['datetime'] + timedelta(minutes=60)
 
         valid_indices = []
     
