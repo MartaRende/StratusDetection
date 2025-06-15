@@ -11,56 +11,56 @@ class StratusModel(nn.Module):
         self.num_views = num_views
         self.input_feature_size = input_feature_size
 
-        # CNN 
-        self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(3 * seq_len, 64, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
-            nn.BatchNorm2d(64),
+        # CNN for image processing
+        self.cnn = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.MaxPool2d(2, 2), # 512 x512 --> 256 x256
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.MaxPool2d(2, 2),   # 256 x 256 --> 128 x 128
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.MaxPool2d(2, 2),   # 128 x 128 --> 64 x 64
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(4,4),  # 64x64 -> 32x32
-           
+            nn.MaxPool2d(2, 2),   # 64 x 64 --> 32 x 32
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),   # 32 x 32 --> 16 x 16
+            # nn.Conv2d(32, 16, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.MaxPool2d(2, 2),   # 16 x 16 --> 8 x 8  
         )
-
-
-        self.cnn_output_size = 64 * 16 * 16  # 16384
-
-        # MLP for weather data
+        self.cnn_output_size = 32 * 16 * 16  # 32 channels * 8x8 spatial = 2048
+        
+        # MLP for meteorological data
         self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_feature_size * seq_len, 256),
+            nn.Linear(input_feature_size * seq_len, 64),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256, 128),
+            nn.Dropout(0.3),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.3),
+
         )
 
         img_total_dim = self.cnn_output_size * (2 if num_views == 2 else 1)
-        meteo_total_dim = 128
+        meteo_total_dim = 64
         mlp_input_size = img_total_dim + meteo_total_dim
 
         # MLP final
         self.mlp_head = nn.Sequential(
-            nn.Linear(mlp_input_size, 256),
-            nn.ReLU(),           
-            nn.Dropout(0.5),
-            nn.Linear(256, 256),
+            nn.Linear(mlp_input_size, 128),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256, 128),
+            nn.Dropout(0.3),
+            nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, output_size)
+            nn.Dropout(0.3),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(32, output_size) 
         )
 
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
