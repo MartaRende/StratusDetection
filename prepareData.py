@@ -153,10 +153,11 @@ class PrepareData:
 
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
-            if not all(diff == 10 for diff in time_diffs):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-                continue
-                
+          
+            # if not all(diff == 10 for diff in time_diffs):
+            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
+            #     continue
+          
             # Check if next point is exactly 50 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
             if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
