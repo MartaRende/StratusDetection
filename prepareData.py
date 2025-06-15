@@ -153,7 +153,7 @@ class PrepareData:
 
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
-          
+           
             # if not all(diff == 10 for diff in time_diffs):
             #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
             #     continue
