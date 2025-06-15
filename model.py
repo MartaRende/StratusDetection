@@ -73,10 +73,9 @@ class StratusModel(nn.Module):
         batch_size = image_seq_1.size(0)
         seq_len = image_seq_1.size(1)  
 
-        view1_input = image_seq_1.view(batch_size, seq_len * 3, image_seq_1.size(3), image_seq_1.size(4))
+        view1_input = image_seq_1.reshape(batch_size, seq_len * 3, image_seq_1.size(3), image_seq_1.size(4))
 
         # image_seq_1 shape: [batch, seq_len, 3, H, W] -> [batch, 3*seq_len, H, W]
-        view1_input = image_seq_1.reshape(batch_size, -1, image_seq_1.size(3), image_seq_1.size(4))
         view1_features = self.cnn_view1(view1_input).reshape(batch_size, -1)
         
         if self.num_views == 2 and image_seq_2 is not None:
