@@ -205,6 +205,7 @@ class PrepareData:
             x_images_seq.append(np.array(img_sequence))
             y_seq.append(target)
             valid_indices.append(i)
+           
         
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
@@ -214,7 +215,7 @@ class PrepareData:
         # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
-        
+        print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 
 
