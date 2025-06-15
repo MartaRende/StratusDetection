@@ -32,17 +32,21 @@ class StratusModel(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),  # 16x16 -> 8x8
         )
 
 
-        self.cnn_output_size = 64 * 16 * 16  # 16384
+        self.cnn_output_size = 64 * 8 * 8  # 4096
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_feature_size * seq_len, 256),
+            nn.Linear(input_feature_size * seq_len, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(256, 128),
+            nn.Linear(128, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
         )
@@ -55,9 +59,6 @@ class StratusModel(nn.Module):
         self.mlp_head = nn.Sequential(
             nn.Linear(mlp_input_size, 256),
             nn.ReLU(),           
-            nn.Dropout(0.3),
-            nn.Linear(256, 256),
-            nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(256, 256),
             nn.ReLU(),
