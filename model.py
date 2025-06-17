@@ -34,18 +34,18 @@ class StratusModel(nn.Module):
         
         self.cnn_output_size = 128 * 16 * 16  # 8192 
 
-        # MLP for weather data
-        self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_feature_size * seq_len, 256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-        )
+        # # MLP for weather data
+        # self.mlp_meteo = nn.Sequential(
+        #     nn.Linear(input_feature_size * seq_len, 256),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.3),
+        #     nn.Linear(256, 128),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.3),
+        # )
 
         img_total_dim = self.cnn_output_size * (2 if num_views == 2 else 1)
-        meteo_total_dim = 128
+        meteo_total_dim = 0
         mlp_input_size = img_total_dim + meteo_total_dim
 
         # MLP final
@@ -91,9 +91,9 @@ class StratusModel(nn.Module):
             img_features = view1_features
         
         meteo_flat = meteo_seq.reshape(batch_size, -1)
-        z_meteo = self.mlp_meteo(meteo_flat)
+        # z_meteo = self.mlp_meteo(meteo_flat)
         
-        z = torch.cat([img_features, z_meteo], dim=1)
-        output = self.mlp_head(z)
-        
+        # z = torch.cat([img_features, z_meteo], dim=1)
+        output = self.mlp_head(img_features)
+
         return output

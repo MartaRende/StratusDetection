@@ -147,9 +147,10 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length + 3 >= len(df):
-                break
-            next_point = df.iloc[i + self.seq_length + 3]
+            # if i + self.seq_length + 3 >= len(df):
+            #     break
+            next_point = df.iloc[i + self.seq_length]
+            import ipdb; ipdb.set_trace()
 
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
@@ -158,10 +159,10 @@ class PrepareData:
             #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
             #     continue
           
-            # Check if next point is exactly 40 minutes after last sequence point
+            # Check if next point is exactly 10 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=40):
-                print(f"Skipping sequence starting at index {i} due to non-40-minute gap to next point.")
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
                 continue
             # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
@@ -211,7 +212,6 @@ class PrepareData:
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)
         y_seq = np.array(y_seq)
-        
         # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
