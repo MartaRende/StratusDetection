@@ -32,21 +32,21 @@ class StratusModel(nn.Module):
         )
         self.cnn_output_size = 32 * 16 * 16  # 32 channels * 8x8 spatial = 2048
         self.num_views = num_views
-        # MLP for meteorological data
-        self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_data_size, 64),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(64, 128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
+        # # MLP for meteorological data
+        # self.mlp_meteo = nn.Sequential(
+        #     nn.Linear(input_data_size, 64),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.3),
+        #     nn.Linear(64, 128),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.3),
 
-        )
+        # )
         factor = 1 if num_views == 1 else 2
         
         # Final classification head
         self.mlp_head = nn.Sequential(
-            nn.Linear(self.cnn_output_size * factor + 128, 2048),
+            nn.Linear(self.cnn_output_size * factor, 2048),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(2048, 2048),
@@ -82,10 +82,10 @@ class StratusModel(nn.Module):
             z_img = z_img.view(z_img.size(0), -1)  # Flatten to [batch_size, 2048]
         
         # Process meteo data
-        z_meteo = self.mlp_meteo(meteo_data)
+        # z_meteo = self.mlp_meteo(meteo_data)
         
         # Combine features
-        z = torch.cat([z_img, z_meteo], dim=1)
+        # z = torch.cat([z_img, z_meteo], dim=1)
         
         # Final prediction
-        return self.mlp_head(z)
+        return self.mlp_head(z_img)
