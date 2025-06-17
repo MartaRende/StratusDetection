@@ -76,17 +76,21 @@ class PrepareData:
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
                 continue
 
             if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=10):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
                 continue
 
             # Check for missing meteo data
             if seq[self.meteo_feats].isna().any().any():
+                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
                 continue
 
             # Check for missing target values
             if next_t[["gre000z0_nyon", "gre000z0_dole"]].isna().any():
+                print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
                 continue
 
             # Check if all images exist
