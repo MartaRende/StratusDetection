@@ -29,10 +29,13 @@ class StratusModel(nn.Module):
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),  # 32x32 -> 8x8
         )
 
 
-        self.cnn_output_size = 32 * 16 * 16  # 8192
+        self.cnn_output_size = 32 * 8 * 8  # 32 channels, 8x8 feature map size after CNN layers
 
         # # MLP for weather data
         # self.mlp_meteo = nn.Sequential(
@@ -50,19 +53,13 @@ class StratusModel(nn.Module):
 
         # MLP final
         self.mlp_head = nn.Sequential(
-            nn.Linear(mlp_input_size, 1024),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(1024, 1024),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(512, 512),
+            nn.Linear(mlp_input_size, 512),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(256, 128),
@@ -71,7 +68,10 @@ class StratusModel(nn.Module):
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(64, output_size)
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(32, output_size)
         )
 
 
