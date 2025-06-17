@@ -74,21 +74,25 @@ class StratusModel(nn.Module):
 
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
         batch_size = meteo_seq.size(0)
-        
-        # image_seq_1 shape: [batch, seq_len, 3, H, W] -> [batch, 3*seq_len, H, W]
-        view1_input = image_seq_1.reshape(batch_size, -1, image_seq_1.size(3), image_seq_1.size(4))
+        import ipdb 
+        ipdb.set_trace()
+        # Reshape image_seq_1: [batch, seq_len, 3, H, W] -> [batch, 3*seq_len, H, W]
+        view1_input = image_seq_1.permute(0, 2, 1, 3, 4).reshape(batch_size, -1, image_seq_1.size(3), image_seq_1.size(4))
         view1_features = self.cnn_view1(view1_input).reshape(batch_size, -1)
         
         if self.num_views == 2 and image_seq_2 is not None:
-            view2_input = image_seq_2.reshape(batch_size, -1, image_seq_2.size(3), image_seq_2.size(4))
+            # Reshape image_seq_2: [batch, seq_len, 3, H, W] -> [batch, 3*seq_len, H, W]
+            view2_input = image_seq_2.permute(0, 2, 1, 3, 4).reshape(batch_size, -1, image_seq_2.size(3), image_seq_2.size(4))
             view2_features = self.cnn_view1(view2_input).reshape(batch_size, -1)
             img_features = torch.cat([view1_features, view2_features], dim=1)
         else:
             img_features = view1_features
         
+        # Flatten meteorological data
         meteo_flat = meteo_seq.reshape(batch_size, -1)
         z_meteo = self.mlp_meteo(meteo_flat)
         
+        # Concatenate image features and meteorological features
         z = torch.cat([img_features, z_meteo], dim=1)
         output = self.mlp_head(z)
         

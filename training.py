@@ -49,12 +49,12 @@ all_imagesX = x_images
 allY = y
 
 # Initial split into train/test sets
-weather_train, images_train, y_train, weather_test, images_test, y_test  = prepare_data.split_data(
+weather_train, images_train, y_train, weather_test, images_test, y_test, train_datetimes, test_datetimes = prepare_data.split_data(
     all_weatherX, all_imagesX, allY
 )
 
 # Further split train into train/validation sets
-weather_train, images_train, y_train, weather_validation, images_validation, y_validation = prepare_data.split_train_validation(
+weather_train, images_train, y_train, weather_validation, images_validation, y_validation, train_datetimes, val_datetimes = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
 var_order = []
@@ -91,7 +91,7 @@ class SimpleDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3):
         self.weather = weather
         self.image_base_folder = image_base_folder
-        self.seq_infos = seq_infos  # List of sequence info dicts from PrepareData
+        self.seq_infos = seq_infos
         self.labels = labels
         self.num_views = num_views
         self.seq_len = seq_len
@@ -103,31 +103,34 @@ class SimpleDataset(Dataset):
     def __getitem__(self, idx):
         # Load weather data
         weather_data = torch.tensor(self.weather[idx], dtype=torch.float32)
-        
-        # Load images on demand
+
+        # Load sequence info
         seq_info = self.seq_infos[idx]
+
+        # Load images on demand
+       
         images = self.prepare_data.load_images_for_sequence(seq_info)
-        
+   
         # Convert to tensor and permute dimensions if needed
         if self.num_views > 1:
             images = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)  # (T, C, H, W)
         else:
-            images = torch.tensor(images, dtype=torch.float32).permute(2, 0, 1)  # (C, H, W)
+            images = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)  # (C, H, W)
         
         labels = torch.tensor(self.labels[idx], dtype=torch.float32)
-        
+      
         return weather_data, images, labels
 # Create datasets and loaders
-train_dataset = SimpleDataset(weather_train, FP_IMAGES, y_train)
-validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, y_validation)
-test_dataset = SimpleDataset(weather_test, FP_IMAGES, y_test)
+train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train)
+validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation)
+test_dataset = SimpleDataset(weather_test, FP_IMAGES, test_datetimes, y_test)
 print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=8, shuffle=True)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=8)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=8)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 # Instantiate model, loss, optimizer, scheduler
 model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
@@ -158,12 +161,16 @@ for epoch in range(num_epochs):
         count = 0
 
         for batch in loader:
+            import ipdb
+            ipdb.set_trace()
             optimizer.zero_grad()
             if num_views == 2:
                 weather_x, img1, img2, labels = batch
                 weather_x, img1, img2, labels = weather_x.to(device), img1.to(device), img2.to(device), labels.to(device)
                 y_pred = model(weather_x, img1, img2)
             else:
+                import ipdb
+                ipdb.set_trace()
                 weather_x, images_x, labels = batch
                 weather_x, images_x, labels = weather_x.to(device), images_x.to(device), labels.to(device)
                 y_pred = model(weather_x, images_x)
