@@ -117,7 +117,7 @@ class PrepareData:
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
         """Load and prepare data without loading images into memory"""
-        df = self.filter_data(start_date, end_date, take_all_seasons=True)
+        df = self.filter_data(start_date, end_date, take_all_seasons=False)
         self.data = df.sort_values("datetime").reset_index(drop=True)
         valid_seqs = self.get_valid_sequences()
         
@@ -217,7 +217,6 @@ class PrepareData:
                (self.data['datetime'].dt.date <= pd.to_datetime(end_date).date()) & \
                (self.data['datetime'].dt.month.isin(months_to_take))
         self.data = self.data[mask].copy()
-  
         return self.data
 
     def prepare_data(self, df):
