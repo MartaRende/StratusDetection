@@ -40,7 +40,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-17")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -110,7 +110,15 @@ class SimpleDataset(Dataset):
         # Load images on demand
        
         images = self.prepare_data.load_images_for_sequence(seq_info)
-   
+        # Remove sequence if any image is completely black
+        if isinstance(images, np.ndarray):
+            if np.any(np.all(images == 0, axis=(1, 2, 3))):
+                print(f"Skipping sequence {idx} due to black images.")
+                raise IndexError("Sequence contains a black image, skipping.")
+        else:
+            # If images is a list of arrays (for multiple views)
+            if any(np.all(img == 0) for img in images):
+                raise IndexError("Sequence contains a black image, skipping.")
         # Convert to tensor and permute dimensions if needed
         if self.num_views > 1:
             images = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)  # (T, C, H, W)
