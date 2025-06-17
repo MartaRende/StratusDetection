@@ -51,17 +51,17 @@ class StratusModel(nn.Module):
 
         # MLP final
         self.mlp_head = nn.Sequential(
-    nn.Linear(mlp_input_size, 512),
-    nn.ReLU(),
-    nn.Linear(512, 256),
-    nn.ReLU(),
-    nn.Dropout(0.3),
-    nn.Linear(256, 128),
-    nn.ReLU(),
-    nn.Linear(128, output_size)
-)
-
-
+            nn.Linear(mlp_input_size, 128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(32, output_size) 
+        )
 
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
         batch_size = image_seq_1.size(0)
