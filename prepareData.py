@@ -55,13 +55,6 @@ class PrepareData:
         """Check if image exists without loading it"""
         return os.path.exists(self.get_image_path(dt, view))
 
-    def filter_data(self, start_date, end_date, take_all_seasons=True):
-        months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
-        mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
-               (self.data['datetime'].dt.date <= pd.to_datetime(end_date).date()) & \
-               (self.data['datetime'].dt.month.isin(months_to_take))
-        self.data = self.data[mask].copy()
-        return self.data
 
     def get_valid_sequences(self):
         """Identify valid sequences without modifying self.data during iteration"""
