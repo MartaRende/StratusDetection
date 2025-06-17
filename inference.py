@@ -36,9 +36,6 @@ module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
-fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
-loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
-stratus_days_stats_loaded = loaded["stratus_days_stats"]
 model = StratusModel(15, 2, num_views,seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
@@ -79,7 +76,7 @@ for year, month in months:
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
-        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=stratus_days_stats_loaded[0],mad_gap=stratus_days_stats_loaded[1])
+        stratus_days_for_month, non_stratus_days_for_month= prepare_data.find_stratus_days()
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         var_order = []
         for i in range(seq_len):

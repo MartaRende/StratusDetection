@@ -218,74 +218,23 @@ class PrepareData:
         return x_meteo_seq, x_images_seq, y_seq
 
 
-    def find_stratus_days(self, df=None, median_gap=None, mad_gap=None):
+    def find_stratus_days(self, df=None):
         if df is None:
             df = self.data
         df = df.copy()
-        
-        weather_df = df.reset_index()[['datetime', 'gre000z0_dole', 'gre000z0_nyon']].copy()
-        # Suppose we have a DataFrame 'weather_df' with columns 'gre000z0_dole' and 'gre000z0_nyon'
-        # Calculate the absolute difference between the two columns
-        weather_df['gap_abs'] = weather_df['gre000z0_dole'] - weather_df['gre000z0_nyon']
-
-        # Calculate the median and MAD of the difference
-        if median_gap is None and mad_gap is None:
-            median_gap = np.median(weather_df['gap_abs'])
-            mad_gap = np.median(np.abs(weather_df['gap_abs'] - median_gap))
-        print(f"Median gap: {median_gap}, MAD gap: {mad_gap}")
-        # Calculate the Modified Z-Score
-        weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
-
-        # Define a threshold to identify outliers
-        threshold = 3
-        weather_df['large_gap_mod_zscore'] = weather_df['gap_abs_mod_zscore'] > threshold
-
-        # Filter the data considered outliers
-        large_gap_data = weather_df[weather_df['large_gap_mod_zscore']]
-        # Print the results
-        # Find sequences where there are more than 5 consecutive large differences
-        large_gap_data = weather_df[weather_df['large_gap_mod_zscore']].copy()
-        large_gap_data = large_gap_data.sort_values('datetime')
-
-        # Create a boolean mask for large differences
-        mask = weather_df['large_gap_mod_zscore'].values
-
-        # Find runs of consecutive True values
-
-        indices = np.where(mask)[0]
-        groups = []
-        for k, g in groupby(enumerate(indices), lambda ix: ix[0] - ix[1]):
-            group = list(map(itemgetter(1), g))
-            if len(group) > 2:
-                groups.append(group)
-
-        # Get the corresponding datetimes for each group
-        consecutive_large_diff_dates = []
-        for group in groups:
-            dates = weather_df.iloc[group]['datetime'].dt.date.unique()
-            consecutive_large_diff_dates.extend(dates)
-
-        consecutive_large_diff_dates = np.unique(consecutive_large_diff_dates)
-
-
-        # Find days with at least 8 large differences in total
-        counts = large_gap_data['datetime'].dt.date.value_counts()
-        days_with_8_or_more = counts[counts >= 3].index
-
-            # Find intersection of days with >5 consecutive large differences and days with at least 8 large differences
-        days_consecutive = set(consecutive_large_diff_dates)
-        days_8_or_more = set(days_with_8_or_more)
-        stratus_days = sorted(days_consecutive & days_8_or_more)
-        stratus_days = [str(d) for d in stratus_days]
-        non_stratus_days = sorted(set(df['datetime'].dt.strftime('%Y-%m-%d').unique()) - set(stratus_days))
-  
-        
-        return stratus_days,non_stratus_days, (median_gap, mad_gap)
+        df.set_index('datetime', inplace=True)
+        df.index = pd.to_datetime(df.index)
+        daily_dole = df['gre000z0_dole'].resample('D').median()
+        daily_nyon = df['gre000z0_nyon'].resample('D').median()
+        daily_diff = daily_dole - daily_nyon
+        stratus_days = daily_diff[daily_diff > 80].index.strftime('%Y-%m-%d').tolist()
+        non_stratus_days = daily_diff[daily_diff <= 80].index.strftime('%Y-%m-%d').tolist()
+        return stratus_days,non_stratus_days
     
     def get_train_validation_days(self, train_days, split_ratio=0.2):
         train_days = list(train_days)
         # Use self.data to find stratus days
-        stratus_days,_,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
+        stratus_days,_,= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
         print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
@@ -302,7 +251,7 @@ class PrepareData:
         return train_days, test_days
     
     def get_test_train_days(self, split_ratio=0.8):
-        stratus_days, _,self.stats_stratus_days= self.find_stratus_days()
+        stratus_days, _= self.find_stratus_days()
         all_days = self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist()
         print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
