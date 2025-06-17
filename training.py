@@ -57,8 +57,7 @@ weather_train, images_train, y_train, weather_test, images_test, y_test, train_d
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation, train_datetimes, val_datetimes = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
-import ipdb
-ipdb.set_trace()
+
 var_order = []
 for i in range(seq_len):
     var_order.append("gre000z0_nyon_t" + str(i))
@@ -179,8 +178,7 @@ class SimpleDataset(Dataset):
         return weather_data, images, labels
     
 # Create datasets and loaders
-import ipdb
-ipdb.set_trace()
+
 train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train)
 validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation)
 test_dataset = SimpleDataset(weather_test, FP_IMAGES, test_datetimes, y_test)
