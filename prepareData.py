@@ -161,10 +161,8 @@ class PrepareData:
         """Helper function to load a single image"""
         if os.path.exists(path):
             img = Image.open(path).convert("RGB")
-            print(f"Loaded image: {path}")
             return np.array(img)
         else:
-            print(f"Image not found: {path}")
             return np.zeros((512, 512, 3), dtype=np.uint8)
 
 
