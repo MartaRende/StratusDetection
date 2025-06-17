@@ -40,7 +40,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-17")
+x_meteo, x_images, y = prepare_data.load_data()
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -57,6 +57,8 @@ weather_train, images_train, y_train, weather_test, images_test, y_test, train_d
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation, train_datetimes, val_datetimes = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
+import ipdb
+ipdb.set_trace()
 var_order = []
 for i in range(seq_len):
     var_order.append("gre000z0_nyon_t" + str(i))
@@ -108,18 +110,65 @@ class SimpleDataset(Dataset):
         seq_info = self.seq_infos[idx]
 
         # Load images on demand
-       
+        print(f"Loading images for sequence {idx} with info: {seq_info}")
         images = self.prepare_data.load_images_for_sequence(seq_info)
         # Remove sequence if any image is completely black
+        # Check for completely black images and save them for debugging
+        for i in range(images.shape[0]):
+            if np.max(np.abs(images[i])) == 0:
+                print(f"Image {i} max pixel value: {np.max(np.abs(images[i]))}")
+
         if isinstance(images, np.ndarray):
-            if np.any(np.all(images == 0, axis=(1, 2, 3))):
-                print(f"Skipping sequence {idx} due to black images.")
+            black_image_mask = np.all(images == 0, axis=(1, 2, 3))
+            if np.any(black_image_mask):
+                black_indices = np.where(black_image_mask)[0]
+                debug_dir = "./debug_black_images"
+                os.makedirs(debug_dir, exist_ok=True)
+                for i in black_indices:
+                    img = images[i]
+                    img_to_save = (img * 255).astype(np.uint8) if img.max() <= 1.0 else img.astype(np.uint8)
+                    img_pil = Image.fromarray(img_to_save)
+                    img_pil.save(os.path.join(debug_dir, f"black_img_seq{idx}_img{i}.png"))
+                raise IndexError("Sequence contains a black image, skipping.")
+        else:
+            black_images = [i for i, img in enumerate(images) if np.all(img == 0)]
+            if black_images:
+                debug_dir = "./debug_black_images"
+                os.makedirs(debug_dir, exist_ok=True)
+                for i in black_images:
+                    img = images[i]
+                    img_to_save = (img * 255).astype(np.uint8) if img.max() <= 1.0 else img.astype(np.uint8)
+                    img_pil = Image.fromarray(img_to_save)
+                    img_pil.save(os.path.join(debug_dir, f"black_img_seq{idx}_img{i}.png"))
+                raise IndexError("Sequence contains a black image, skipping.")
+        # Debugging black images
+        if isinstance(images, np.ndarray):
+            # Check for completely black images
+            black_image_mask = np.all(images == 0, axis=(1, 2, 3))
+            if np.any(black_image_mask):
+                black_indices = np.where(black_image_mask)[0]
+                print(f"Skipping sequence {idx} due to black images at indices: {black_indices}")
+                print(f"Image shape: {images.shape}")
+                print(f"Black image data: {images[black_indices]}")
+                # Save black images for debugging
+                debug_dir = "./debug_black_images"
+                os.makedirs(debug_dir, exist_ok=True)
+                for i in black_indices:
+                    img = images[i]
+                    # Normalize to 0-255 and convert to uint8 if needed
+                    img_to_save = (img * 255).astype(np.uint8) if img.max() <= 1.0 else img.astype(np.uint8)
+                    img_pil = Image.fromarray(img_to_save)
+                    img_pil.save(os.path.join(debug_dir, f"black_img_seq{idx}_img{i}.png"))
                 raise IndexError("Sequence contains a black image, skipping.")
         else:
             # If images is a list of arrays (for multiple views)
-            if any(np.all(img == 0) for img in images):
+            black_images = [i for i, img in enumerate(images) if np.all(img == 0)]
+            if black_images:
+                print(f"Skipping sequence {idx} due to black images at indices: {black_images}")
+                print(f"Image shapes: {[img.shape for img in images]}")
+                print(f"Black image data: {[images[i] for i in black_images]}")
                 raise IndexError("Sequence contains a black image, skipping.")
-        # Convert to tensor and permute dimensions if needed
+       
         if self.num_views > 1:
             images = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)  # (T, C, H, W)
         else:
@@ -128,7 +177,10 @@ class SimpleDataset(Dataset):
         labels = torch.tensor(self.labels[idx], dtype=torch.float32)
       
         return weather_data, images, labels
+    
 # Create datasets and loaders
+import ipdb
+ipdb.set_trace()
 train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train)
 validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation)
 test_dataset = SimpleDataset(weather_test, FP_IMAGES, test_datetimes, y_test)

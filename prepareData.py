@@ -98,9 +98,11 @@ class PrepareData:
             for _, row in seq.iterrows():
                 if not self.image_exists(row['datetime']):
                     all_images_exist = False
+                    print(f"Skipping sequence starting at index {i} due to missing image for datetime {row['datetime']}.")
                     break
                 if self.num_views > 1 and not self.image_exists(row['datetime'], view=2):
                     all_images_exist = False
+                    print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                     break
 
             if not all_images_exist:
@@ -166,8 +168,11 @@ class PrepareData:
         """Helper function to load a single image"""
         if os.path.exists(path):
             img = Image.open(path).convert("RGB")
+            print(f"Loaded image: {path}")
             return np.array(img)
-        return np.zeros((512, 512, 3), dtype=np.uint8)
+        else:
+            print(f"Image not found: {path}")
+            return np.zeros((512, 512, 3), dtype=np.uint8)
 
 
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
