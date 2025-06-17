@@ -161,16 +161,14 @@ for epoch in range(num_epochs):
         count = 0
 
         for batch in loader:
-            import ipdb
-            ipdb.set_trace()
+        
             optimizer.zero_grad()
             if num_views == 2:
                 weather_x, img1, img2, labels = batch
                 weather_x, img1, img2, labels = weather_x.to(device), img1.to(device), img2.to(device), labels.to(device)
                 y_pred = model(weather_x, img1, img2)
             else:
-                import ipdb
-                ipdb.set_trace()
+             
                 weather_x, images_x, labels = batch
                 weather_x, images_x, labels = weather_x.to(device), images_x.to(device), labels.to(device)
                 y_pred = model(weather_x, images_x)

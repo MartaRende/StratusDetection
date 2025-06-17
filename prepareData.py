@@ -143,16 +143,19 @@ class PrepareData:
 
         return x_meteo, valid_seqs, y
 
-    def load_images_for_sequence(self, dt):
+    def load_images_for_sequence(self, seq_info):
         """Load images for a specific sequence when needed"""
         seq_imgs = []
-    
-        img = self._load_single_image(self.get_image_path(dt))
-        if self.num_views > 1:
-            img2 = self._load_single_image(self.get_image_path(dt, view=2))
-            seq_imgs.append([img, img2])
-        else:
-            seq_imgs.append(img)
+        for dt in seq_info:
+            # Load the first view image
+            img = self._load_single_image(self.get_image_path(dt))
+            if self.num_views > 1:
+                # Load the second view image if available
+                img2 = self._load_single_image(self.get_image_path(dt, view=2))
+                seq_imgs.append([img, img2])
+            else:
+                seq_imgs.append(img)
+   
         return np.array(seq_imgs)
 
     def _load_single_image(self, path):
@@ -466,7 +469,10 @@ class PrepareData:
         x_meteo_test_df['datetime'] = test_datetimes
         y_test_df['datetime'] = test_datetimes
       
-
+    # Find the datetime sequence for each train and test sample
+        train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
+        test_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in test_sequences]
+    
         # Also add datetime to train df for reference
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         x_meteo_train_df['datetime'] = train_datetimes
@@ -476,7 +482,7 @@ class PrepareData:
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
-        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetimes,test_datetimes
+        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
 
 
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
@@ -528,12 +534,15 @@ class PrepareData:
         # Extract train and validation datetimes for reference
         train_datetimes = x_meteo_seq.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         val_datetimes = x_meteo_seq.loc[[indices[-1] for indices in val_sequences], 'datetime'].values
-      
+
+        train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
+        val_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in val_sequences]
+     
     
         y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-     
-        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetimes, val_datetimes
+
+        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
         arr = np.array(data)
