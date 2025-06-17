@@ -583,4 +583,9 @@ class PrepareData:
             return reshaped[:, 0, :]  #
         return reshaped
 
+    def load_data_test(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
+        filtered_df = self.filter_data(start_date, end_date, take_all_seasons)
+        print(f"Filtered data shape: {filtered_df.shape}")
+        x_meteo, x_images, y = self.prepare_data(filtered_df)
+        return x_meteo, x_images, y
     
