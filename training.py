@@ -109,13 +109,10 @@ class SimpleDataset(Dataset):
         seq_info = self.seq_infos[idx]
 
         # Load images on demand
-        print(f"Loading images for sequence {idx} with info: {seq_info}")
         images = self.prepare_data.load_images_for_sequence(seq_info)
         # Remove sequence if any image is completely black
         # Check for completely black images and save them for debugging
-        for i in range(images.shape[0]):
-            if np.max(np.abs(images[i])) == 0:
-                print(f"Image {i} max pixel value: {np.max(np.abs(images[i]))}")
+     
 
         if isinstance(images, np.ndarray):
             black_image_mask = np.all(images == 0, axis=(1, 2, 3))
