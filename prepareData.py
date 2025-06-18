@@ -146,19 +146,23 @@ class PrepareData:
 
     def load_images_for_sequence(self, seq_info):
         """Load images for a specific sequence when needed"""
-        seq_imgs = []
+        view1_imgs = []
+        view2_imgs = []
+
         for dt in seq_info:
             # Load the first view image
             img = self._load_single_image(self.get_image_path(dt))
-            if self.num_views > 1:
+            view1_imgs.append(img)
+
+            if self.num_views == 2:
                 # Load the second view image if available
                 img2 = self._load_single_image(self.get_image_path(dt, view=2))
-                seq_imgs.append([img, img2])
-            else:
-                seq_imgs.append(img)
-   
-        return np.array(seq_imgs)
+                view2_imgs.append(img2)
 
+        if self.num_views == 2:
+            return np.array(view1_imgs), np.array(view2_imgs)  # Separate arrays for each view
+        else:
+            return np.array(view1_imgs)  # Single array for one view
     def _load_single_image(self, path):
         """Helper function to load a single image"""
         if os.path.exists(path):
