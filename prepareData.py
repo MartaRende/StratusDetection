@@ -66,7 +66,7 @@ class PrepareData:
             seq = df.iloc[i:i+self.seq_length]
             if i + self.seq_length + 5 >= len(df):
                 break
-            next_t = df.iloc[i + self.seq_length+1]
+            next_t = df.iloc[i + self.seq_length+5]
 
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
