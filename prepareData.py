@@ -347,7 +347,7 @@ class PrepareData:
         # Prepare train and test DataFrames for x_meteo
         column_names = [
             f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
-             "RR", "TD", "WG", "TT",
+             "gre000z0_nyon","gre000z0_dole", "RR", "TD", "WG", "TT",
                 "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ]
         ]

@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 4  # or any number you want
+MODEL_NUM = 40  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -45,6 +45,8 @@ model = model.to(device)
 model.eval()
 # load data test of npz file
 data = np.load(npz_file, allow_pickle=True)
+import ipdb 
+ipdb.set_trace()
 stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
 stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
