@@ -92,7 +92,7 @@ class PreProcessData:
         self.cache_dir = Path(".data_cache")
         self.cache_dir.mkdir(exist_ok=True)
 
-        self.points = {"dole": (46.424797, 6.099136)}
+        self.points = {"nyon": (46.38318, 6.23955)}
         self.transformer = Transformer.from_crs("EPSG:4326", "EPSG:21781")
         self.coordinates = {
             name: self.transformer.transform(lat, lon)
@@ -184,7 +184,7 @@ class PreProcessData:
 if __name__ == "__main__":
     import time
     start_date = "2023-01-01T00:00:00"
-    end_date = "2023-01-01T23:50:00"
+    end_date = "2024-12-31T23:50:00"
     fp_inca = "/home/marta/Projects/tb/data/weather/inca/"
     fp_images = "/home/marta/Projects/tb/data/images/mch/1159/2/2023"
     fp_global_rayonnement = "data/rayonnement_global"
@@ -204,4 +204,4 @@ if __name__ == "__main__":
     all_days = list(data_by_day.keys())
     all_days = [record for day in all_days for record in data_by_day[day]]
 
-    np.savez("data/data.npz", dole=np.array(all_days))
+    np.savez("data/data_nyon.npz", dole=np.array(all_days))
