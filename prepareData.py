@@ -216,7 +216,17 @@ class PrepareData:
                (self.data['datetime'].dt.month.isin(months_to_take))
         self.data = self.data[mask].copy()
         return self.data
-
+    def get_image_for_datetime(self, dt, view=1):
+        """Get the image for a specific datetime without loading it into memory"""
+        if isinstance(dt, np.datetime64):
+            dt = pd.Timestamp(dt)
+        image_path = self.get_image_path(dt, view)
+        if os.path.exists(image_path):
+            img = Image.open(image_path).convert("RGB")
+            return np.array(img)
+        else:
+            print(f"Image not found for datetime {dt} at view {view}. Returning empty image.")
+            return np.zeros((512, 512, 3), dtype=np.uint8)
     def prepare_data(self, df):
         df = df.sort_values('datetime').reset_index(drop=True)
         

@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 24  # or any number you want
+MODEL_NUM = 3 # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -33,10 +33,10 @@ module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
-# fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
-# loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
-# stratus_days_stats_loaded = loaded["stratus_days_stats"]
-model = StratusModel(16, 2, num_views)
+fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
+loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
+stratus_days_stats_loaded = loaded["stratus_days_stats"]
+model = StratusModel(15, 2, num_views)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
@@ -78,7 +78,7 @@ for year, month in months:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
    
-        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=16,mad_gap=37)
+        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=stratus_days_stats_loaded[0],mad_gap= stratus_days_stats_loaded[1])
       
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         x_meteo = prepare_data.normalize_data_test(
