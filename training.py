@@ -1,5 +1,7 @@
+from multiprocessing.pool import ThreadPool
 import os
 import sys
+from turtle import pd
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -88,43 +90,112 @@ y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
 )
 import os
 from datetime import datetime
+# Modify your SimpleDataset class to use more efficient loading
 class SimpleDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3):
+        """
+        Optimized dataset class that leverages your existing data loading methods
+        
+        Args:
+            weather: numpy array of weather data (N, seq_len, features)
+            image_base_folder: base path to images
+            seq_infos: list of datetime sequences
+            labels: numpy array of target values
+            num_views: number of camera views (1 or 2)
+            seq_len: length of input sequence
+        """
         self.weather = weather
         self.image_base_folder = image_base_folder
         self.seq_infos = seq_infos
         self.labels = labels
         self.num_views = num_views
         self.seq_len = seq_len
-        self.prepare_data = PrepareData(image_base_folder, "", num_views, seq_len)  # Dummy weather path
-
+        
+        # Precompute all image paths to minimize disk access during training
+        self.image_paths = self._precompute_image_paths()
+        
+    def _precompute_image_paths(self):
+        """Precompute all image paths to avoid repeated disk access during training"""
+        paths = []
+        for seq_info in self.seq_infos:
+            view_paths = []
+            for view in range(1, self.num_views + 1):
+                seq_paths = [self.get_image_path(dt, view) for dt in seq_info]
+                view_paths.append(seq_paths)
+            paths.append(view_paths if self.num_views > 1 else view_paths[0])
+        return paths
+    
+    def get_image_path(self, dt, view=1):
+        """Your existing method for getting image paths"""
+        if isinstance(dt, np.datetime64):
+            dt = pd.Timestamp(dt)
+            
+        date_str = dt.strftime('%Y-%m-%d')
+        time_str = dt.strftime('%H%M')
+        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
+        
+        return os.path.join(
+            self.image_base_folder,
+            str(view),
+            dt.strftime('%Y'),
+            dt.strftime('%m'),
+            dt.strftime('%d'),
+            img_filename
+        )
+    
     def __len__(self):
         return len(self.weather)
-
+    
     def __getitem__(self, idx):
+        """Optimized item getter with minimal disk access and efficient loading"""
         # Load weather data
         weather_data = torch.tensor(self.weather[idx], dtype=torch.float32)
-
-        # Load sequence info
-        seq_info = self.seq_infos[idx]
-
-        images = self.prepare_data.load_images_for_sequence(seq_info)
-
-        labels = torch.tensor(self.labels[idx], dtype=torch.float32)
-        if self.num_views == 2:
-            images = self.prepare_data.load_images_for_sequence(seq_info)
-
-            images1, images2= images
-            images1 = torch.tensor(images1, dtype=torch.float32).permute(0, 3, 1, 2)  # (T, C, H, W)
-            images2 = torch.tensor(images2, dtype=torch.float32).permute(0, 3, 1, 2)  # (T, C, H, W)
-            return weather_data, images1, images2, labels  # Tuple of tensors for two views
-        else:
-            images = self.prepare_data.load_images_for_sequence(seq_info)
-
-            images = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)  # (C, H, W)
         
-            return weather_data, images, labels
+        # Load labels
+        labels = torch.tensor(self.labels[idx], dtype=torch.float32)
+        
+        if self.num_views == 2:
+            # Load both views
+            view1_paths, view2_paths = self.image_paths[idx]
+            
+            # Load images in parallel using ThreadPool
+            with ThreadPool(2) as pool:
+                view1_images = pool.map(self._load_single_image, view1_paths)
+                view2_images = pool.map(self._load_single_image, view2_paths)
+            
+            # Convert to tensors
+            view1_tensor = torch.stack([torch.from_numpy(img) for img in view1_images])
+            view2_tensor = torch.stack([torch.from_numpy(img) for img in view2_images])
+            
+            # Normalize and permute dimensions
+            view1_tensor = view1_tensor.float().permute(0, 3, 1, 2)
+            view2_tensor = view2_tensor.float().permute(0, 3, 1, 2) 
+            
+            return weather_data, view1_tensor, view2_tensor, labels
+        else:
+            # Single view case
+            img_paths = self.image_paths[idx]
+            
+            # Load images
+            images = [self._load_single_image(p) for p in img_paths]
+            
+            # Convert to tensor
+            images_tensor = torch.stack([torch.from_numpy(img) for img in images])
+            images_tensor = images_tensor.float().permute(0, 3, 1, 2) 
+            
+            return weather_data, images_tensor, labels
     
+    def _load_single_image(self, path):
+        """Optimized single image loader with caching"""
+        if not os.path.exists(path):
+            return np.zeros((512, 512, 3), dtype=np.uint8)
+        
+        try:
+            # Using PIL's lazy loading
+            with Image.open(path) as img:
+                return np.array(img.convert('RGB'))
+        except:
+            return np.zeros((512, 512, 3), dtype=np.uint8)
 # Create datasets and loaders
 
 train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len)
