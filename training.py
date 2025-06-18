@@ -277,6 +277,23 @@ def saveResults():
         if key == "test":
             continue
         plt.plot(losses[key], label=f"{key.capitalize()} loss")
+    # Plot log scale for first 15 epochs, then linear for the rest
+    if len(losses["train"]) > 15:
+        plt.yscale("log")
+        plt.xlim(0, 15)
+        plt.legend()
+        plt.title("Loss (log scale, first 15 epochs)")
+        plt.savefig(currPath + "/loss_log_first15.png")
+        plt.clf()
+        for key in losses:
+            if key == "test":
+                continue
+            plt.plot(range(15, len(losses[key])), losses[key][15:], label=f"{key.capitalize()} loss")
+        plt.yscale("linear")
+        plt.title("Loss (linear scale, after epoch 15)")
+        plt.legend()
+        plt.savefig(currPath + "/loss_linear_after15.png")
+
     plt.yscale("log")
     plt.legend()
     plt.title("Loss")
@@ -308,7 +325,6 @@ def saveResults():
     print("Stratus days stats:", stratus_days_stats)
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)
     print("All data saved to", currPath)
-    
     # model.eval()
     # with torch.no_grad():
     #     def predict(weather_np, images_np):

@@ -13,11 +13,12 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 3 # or any number you want
+MODEL_NUM = 41  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
 num_views = 1
+seq_len = 3  # Number of time steps in the sequence
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -28,6 +29,8 @@ if len(sys.argv) > 1:
             num_views = 1
         elif sys.argv[2] == "2":
             num_views = 2
+    if len(sys.argv) > 3:
+        seq_len = int(sys.argv[3])
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
@@ -36,7 +39,7 @@ npz_file = f"{MODEL_PATH}/test_data.npz"
 fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
 loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
 stratus_days_stats_loaded = loaded["stratus_days_stats"]
-model = StratusModel(15, 2, num_views)
+model = StratusModel(15, 2, num_views,seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
@@ -71,70 +74,67 @@ for year, month in months:
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
-        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views)   
+        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len)   
         x_meteo, x_images, y_expected = prepare_data.load_data_test(start_date=start_date, end_date=end_date)
-    
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
-   
-        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=stratus_days_stats_loaded[0],mad_gap= stratus_days_stats_loaded[1])
-      
+        stratus_days_for_month, non_stratus_days_for_month,_= prepare_data.find_stratus_days(median_gap=stratus_days_stats_loaded[0],mad_gap=stratus_days_stats_loaded[1])
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
+        var_order = []
+        for i in range(seq_len):
+            var_order.append("gre000z0_nyon_t" + str(i))
+            var_order.append("gre000z0_dole_t" + str(i))
+            var_order.append("RR_t" + str(i))
+            var_order.append("TD_t" + str(i))
+            var_order.append("WG_t" + str(i))
+            var_order.append("TT_t" + str(i))
+            var_order.append("CT_t" + str(i))
+            var_order.append("FF_t" + str(i))
+            var_order.append("RS_t" + str(i))
+            var_order.append("TG_t" + str(i))
+            var_order.append("Z0_t" + str(i))
+            var_order.append("ZS_t" + str(i))
+            var_order.append("SU_t" + str(i))
+            var_order.append("DD_t" + str(i))
+            var_order.append("pres_t" + str(i))
+
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
-            var_order=[
-                "gre000z0_nyon",
-                "gre000z0_dole",
-                "RR",
-                "TD",
-                "WG",
-                "TT",
-                "CT",
-                "FF",
-                "RS",
-                "TG",
-                "Z0",
-                "ZS",
-                "SU",
-                "DD",
-                "pres"
-            ],
+            var_order=var_order,
             stats=stats_input,
         )
-        y_expected = prepare_data.normalize_data_test(
-            y_expected,
-            var_order=["gre000z0_nyon", "gre000z0_dole"],
-            stats=stats_label,
-        )
+        # y_expected = prepare_data.normalize_data_test(
+        #     y_expected,
+        #     var_order=["gre000z0_nyon_t0", "gre000z0_dole_t0"],
+        #     stats=stats_label,
+        # )
 
         total_predictions = len(x_meteo)
         print(f"Total predictions: {total_predictions}")
         y_predicted = []
         final_expected = []
+
         x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
+        x_images_tensor1 = None
+        x_images_tensor2 = None
         if num_views == 2:
-            x_image_view1 = x_images[:, 0, :, :, :]  # Extract the first image view
-            x_image_view2 = x_images[:, 1, :, :, :]  # Extract the second image view
-            x_image_tensor1 = torch.tensor(x_image_view1, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
-            x_image_tensor2 = torch.tensor(x_image_view2, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
+            x_images_tensor1 = torch.tensor(x_images[:, :, 0], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
+            x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
-            x_images_tensor1 = torch.tensor(x_images, dtype=torch.float32).permute(0, 3, 1, 2).to(device)
+            x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         for i in range(total_predictions):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
             if num_views == 2:
-                x_images_tensor = [x_image_tensor1, x_image_tensor2]
-                x_image_sample = [x_images_tensor[0][idx_test].unsqueeze(0), x_images_tensor[1][idx_test].unsqueeze(0)]
-                y = model(x_meteo_sample, x_image_sample[0], x_image_sample[1])
-                y = y.squeeze(0).cpu().numpy()
+                img_seq1 = x_images_tensor1[i].unsqueeze(0)
+                img_seq2 = x_images_tensor2[i].unsqueeze(0)
+                y = model(x_meteo_sample, img_seq1, img_seq2)
             else:
-                x_images_tensor = x_images_tensor1
-                x_image_sample = x_images_tensor[idx_test].unsqueeze(0)
-                y = model(x_meteo_sample, x_image_sample)
-                y = y.squeeze(0).cpu().numpy()
-                
+                img_seq = x_images_tensor[i].unsqueeze(0)
+                y = model(x_meteo_sample, img_seq)
+            y = y.squeeze(0).cpu().numpy()
             expected = y_expected[idx_test]
             min_nyon = stats_label["gre000z0_nyon"]["min"]
             max_nyon = stats_label["gre000z0_nyon"]["max"]
@@ -142,8 +142,8 @@ for year, month in months:
             max_dole = stats_label["gre000z0_dole"]["max"]
             y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
             y[1] = y[1] * (max_dole - min_dole) + min_dole
-            expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
-            expected[1] = expected[1] * (max_dole - min_dole) + min_dole
+            # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
+            # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)
             final_expected.append(expected)
          
