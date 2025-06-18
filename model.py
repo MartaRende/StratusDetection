@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 
+
 class StratusModel(nn.Module):
     def __init__(self, input_feature_size=15, output_size=2, num_views=1, seq_len=3):
         super(StratusModel, self).__init__()
@@ -10,9 +11,11 @@ class StratusModel(nn.Module):
         self.num_views = num_views
         self.input_feature_size = input_feature_size
 
-        # CNN 
+        # CNN
         self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(3 * seq_len, 64, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.Conv2d(
+                3 , 64, kernel_size=3, stride=1, padding=1
+            ),  # Input channels = 3*seq_len
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
@@ -28,13 +31,12 @@ class StratusModel(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
         )
-        
-        
-        self.cnn_output_size = 128 * 16 * 16  # 8192 
+
+        self.cnn_output_size = 128 * 16 * 16  # 8192
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_feature_size * seq_len, 256),
+            nn.Linear(input_feature_size, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(256, 128),
@@ -69,7 +71,7 @@ class StratusModel(nn.Module):
             nn.Linear(1024, 1024),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(1024, output_size)
+            nn.Linear(1024, output_size),
         )
 
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
