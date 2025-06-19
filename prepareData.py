@@ -21,7 +21,7 @@ class PrepareData:
         self.seq_length = seq_length
         self.num_workers = num_workers
         self.meteo_feats = [
-            "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
+             "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
         ]
     
@@ -244,7 +244,7 @@ class PrepareData:
         
         # Define the meteorological features to use
         meteo_features = [
-            "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
+             "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
         ]
         
