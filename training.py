@@ -204,13 +204,13 @@ print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, num_workers=4)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, num_workers=4)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=8)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, num_workers=8)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, num_workers=8)
 # Instantiate model, loss, optimizer, scheduler
 model = StratusModel(input_feature_size=13, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
 
 losses = {"train": [], "eval": [], "test": []}

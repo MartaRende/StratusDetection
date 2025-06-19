@@ -475,7 +475,6 @@ class PrepareData:
         y_test_df = pd.DataFrame(y_test, columns=label_names)
 
         # Prepare train and test arrays for x_images
-        
         x_images_train = np.array([x_images[indices[-1]] for indices in train_sequences])
         x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
     
@@ -484,7 +483,7 @@ class PrepareData:
         x_meteo_test_df['datetime'] = test_datetimes
         y_test_df['datetime'] = test_datetimes
       
-    # Find the datetime sequence for each train and test sample
+        # Find the datetime sequence for each train and test sample
         train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
         test_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in test_sequences]
     
@@ -492,10 +491,14 @@ class PrepareData:
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
+        
+        # Prepare test_data with label columns included
         test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
-
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
+        # Add label columns to test_data
+        for label in label_names:
+            test_data[label] = y_test_df[label].values
         self.test_data = test_data.to_dict('records')
      
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
