@@ -112,6 +112,7 @@ class SimpleDataset(Dataset):
         self.seq_len = seq_len
         
         # Precompute all image paths to minimize disk access during training
+        self.image_cache = self._preload_images()
         self.image_paths = self._precompute_image_paths()
         
     def _precompute_image_paths(self):
