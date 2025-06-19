@@ -62,8 +62,6 @@ weather_train, images_train, y_train, weather_validation, images_validation, y_v
 
 var_order = []
 for i in range(seq_len):
-    var_order.append("gre000z0_nyon_t" + str(i))
-    var_order.append("gre000z0_dole_t" + str(i))
     var_order.append("RR_t" + str(i))
     var_order.append("TD_t" + str(i))
     var_order.append("WG_t" + str(i))
@@ -209,7 +207,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 # Instantiate model, loss, optimizer, scheduler
-model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
+model = StratusModel(input_feature_size=13, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
