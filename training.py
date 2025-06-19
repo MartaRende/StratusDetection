@@ -96,18 +96,25 @@ from PIL import Image
 from multiprocessing import Pool
 from functools import partial
 import pandas as pd
+import os
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+from PIL import Image
+from joblib import Memory
+from torchvision.transforms.functional import to_tensor
+import pandas as pd
+
+# Disk caching for large datasets
+memory = Memory("./image_cache", verbose=0)
+
 class SimpleDataset(Dataset):
-    def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3):
+    def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, img_size=(512, 512)):
         """
-        Optimized dataset class that leverages your existing data loading methods
-        
-        Args:
-            weather: numpy array of weather data (N, seq_len, features)
-            image_base_folder: base path to images
-            seq_infos: list of datetime sequences
-            labels: numpy array of target values
-            num_views: number of camera views (1 or 2)
-            seq_len: length of input sequence
+        Ultra-optimized dataset class with:
+        - Disk-based caching
+        - Direct PIL-to-tensor conversion
+        - Optimized path handling
         """
         self.weather = weather
         self.image_base_folder = image_base_folder
@@ -115,92 +122,61 @@ class SimpleDataset(Dataset):
         self.labels = labels
         self.num_views = num_views
         self.seq_len = seq_len
+        self.img_size = img_size
         
-        # Precompute all image paths to minimize disk access during training
+        # Precompute all image paths
         self.image_paths = self._precompute_image_paths()
         
     def _precompute_image_paths(self):
-        """Precompute all image paths to avoid repeated disk access during training"""
+        """Precompute paths with disk caching"""
+        return memory.cache(self._compute_paths)()
+
+    def _compute_paths(self):
         paths = []
         for seq_info in self.seq_infos:
             view_paths = []
             for view in range(1, self.num_views + 1):
-                seq_paths = [self.get_image_path(dt, view) for dt in seq_info]
+                seq_paths = [self._get_image_path(dt, view) for dt in seq_info]
                 view_paths.append(seq_paths)
             paths.append(view_paths if self.num_views > 1 else view_paths[0])
         return paths
     
-    def get_image_path(self, dt, view=1):
-        """Your existing method for getting image paths"""
-        if isinstance(dt, np.datetime64):
-            dt = pd.Timestamp(dt)
-            
-        date_str = dt.strftime('%Y-%m-%d')
-        time_str = dt.strftime('%H%M')
-        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
-        
+    def _get_image_path(self, dt, view=1):
+        """Efficient path generation without caching"""
+        dt = pd.Timestamp(dt)
         return os.path.join(
             self.image_base_folder,
             str(view),
             dt.strftime('%Y'),
             dt.strftime('%m'),
             dt.strftime('%d'),
-            img_filename
+            f"1159_{view}_{dt.strftime('%Y-%m-%d')}_{dt.strftime('%H%M')}.jpeg"
         )
     
     def __len__(self):
         return len(self.weather)
     
     def __getitem__(self, idx):
-        """Optimized item getter with minimal disk access and efficient loading"""
-        # Load weather data
+        """Optimized item getter with direct tensor conversion"""
         weather_data = torch.tensor(self.weather[idx], dtype=torch.float32)
-        
-        # Load labels
         labels = torch.tensor(self.labels[idx], dtype=torch.float32)
         
         if self.num_views == 2:
-            # Load both views
-            view1_paths, view2_paths = self.image_paths[idx]
-            
-            # Load images in parallel using ThreadPool
-            with ThreadPool(2) as pool:
-                view1_images = pool.map(self._load_single_image, view1_paths)
-                view2_images = pool.map(self._load_single_image, view2_paths)
-            
-            # Convert to tensors
-            view1_tensor = torch.stack([torch.from_numpy(img) for img in view1_images])
-            view2_tensor = torch.stack([torch.from_numpy(img) for img in view2_images])
-            
-            # Normalize and permute dimensions
-            view1_tensor = view1_tensor.float().permute(0, 3, 1, 2) / 255.0
-            view2_tensor = view2_tensor.float().permute(0, 3, 1, 2) / 255.0
-            
+            view1_tensor = torch.stack([self._load_image_tensor(p) for p in self.image_paths[idx][0]])
+            view2_tensor = torch.stack([self._load_image_tensor(p) for p in self.image_paths[idx][1]])
             return weather_data, view1_tensor, view2_tensor, labels
         else:
-            # Single view case
-            img_paths = self.image_paths[idx]
-            
-            # Load images
-            images = [self._load_single_image(p) for p in img_paths]
-            
-            # Convert to tensor
-            images_tensor = torch.stack([torch.from_numpy(img) for img in images])
-            images_tensor = images_tensor.float().permute(0, 3, 1, 2) / 255.0
-            
+            images_tensor = torch.stack([self._load_image_tensor(p) for p in self.image_paths[idx]])
             return weather_data, images_tensor, labels
     
-    def _load_single_image(self, path):
-        """Optimized single image loader with caching"""
-        if not os.path.exists(path):
-            return np.zeros((512, 512, 3), dtype=np.uint8)
-        
+    @memory.cache
+    def _load_image_tensor(self, path):
+        """Direct PIL to tensor conversion with disk caching"""
         try:
-            # Using PIL's lazy loading
             with Image.open(path) as img:
-                return np.array(img.convert('RGB'))
+                return to_tensor(img.convert('RGB').resize(self.img_size))
         except:
-            return np.zeros((512, 512, 3), dtype=np.uint8)
+            return torch.zeros((3, *self.img_size))
 # Create datasets and loaders
 
 
@@ -216,9 +192,9 @@ print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, num_workers=4)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, num_workers=4)
 # Instantiate model, loss, optimizer, scheduler
 model = StratusModel(input_feature_size=13, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
