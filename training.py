@@ -146,6 +146,18 @@ class SimpleDataset(Dataset):
     def __len__(self):
         return len(self.weather)
     
+    def _preload_images(self):
+        cache = {}
+        for idx, paths in enumerate(self.image_paths):
+            if self.num_views == 2:
+                cache[idx] = (
+                    [self._load_single_image(p) for p in paths[0]],
+                    [self._load_single_image(p) for p in paths[1]],
+                )
+            else:
+                cache[idx] = [self._load_single_image(p) for p in paths]
+        return cache
+    
     def __getitem__(self, idx):
         """Optimized item getter with minimal disk access and efficient loading"""
         # Load weather data
@@ -156,12 +168,11 @@ class SimpleDataset(Dataset):
         
         if self.num_views == 2:
             # Load both views
-            view1_paths, view2_paths = self.image_paths[idx]
-            
+            view1_images, view2_images = self.image_cache[idx]
             # Load images in parallel using ThreadPool
-            with ThreadPool(2) as pool:
-                view1_images = pool.map(self._load_single_image, view1_paths)
-                view2_images = pool.map(self._load_single_image, view2_paths)
+            # with ThreadPool(2) as pool:
+            #     view1_images = pool.map(self._load_single_image, view1_paths)
+            #     view2_images = pool.map(self._load_single_image, view2_paths)
             
             # Convert to tensors
             view1_tensor = torch.stack([torch.from_numpy(img) for img in view1_images])
@@ -174,10 +185,11 @@ class SimpleDataset(Dataset):
             return weather_data, view1_tensor, view2_tensor, labels
         else:
             # Single view case
-            img_paths = self.image_paths[idx]
-            
+          
+            images = self.image_cache[idx]
+
             # Load images
-            images = [self._load_single_image(p) for p in img_paths]
+            # images = [self._load_single_image(p) for p in img_paths]
             
             # Convert to tensor
             images_tensor = torch.stack([torch.from_numpy(img) for img in images])
