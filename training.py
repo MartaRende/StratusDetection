@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from model import StratusModel
 from prepareData import PrepareData
 from metrics import Metrics
-
+from prepare_data.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
+from PIL import Image
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
@@ -86,10 +87,11 @@ y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
 
 # Dataset class
 class SimpleDataset(torch.utils.data.Dataset):
-    def __init__(self, weather, images, y):
+    def __init__(self, weather, images, y, augmentation=False):
         self.weather = weather
         self.images = images
         self.y = y
+        self.augmentation = augmentation
         
     def __len__(self):
         return len(self.y)
@@ -101,7 +103,14 @@ class SimpleDataset(torch.utils.data.Dataset):
         
         # Handle images based on num_views
         img_data = self.images[idx]  # Shape: (3, 2, 512, 512, 3)
-        
+        if self.augmentation:
+            # Apply augmentations to each image in the sequence
+            img_data = np.array([random_flip(Image.fromarray(img)) for img in img_data])
+            img_data = np.array([random_rotate(Image.fromarray(img)) for img in img_data])
+            img_data = np.array([random_brightness(Image.fromarray(img)) for img in img_data])
+            img_data = np.array([random_contrast(Image.fromarray(img)) for img in img_data])
+            img_data = np.array([random_color_jitter(Image.fromarray(img)) for img in img_data])
+            img_data = np.array([random_blur(Image.fromarray(img)) for img in img_data])
         if num_views == 2:
             # For 2 views, select both cameras for all timesteps
             img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)  # (3, 512, 512, 3) -> (3, 3, 512, 512)
@@ -114,7 +123,7 @@ class SimpleDataset(torch.utils.data.Dataset):
             return weather_x, img, y_val
 
 # Create datasets and loaders
-train_dataset = SimpleDataset(weather_train, images_train, y_train)
+train_dataset = SimpleDataset(weather_train, images_train, y_train, augmentation=True)
 validation_dataset = SimpleDataset(weather_validation, images_validation, y_validation)
 test_dataset = SimpleDataset(weather_test, images_test, y_test)
 print("train_dataset size:", len(train_dataset))
