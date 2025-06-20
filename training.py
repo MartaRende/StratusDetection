@@ -7,7 +7,7 @@ from model import StratusModel
 from prepareData import PrepareData
 from metrics import Metrics
 from PIL import Image
-from prepare_data import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
+from prepare_data.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
