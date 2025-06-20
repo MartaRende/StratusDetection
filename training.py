@@ -144,7 +144,7 @@ class SimpleDataset(torch.utils.data.Dataset):
 
 
 # Create datasets and loaders
-train_dataset = SimpleDataset(weather_train, images_train, y_train, augmentation=True)
+train_dataset = SimpleDataset(weather_train, images_train, y_train, augmentation=False)
 validation_dataset = SimpleDataset(weather_validation, images_validation, y_validation)
 test_dataset = SimpleDataset(weather_test, images_test, y_test)
 print("train_dataset size:", len(train_dataset))
