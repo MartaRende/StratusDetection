@@ -36,7 +36,7 @@ class StratusModel(nn.Module):
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_feature_size, 256),
+            nn.Linear(input_feature_size*self.seq_len, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(256, 128),
