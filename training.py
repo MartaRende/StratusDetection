@@ -238,32 +238,59 @@ def saveResults():
     os.mkdir(currPath)
     torch.save(model.state_dict(), currPath + "/model.pth")
     print("Saved model to ", currPath)
+    # Plot all losses (train, val) on a single plot (linear scale)
     plt.figure()
     for key in losses:
         if key == "test":
             continue
         plt.plot(losses[key], label=f"{key.capitalize()} loss")
-    # Plot log scale for first 15 epochs, then linear for the rest
+    plt.title("Loss (linear scale)")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(currPath + "/loss_linear.png")
+    plt.close()
+
+    # Plot all losses (train, val) on a single plot (log scale)
+    plt.figure()
+    for key in losses:
+        if key == "test":
+            continue
+        plt.plot(losses[key], label=f"{key.capitalize()} loss")
+    plt.yscale("log")
+    plt.title("Loss (log scale)")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(currPath + "/loss_log.png")
+    plt.close()
+
+    # Optionally, plot first 15 epochs in log scale
     if len(losses["train"]) > 15:
+        plt.figure()
+        for key in losses:
+            if key == "test":
+                continue
+            plt.plot(range(15), losses[key][:15], label=f"{key.capitalize()} loss")
         plt.yscale("log")
-        plt.xlim(0, 15)
-        plt.legend()
         plt.title("Loss (log scale, first 15 epochs)")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.legend()
         plt.savefig(currPath + "/loss_log_first15.png")
-        plt.clf()
+        plt.close()
+
+        plt.figure()
         for key in losses:
             if key == "test":
                 continue
             plt.plot(range(15, len(losses[key])), losses[key][15:], label=f"{key.capitalize()} loss")
-        plt.yscale("linear")
         plt.title("Loss (linear scale, after epoch 15)")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
         plt.legend()
         plt.savefig(currPath + "/loss_linear_after15.png")
-
-    plt.yscale("log")
-    plt.legend()
-    plt.title("Loss")
-    plt.savefig(currPath + "/loss.png")
+        plt.close()
     plt.figure()
     for key in accuracies:
         plt.plot(accuracies[key], label=f"{key.capitalize()} accuracy")
