@@ -112,7 +112,8 @@ class SimpleDataset(Dataset):
                 view_paths.append(seq_paths)
             paths.append(view_paths if self.num_views > 1 else view_paths[0])
         return paths
-    
+    def __len__(self):
+        return len(self.weather)
     def __getitem__(self, idx):
         weather_data = self.weather[idx]
         labels = self.labels[idx]
