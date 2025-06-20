@@ -347,7 +347,7 @@ class PrepareData:
         # Prepare train and test DataFrames for x_meteo
         column_names = [
             f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
-             "gre000z0_nyon","gre000z0_dole", "RR", "TD", "WG", "TT",
+             "RR", "TD", "WG", "TT",
                 "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ]
         ]
@@ -383,7 +383,8 @@ class PrepareData:
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
         test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
-
+        test_data['gre000z0_nyon'] = y_test_df['gre000z0_nyon'].values
+        test_data['gre000z0_dole'] = y_test_df['gre000z0_dole'].values
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
