@@ -14,7 +14,7 @@ class StratusModel(nn.Module):
         # CNN
         self.cnn_view1 = nn.Sequential(
             nn.Conv2d(
-                3 , 64, kernel_size=3, stride=1, padding=1
+                3 *self.seq_len, 64, kernel_size=3, stride=1, padding=1
             ),  # Input channels = 3*seq_len
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
