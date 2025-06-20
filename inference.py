@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 41  # or any number you want
+MODEL_NUM = 43  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -39,7 +39,7 @@ npz_file = f"{MODEL_PATH}/test_data.npz"
 fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
 loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
 stratus_days_stats_loaded = loaded["stratus_days_stats"]
-model = StratusModel(15, 2, num_views,seq_len)
+model = StratusModel(13, 2, num_views,seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
@@ -138,6 +138,7 @@ for year, month in months:
             max_nyon = stats_label["gre000z0_nyon"]["max"]
             min_dole = stats_label["gre000z0_dole"]["min"]
             max_dole = stats_label["gre000z0_dole"]["max"]
+            import ipdb; ipdb.set_trace()
             y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
             y[1] = y[1] * (max_dole - min_dole) + min_dole
             # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
