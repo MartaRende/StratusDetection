@@ -190,6 +190,7 @@ class SimpleDataset(Dataset):
     def _load_single_image(self, path):
         """Optimized single image loader with caching"""
         if not os.path.exists(path):
+            print(f"Image path {path} does not exist. Returning empty image.")
             return np.zeros((512, 512, 3), dtype=np.uint8)
         
         try:
@@ -197,8 +198,8 @@ class SimpleDataset(Dataset):
             with Image.open(path) as img:
                 if self.data_augmentation:
                     # Apply data augmentation if enabled
-                    img = random_flip(img)
-                    img = random_rotate(img)
+                    # img = random_flip(img)
+                    # img = random_rotate(img)
                     img = random_brightness(img)
                     img = random_contrast(img)
                     img = random_color_jitter(img)
