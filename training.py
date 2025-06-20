@@ -10,6 +10,8 @@ from prepareData import PrepareData
 from metrics import Metrics
 from torch.utils.data import Dataset
 from PIL import Image
+
+from prepareData.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
@@ -90,7 +92,7 @@ import os
 from datetime import datetime
 # Modify your SimpleDataset class to use more efficient loading
 class SimpleDataset(Dataset):
-    def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3):
+    def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False):
         """
         Optimized dataset class that leverages your existing data loading methods
         
@@ -108,7 +110,8 @@ class SimpleDataset(Dataset):
         self.labels = labels
         self.num_views = num_views
         self.seq_len = seq_len
-        
+        self.data_augmentation = data_augmentation
+
         # Precompute all image paths to minimize disk access during training
         self.image_paths = self._precompute_image_paths()
         
@@ -192,12 +195,20 @@ class SimpleDataset(Dataset):
         try:
             # Using PIL's lazy loading
             with Image.open(path) as img:
-                return np.array(img.convert('RGB'))
+                if self.data_augmentation:
+                    # Apply data augmentation if enabled
+                    img = random_flip(img)
+                    img = random_rotate(img)
+                    img = random_brightness(img)
+                    img = random_contrast(img)
+                    img = random_color_jitter(img)
+                    img = random_blur(img)
+                return np.array(img)
         except:
             return np.zeros((512, 512, 3), dtype=np.uint8)
 # Create datasets and loaders
 
-train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len)
+train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=True)
 validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
 test_dataset = SimpleDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
 print("train_dataset size:", len(train_dataset))
