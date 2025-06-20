@@ -117,11 +117,9 @@ for year, month in months:
         x_images_tensor1 = None
         x_images_tensor2 = None
         if num_views == 2:
-            x_images = x_images / 255.0
             x_images_tensor1 = torch.tensor(x_images[:, :, 0], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
             x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
-            x_images = x_images / 255.0
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         for i in range(total_predictions):
             idx_test = i

@@ -167,8 +167,8 @@ class SimpleDataset(Dataset):
             view2_tensor = torch.stack([torch.from_numpy(img) for img in view2_images])
             
             # Normalize and permute dimensions
-            view1_tensor = view1_tensor.float().permute(0, 3, 1, 2) / 255.0
-            view2_tensor = view2_tensor.float().permute(0, 3, 1, 2) / 255.0
+            view1_tensor = view1_tensor.float().permute(0, 3, 1, 2) 
+            view2_tensor = view2_tensor.float().permute(0, 3, 1, 2) 
             
             return weather_data, view1_tensor, view2_tensor, labels
         else:
@@ -180,7 +180,7 @@ class SimpleDataset(Dataset):
             
             # Convert to tensor
             images_tensor = torch.stack([torch.from_numpy(img) for img in images])
-            images_tensor = images_tensor.float().permute(0, 3, 1, 2) / 255.0
+            images_tensor = images_tensor.float().permute(0, 3, 1, 2) 
             
             return weather_data, images_tensor, labels
     
