@@ -98,42 +98,50 @@ class SimpleDataset(torch.utils.data.Dataset):
     
     def __getitem__(self, idx):
     # Load weather data
-        weather_x = torch.tensor(self.weather[idx], dtype=torch.float32).view(3, -1)
+        weather_x = torch.tensor(self.weather[idx], dtype=torch.float32).view(seq_len, -1)
 
         # Load label
         y_val = torch.tensor(self.y[idx], dtype=torch.float32)
 
         # Load image data
-        img_data = self.images[idx]  # Shape: (3, 2, 512, 512, 3)
-        import ipdb 
-        ipdb.set_trace()  # Debugging point to inspect img_data shape and content
-        # Apply augmentations if enabled
-        if self.augmentation:
-            augmented_data = []
-            for timestep in img_data:  # timestep shape: (2, 512, 512, 3)
-                augmented_timestep = []
-                for img in timestep:  # img shape: (512, 512, 3)
-                    img_pil = Image.fromarray(img.astype(np.uint8))  # Ensure uint8 type for PIL
-                    img_pil = random_flip(img_pil)
-                    img_pil = random_rotate(img_pil)
+        img_data = self.images[idx]  # shape: (seq_len, num_views, 512, 512, 3) if num_views == 2
+                                    # or (seq_len, 512, 512, 3) if num_views == 1
+
+        if num_views == 2:
+            if self.augmentation:
+                augmented_data = []
+                for timestep in img_data:  # timestep shape: (2, 512, 512, 3)
+                    augmented_timestep = []
+                    for img in timestep:  # img shape: (512, 512, 3)
+                        img_pil = Image.fromarray(img.astype(np.uint8))
+                        img_pil = random_brightness(img_pil)
+                        img_pil = random_contrast(img_pil)
+                        img_pil = random_color_jitter(img_pil)
+                        img_pil = random_blur(img_pil)
+                        augmented_timestep.append(np.array(img_pil))
+                    augmented_data.append(augmented_timestep)
+                img_data = np.array(augmented_data)
+
+            img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)  # shape (seq_len, 3, 512, 512)
+            img2 = torch.tensor(img_data[:, 1], dtype=torch.float32).permute(0, 3, 1, 2)
+            return weather_x, img1, img2, y_val
+
+        else:
+            if self.augmentation:
+                augmented_data = []
+                for img in img_data:  # img shape: (512, 512, 3)
+                    img_pil = Image.fromarray(img.astype(np.uint8))
                     img_pil = random_brightness(img_pil)
                     img_pil = random_contrast(img_pil)
                     img_pil = random_color_jitter(img_pil)
                     img_pil = random_blur(img_pil)
-                    augmented_timestep.append(np.array(img_pil))
-                augmented_data.append(augmented_timestep)
-            img_data = np.array(augmented_data)  # shape: (3, 2, 512, 512, 3)
+                    augmented_data.append(np.array(img_pil))
+                img_data = np.array(augmented_data)
 
-        # Now convert to torch tensors
-        if num_views == 2:
-            # Both views
-            img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)  # (3, 512, 512, 3) -> (3, 3, 512, 512)
-            img2 = torch.tensor(img_data[:, 1], dtype=torch.float32).permute(0, 3, 1, 2)
-            return weather_x, img1, img2, y_val
-        else:
-            # Single view: first camera only
-            img = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)
+            # img_data shape: (seq_len, 512, 512, 3)
+            img = torch.tensor(img_data, dtype=torch.float32).permute(0, 3, 1, 2)  # shape: (seq_len, 3, 512, 512)
             return weather_x, img, y_val
+
 
 # Create datasets and loaders
 train_dataset = SimpleDataset(weather_train, images_train, y_train, augmentation=True)
