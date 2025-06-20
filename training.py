@@ -101,8 +101,7 @@ class LazyDataset(torch.utils.data.Dataset):
         # Only load image slice when accessed
         img_data = np.array(img_data)
         print(f"Image data shape: {img_data.shape}")
-        import ipdb 
-        ipdb.set_trace()
+       
         if self.data_augmentation:
             img_data_view1 = img_data[:, 0]  # (seq_len, H, W, C)
             img_data_view2 = img_data[:, 1]  # (seq_len, H, W, C)
