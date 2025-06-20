@@ -42,7 +42,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
+x_meteo, x_images, y = prepare_data.load_data()
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -80,11 +80,14 @@ for i in range(seq_len):
 weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(
     weather_train, weather_validation, weather_test,
     var_order=var_order)
-
 # Normalize labels
+labels_order =[]
+for i in range(seq_len):
+    labels_order.append("gre000z0_nyon_t" + str(i))
+    labels_order.append("gre000z0_dole_t" + str(i))
 y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     y_train, y_validation, y_test,
-    var_order=["gre000z0_nyon", "gre000z0_dole"]
+    var_order=labels_order
 )
 import os
 from datetime import datetime

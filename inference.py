@@ -39,7 +39,7 @@ npz_file = f"{MODEL_PATH}/test_data.npz"
 fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
 loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
 stratus_days_stats_loaded = loaded["stratus_days_stats"]
-model = StratusModel(13, 2, num_views,seq_len)
+model = StratusModel(13, 6, num_views,seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
