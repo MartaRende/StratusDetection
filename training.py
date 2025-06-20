@@ -305,39 +305,51 @@ def saveResults():
     os.mkdir(currPath)
     torch.save(model.state_dict(), currPath + "/model.pth")
     print("Saved model to ", currPath)
+
+    # Plot global loss (all epochs, log scale)
     plt.figure()
     for key in losses:
         if key == "test":
             continue
         plt.plot(losses[key], label=f"{key.capitalize()} loss")
-    # Plot log scale for first 15 epochs, then linear for the rest
-    if len(losses["train"]) > 15:
-        plt.yscale("log")
-        plt.xlim(0, 15)
-        plt.legend()
-        plt.title("Loss (log scale, first 15 epochs)")
-        plt.savefig(currPath + "/loss_log_first15.png")
-        plt.clf()
-        for key in losses:
-            if key == "test":
-                continue
-            plt.plot(range(15, len(losses[key])), losses[key][15:], label=f"{key.capitalize()} loss")
-        plt.yscale("linear")
-        plt.title("Loss (linear scale, after epoch 15)")
-        plt.legend()
-        plt.savefig(currPath + "/loss_linear_after15.png")
-
     plt.yscale("log")
+    plt.title("Loss (all epochs, log scale)")
     plt.legend()
-    plt.title("Loss")
-    plt.savefig(currPath + "/loss.png")
+    plt.savefig(currPath + "/loss_log_all.png")
+    plt.clf()
+
+    # Plot first 15 epochs (log scale)
     plt.figure()
+    for key in losses:
+        if key == "test":
+            continue
+        plt.plot(range(min(15, len(losses[key]))), losses[key][:15], label=f"{key.capitalize()} loss")
+    plt.yscale("log")
+    plt.title("Loss (first 15 epochs, log scale)")
+    plt.legend()
+    plt.savefig(currPath + "/loss_log_first15.png")
+    plt.clf()
+
+    # Plot from epoch 15 to the end (log scale)
+    plt.figure()
+    for key in losses:
+        if key == "test":
+            continue
+        if len(losses[key]) > 15:
+            plt.plot(range(15, len(losses[key])), losses[key][15:], label=f"{key.capitalize()} loss")
+
+    plt.title("Loss (epoch 15 to end, log scale)")
+    plt.legend()
+    plt.savefig(currPath + "/loss_log_after15.png")
+    plt.clf()
+
     for key in accuracies:
         plt.plot(accuracies[key], label=f"{key.capitalize()} accuracy")
     plt.ylim((0, 1))
     plt.legend()
     plt.title("Accuracy")
     plt.savefig(currPath + "/accuracy.png")
+
     # save existing file model.py in the same folder
     with open(currPath + "/model.py", "w") as f:
         f.write("# Path: model.py\n")
@@ -347,8 +359,6 @@ def saveResults():
         
     # save test data taken from test_dataset
     test_save_path = os.path.join(currPath, "test_data.npz")
-    
-    
     np.savez(test_save_path, dole=prepare_data.test_data)
     # save the stats
     stats_save_path = os.path.join(currPath, "stats.npz")
@@ -358,56 +368,6 @@ def saveResults():
     print("Stratus days stats:", stratus_days_stats)
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)
     print("All data saved to", currPath)
-    # model.eval()
-    # with torch.no_grad():
-    #     def predict(weather_np, images_np):
-    #         x_weather = torch.tensor(weather_np, dtype=torch.float32, device=device)
-    #         if num_views == 2:
-    #             img1 = torch.tensor(images_np[0], dtype=torch.float32, device=device).permute(0, 3, 1, 2)
-    #             img2 = torch.tensor(images_np[1], dtype=torch.float32, device=device).permute(0, 3, 1, 2)
-    #             return model(x_weather, img1, img2).cpu().numpy()
-    #         else:
-    #             x_images = torch.tensor(images_np, dtype=torch.float32, device=device).permute(0, 3, 1, 2)
-    #             return model(x_weather, x_images).cpu().numpy()
-
-    #     # Train metrics
-    #     preds_train = predict(weather_train, images_train)
-    #     train_metrics = Metrics(
-    #         y_train.tolist(),
-    #         preds_train,
-    #         data=None,
-    #         save_path=f"{MODEL_BASE_PATH}/train_stats",
-    #         start_date="2023-01-01",
-    #         end_date="2024-12-31",
-    #         stats_for_month=False
-    #     )
-    #     train_metrics.save_metrics_report(stratus_days=train_stratus_days, non_stratus_days=train_non_stratus_days)
-
-    #     # Validation metrics
-    #     preds_val = predict(weather_validation, images_validation)
-    #     val_metrics = Metrics(
-    #         y_validation.tolist(),
-    #         preds_val,
-    #         data=None,
-    #         save_path=f"{MODEL_BASE_PATH}/validation_stats",
-    #         start_date="2023-01-01",
-    #         end_date="2024-12-31",
-    #         stats_for_month=False
-    #     )
-    #     val_metrics.save_metrics_report(stratus_days=validation_stratus_days, non_stratus_days=validation_non_stratus_days)
-
-    #     # Test metrics
-    #     preds_test = predict(weather_test, images_test)
-    #     test_metrics = Metrics(
-    #         y_test.tolist(),
-    #         preds_test,
-    #         data=None,
-    #         save_path=f"{MODEL_BASE_PATH}/test_stats",
-    #         start_date="2023-01-01",
-    #         end_date="2024-12-31",
-    #         stats_for_month=False
-    #     )
-    #     test_metrics.save_metrics_report(stratus_days=test_stratus_days, non_stratus_days=test_non_stratus_days)
 
     
 
