@@ -44,7 +44,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -93,27 +93,40 @@ from datetime import datetime
 # Modify your SimpleDataset class to use more efficient loading
 class SimpleDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False):
-        """
-        Optimized dataset class that leverages your existing data loading methods
-        
-        Args:
-            weather: numpy array of weather data (N, seq_len, features)
-            image_base_folder: base path to images
-            seq_infos: list of datetime sequences
-            labels: numpy array of target values
-            num_views: number of camera views (1 or 2)
-            seq_len: length of input sequence
-        """
-        self.weather = weather
+        self.weather = torch.tensor(weather, dtype=torch.float32)  
+        self.labels = torch.tensor(labels, dtype=torch.float32)
         self.image_base_folder = image_base_folder
         self.seq_infos = seq_infos
-        self.labels = labels
         self.num_views = num_views
         self.seq_len = seq_len
         self.data_augmentation = data_augmentation
-
-        # Precompute all image paths to minimize disk access during training
+        
         self.image_paths = self._precompute_image_paths()
+        
+        self.cache = {}
+        self.cache_size_limit = 1000  
+        
+    def _load_single_image(self, path):
+        """Versione ottimizzata con cache intelligente"""
+        if path in self.cache:
+            return self.cache[path]
+        
+        try:
+            with Image.open(path) as img:
+                if self.data_augmentation:
+                    img = random_brightness(img)
+                    img = random_contrast(img)
+                    img = random_color_jitter(img)
+                    img = random_blur(img)
+                
+                img_tensor = torch.from_numpy(np.array(img)).float().permute(2, 0, 1) 
+                
+                if len(self.cache) < self.cache_size_limit:
+                    self.cache[path] = img_tensor
+                
+                return img_tensor
+        except:
+            return torch.zeros((3, 512, 512), dtype=torch.float32)
         
     def _precompute_image_paths(self):
         """Precompute all image paths to avoid repeated disk access during training"""
@@ -149,64 +162,36 @@ class SimpleDataset(Dataset):
     
     
     def __getitem__(self, idx):
-        """Optimized item getter with minimal disk access and efficient loading"""
-        # Load weather data
-        weather_data = torch.tensor(self.weather[idx], dtype=torch.float32)
-        
-        # Load labels
-        labels = torch.tensor(self.labels[idx], dtype=torch.float32)
+        """Versione ottimizzata per grandi dataset"""
+        weather_data = self.weather[idx]
+        labels = self.labels[idx]
         
         if self.num_views == 2:
-            # Load both views
             view1_paths, view2_paths = self.image_paths[idx]
             
-            # Load images in parallel using ThreadPool
-            with ThreadPool(2) as pool:
-                view1_images = pool.map(self._load_single_image, view1_paths)
-                view2_images = pool.map(self._load_single_image, view2_paths)
+            view1_images = []
+            view2_images = []
+            for p1, p2 in zip(view1_paths, view2_paths):
+                view1_images.append(self._load_single_image(p1))
+                view2_images.append(self._load_single_image(p2))
             
-            # Convert to tensors
-            view1_tensor = torch.stack([torch.from_numpy(img) for img in view1_images])
-            view2_tensor = torch.stack([torch.from_numpy(img) for img in view2_images])
-            
-            # Normalize and permute dimensions
-            view1_tensor = view1_tensor.float().permute(0, 3, 1, 2) 
-            view2_tensor = view2_tensor.float().permute(0, 3, 1, 2) 
+            view1_tensor = torch.stack(view1_images)
+            view2_tensor = torch.stack(view2_images)
             
             return weather_data, view1_tensor, view2_tensor, labels
         else:
-            # Single view case
             img_paths = self.image_paths[idx]
             
-            # Load images
-            images = [self._load_single_image(p) for p in img_paths]
+            images = []
+            for p in img_paths:
+                img_tensor = self._load_single_image(p)
+                images.append(img_tensor)
             
-            # Convert to tensor
-            images_tensor = torch.stack([torch.from_numpy(img) for img in images])
-            images_tensor = images_tensor.float().permute(0, 3, 1, 2) 
+            
+            images_tensor = torch.stack(images)
             
             return weather_data, images_tensor, labels
-    
-    def _load_single_image(self, path):
-        """Optimized single image loader with caching"""
-        if not os.path.exists(path):
-            print(f"Image path {path} does not exist. Returning empty image.")
-            return np.zeros((512, 512, 3), dtype=np.uint8)
-        
-        try:
-            # Using PIL's lazy loading
-            with Image.open(path) as img:
-                if self.data_augmentation:
-                    # Apply data augmentation if enabled
-                    # img = random_flip(img)
-                    # img = random_rotate(img)
-                    img = random_brightness(img)
-                    img = random_contrast(img)
-                    img = random_color_jitter(img)
-                    img = random_blur(img)
-                return np.array(img)
-        except:
-            return np.zeros((512, 512, 3), dtype=np.uint8)
+
 # Create datasets and loaders
 
 train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=True)
