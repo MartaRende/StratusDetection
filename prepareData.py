@@ -462,7 +462,7 @@ class PrepareData:
 
         # Reshape to (145, 45)
         new_N = N
-        new_F = 15 * self.seq_length  # 15 features per time step, seq_length = 3
+        new_F = F * self.seq_length  # 15 features per time step, seq_length = 3
      
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
@@ -478,7 +478,7 @@ class PrepareData:
             df_out[var] = ((col - mn) / rng).fillna(0)
 
         flat_out = df_out.values
-        new_F = 15
+        new_F = F
         reshaped = flat_out.reshape(N, T, new_F)
 
         if original_ndim == 2:

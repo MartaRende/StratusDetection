@@ -105,7 +105,8 @@ class SimpleDataset(torch.utils.data.Dataset):
 
         # Load image data
         img_data = self.images[idx]  # Shape: (3, 2, 512, 512, 3)
-
+        import ipdb 
+        ipdb.set_trace()  # Debugging point to inspect img_data shape and content
         # Apply augmentations if enabled
         if self.augmentation:
             augmented_data = []
