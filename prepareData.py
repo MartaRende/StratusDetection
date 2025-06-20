@@ -64,19 +64,27 @@ class PrepareData:
 
         for i in range(len(df) - self.seq_length):
             seq = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length + 5 >= len(df):
-                break
-            next_t = df.iloc[i + self.seq_length+5]
-
+            # if i + self.seq_length + 5 >= len(df):
+            #     break
+            # next_t is composed by 3 points: actual point, +10 min, +20 min
+            next_t = df.iloc[i + self.seq_length : i + self.seq_length + 3]
+            # Ensure next_t has 10-minute intervals between its points
+            next_time_diffs = np.diff(next_t['datetime'].values) / np.timedelta64(1, 'm')
+            if not all(d == 10 for d in next_time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_t.")
+                continue
+            if len(next_t) < 3:
+                print(f"Skipping sequence starting at index {i} due to insufficient next points.")
+                continue
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in time_diffs):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
                 continue
 
-            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
-                print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
-                continue
+            # if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
+            #     print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
+            #     continue
 
             # Check for missing meteo data
             if seq[self.meteo_feats].isna().any().any():
@@ -84,7 +92,9 @@ class PrepareData:
                 continue
 
             # Check for missing target values
-            if next_t[["gre000z0_nyon", "gre000z0_dole"]].isna().any():
+            # Check for missing target values
+            target_values = next_t[["gre000z0_nyon", "gre000z0_dole"]].values
+            if pd.isnull(target_values).any():
                 print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
                 continue
 
@@ -102,7 +112,7 @@ class PrepareData:
 
             if not all_images_exist:
                 continue
-
+ 
             # Save valid sequence
             valid_indices.append(i)
             valid_seqs.append({
@@ -450,7 +460,7 @@ class PrepareData:
         # Filter sequences based on train and test indices
         train_sequences = [indices for indices in sequence_indices if all(idx in train_indices for idx in indices)]
         test_sequences = [indices for indices in sequence_indices if all(idx in test_indices for idx in indices)]
-        
+
         # Prepare train and test DataFrames for x_meteo
         column_names = [
             f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
@@ -458,8 +468,13 @@ class PrepareData:
                 "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ]
         ]
-        label_names = ["gre000z0_nyon", "gre000z0_dole"]
+        label_names =[
+            f"{feat}_t{t}" for t in range(self.seq_length) for feat in  
+            ["gre000z0_nyon", "gre000z0_dole"]
      
+        ]
+        
+      
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
@@ -468,9 +483,9 @@ class PrepareData:
         x_meteo_test_df = pd.DataFrame(x_meteo_test, columns=column_names)
 
         # Prepare train and test DataFrames for y (labels)
-        y_train = np.array([y[indices[-1]] for indices in train_sequences])
-        y_test = np.array([y[indices[-1]] for indices in test_sequences])
-  
+        y_train = np.array([y[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
+        y_test = np.array([y[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
+
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_test_df = pd.DataFrame(y_test, columns=label_names)
 
@@ -482,11 +497,12 @@ class PrepareData:
         test_datetimes = self.data.loc[[indices[-1] for indices in test_sequences], 'datetime'].values
         x_meteo_test_df['datetime'] = test_datetimes
         y_test_df['datetime'] = test_datetimes
-      
+
         # Find the datetime sequence for each train and test sample
         train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
         test_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in test_sequences]
-    
+        import ipdb
+        ipdb.set_trace()
         # Also add datetime to train df for reference
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         x_meteo_train_df['datetime'] = train_datetimes
@@ -530,6 +546,12 @@ class PrepareData:
             indices for indices in sequence_indices 
             if all(x_meteo_seq.iloc[idx]['date_str'] in val_days for idx in indices)
         ]
+        label_names =[
+            f"{feat}_t{t}" for t in range(self.seq_length) for feat in  
+            ["gre000z0_nyon", "gre000z0_dole"]
+     
+        ]
+        
 
         # Prepare features and labels
         column_names = [col for col in x_meteo_seq.columns if col not in ['datetime_t0','datetiem_t1','datetime_t2' 'date_str_t0', 'date_str_t2', 'date_str_t1']]
@@ -556,11 +578,12 @@ class PrepareData:
 
         train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
         val_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in val_sequences]
-     
-    
-        y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-        y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-       
+
+        import ipdb 
+        ipdb.set_trace()
+        y_train_df = pd.DataFrame(y_train, columns=label_names)
+        y_val_df = pd.DataFrame(y_val, columns=label_names)
+
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
