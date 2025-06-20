@@ -40,7 +40,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
+x_meteo, x_images, y = prepare_data.load_data()
 print("Data after filter:", x_meteo.shape, x_images.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -105,8 +105,7 @@ class SimpleDataset(torch.utils.data.Dataset):
 
         # Load image data
         img_data = self.images[idx]  # Shape: (3, 2, 512, 512, 3)
-        import ipdb 
-        ipdb.set_trace()  # Debugging point to inspect img_data shape and content
+       # Debugging point to inspect img_data shape and content
         # Apply augmentations if enabled
         if self.augmentation:
             augmented_data = []
