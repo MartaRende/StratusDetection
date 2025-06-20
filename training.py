@@ -94,6 +94,7 @@ from datetime import datetime
 class SimpleDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False):
         self.weather = torch.tensor(weather, dtype=torch.float32)  
+        self.labels = torch.tensor(labels, dtype=torch.float32)
         self.image_base_folder = image_base_folder
         self.seq_infos = seq_infos
         self.num_views = num_views
