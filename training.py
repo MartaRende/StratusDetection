@@ -6,12 +6,13 @@ import matplotlib.pyplot as plt
 from model import StratusModel
 from prepareData import PrepareData
 from metrics import Metrics
-from PIL import Image
 from prepare_data.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
-import pandas as pd
+from PIL import Image
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
+print(os.system("whoami"))
+print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 
 # Set image folder path and views based on script args
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
@@ -35,140 +36,165 @@ else:
 print("FP_IMAGES:", FP_IMAGES)
 FP_WEATHER_DATA = "data/complete_data.npz"
 
-# =================== NEW: Create or load preprocessed npz file ====================
-PREPARED_DATA_PATH = "data/prepared_dataset.npz"
-if not os.path.exists(PREPARED_DATA_PATH):
-    print("Prepared dataset not found. Creating...")
-    prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views, seq_length=seq_len)
-    x_weather, x_images, y = prepare_data.load_data()
-    column_names = prepare_data.data.columns.tolist()
-    np.savez_compressed(PREPARED_DATA_PATH, x_weather_df=prepare_data.data, x_weather=x_weather,x_images=x_images, y=y, column_names=column_names)
-    print("Saved prepared dataset to:", PREPARED_DATA_PATH)
-else:
-    print("Found prepared dataset:", PREPARED_DATA_PATH)
+# Initialize data loader
+prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
-# ============= Load the npz with lazy loading =================
-data_npz = np.load(PREPARED_DATA_PATH, mmap_mode='r', allow_pickle=True)
-x_weather = data_npz['x_weather']
-x_images = data_npz['x_images']
-y = data_npz['y']
-data= data_npz['x_weather_df']
-column_names =data_npz['column_names'].tolist()
+# Load filtered data
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
+print("Data after filter:", x_meteo.shape, x_images.shape, y.shape)
+
+# Concatenate all data if multiple sources (your code suggests potential multiple)
+all_weatherX = x_meteo
+all_imagesX = x_images
+allY = y
 
 # Initial split into train/test sets
-prepare_data = PrepareData(FP_IMAGES, PREPARED_DATA_PATH, num_views=num_views, seq_length=seq_len)
-
-prepare_data.data = pd.DataFrame(data, columns=column_names)
-
 weather_train, images_train, y_train, weather_test, images_test, y_test  = prepare_data.split_data(
-    x_weather, x_images, y
+    all_weatherX, all_imagesX, allY
 )
 
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
-
 var_order = []
 for i in range(seq_len):
-    var_order += [f"{var}_t{i}" for var in ["RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"]]
+
+    var_order.append("RR_t" + str(i))
+    var_order.append("TD_t" + str(i))
+    var_order.append("WG_t" + str(i))
+    var_order.append("TT_t" + str(i))
+    var_order.append("CT_t" + str(i))
+    var_order.append("FF_t" + str(i))
+    var_order.append("RS_t" + str(i))
+    var_order.append("TG_t" + str(i))
+    var_order.append("Z0_t" + str(i))
+    var_order.append("ZS_t" + str(i))
+    var_order.append("SU_t" + str(i))
+    var_order.append("DD_t" + str(i))
+    var_order.append("pres_t" + str(i))
 
 # Normalize input data
 weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(
-    weather_train, weather_validation, weather_test, var_order=var_order)
+    weather_train, weather_validation, weather_test,
+    var_order=var_order)
 
 # Normalize labels
 y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
-    y_train, y_validation, y_test, var_order=["gre000z0_nyon", "gre000z0_dole"])
+    y_train, y_validation, y_test,
+    var_order=["gre000z0_nyon", "gre000z0_dole"]
+)
 
-# ================= Dataset class =====================
-class LazyDataset(torch.utils.data.Dataset):
-    def __init__(self, weather, images, y, data_augmentation=False):
+# Dataset class
+class SimpleDataset(torch.utils.data.Dataset):
+    def __init__(self, weather, images, y, augmentation=False):
         self.weather = weather
         self.images = images
         self.y = y
-        self.data_augmentation = data_augmentation
-
+        self.augmentation = augmentation
+        
     def __len__(self):
         return len(self.y)
-
+    
     def __getitem__(self, idx):
-        weather_x = torch.tensor(self.weather[idx], dtype=torch.float32).view(seq_len, -1)
+    # Load weather data
+        weather_x = torch.tensor(self.weather[idx], dtype=torch.float32).view(3, -1)
+
+        # Load label
         y_val = torch.tensor(self.y[idx], dtype=torch.float32)
-        
-        img_data = self.images[idx]
-        
-        # Only load image slice when accessed
-        img_data = np.array(img_data)
-        print(f"Image data shape: {img_data.shape}")
-       
-        if self.data_augmentation:
-            img_data_view1 = img_data[:, 0]  # (seq_len, H, W, C)
-            img_data_view2 = img_data[:, 1]  # (seq_len, H, W, C)
-            img_data_view1 = [Image.fromarray(img) for img in img_data_view1]
-            img_data_view2 = [Image.fromarray(img) for img in img_data_view2]
-            img_data_view1 = [random_flip(img) for img in img_data_view1]
-            img_data_view1 = [random_rotate(img) for img in img_data_view1]
-            img_data_view1 = [random_brightness(img) for img in img_data_view1]
-            img_data_view1 = [random_contrast(img) for img in img_data_view1]
-            img_data_view1 = [random_color_jitter(img) for img in img_data_view1]
-            img_data_view1 = [random_blur(img) for img in img_data_view1]
-            img_data_view2 = [random_flip(img) for img in img_data_view2]
-            img_data_view2 = [random_rotate(img) for img in img_data_view2]
-            img_data_view2 = [random_brightness(img) for img in img_data_view2]
-            img_data_view2 = [random_contrast(img) for img in img_data_view2]
-            img_data_view2 = [random_color_jitter(img) for img in img_data_view2]
-            img_data_view2 = [random_blur(img) for img in img_data_view2]
-     
-        
+
+        # Load image data
+        img_data = self.images[idx]  # Shape: (3, 2, 512, 512, 3)
+        import ipdb 
+        ipdb.set_trace()  # Debugging point to inspect img_data shape and content
+        # Apply augmentations if enabled
+        if self.augmentation:
+            augmented_data = []
+            for timestep in img_data:  # timestep shape: (2, 512, 512, 3)
+                augmented_timestep = []
+                for img in timestep:  # img shape: (512, 512, 3)
+                    img_pil = Image.fromarray(img.astype(np.uint8))  # Ensure uint8 type for PIL
+                    img_pil = random_flip(img_pil)
+                    img_pil = random_rotate(img_pil)
+                    img_pil = random_brightness(img_pil)
+                    img_pil = random_contrast(img_pil)
+                    img_pil = random_color_jitter(img_pil)
+                    img_pil = random_blur(img_pil)
+                    augmented_timestep.append(np.array(img_pil))
+                augmented_data.append(augmented_timestep)
+            img_data = np.array(augmented_data)  # shape: (3, 2, 512, 512, 3)
+
+        # Now convert to torch tensors
         if num_views == 2:
-            img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)
+            # Both views
+            img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)  # (3, 512, 512, 3) -> (3, 3, 512, 512)
             img2 = torch.tensor(img_data[:, 1], dtype=torch.float32).permute(0, 3, 1, 2)
             return weather_x, img1, img2, y_val
         else:
-            img = torch.tensor(img_data, dtype=torch.float32).permute(0, 3, 1, 2)
+            # Single view: first camera only
+            img = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)
             return weather_x, img, y_val
 
 # Create datasets and loaders
-train_dataset = LazyDataset(weather_train, images_train, y_train, data_augmentation=False)
-validation_dataset = LazyDataset(weather_validation, images_validation, y_validation)
-test_dataset = LazyDataset(weather_test, images_test, y_test)
+train_dataset = SimpleDataset(weather_train, images_train, y_train, augmentation=True)
+validation_dataset = SimpleDataset(weather_validation, images_validation, y_validation)
+test_dataset = SimpleDataset(weather_test, images_test, y_test)
+print("train_dataset size:", len(train_dataset))
+print("validation_dataset size:", len(validation_dataset))
+print("test_dataset size:", len(test_dataset))
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=16)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=16)
-
-# Model, loss, optimizer, scheduler
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
+# Instantiate model, loss, optimizer, scheduler
 model = StratusModel(input_feature_size=13, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5)
 
 losses = {"train": [], "val": [], "test": []}
+accuracies = {"train": [], "val": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 70
+num_epochs = 100  # Increase as needed
+
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
 
     for step in ["train", "val", "test"]:
-        model.train() if step == "train" else model.eval()
-        loader = train_loader if step == "train" else validation_loader if step == "val" else test_loader
+        if step == "train":
+            model.train()
+            loader = train_loader
+        elif step == "val":
+            model.eval()
+            loader = validation_loader
+        else:
+            model.eval()
+            loader = test_loader
 
         total_loss = 0.0
         count = 0
 
         for batch in loader:
             optimizer.zero_grad()
-
             if num_views == 2:
-                weather_x, img1, img2, labels = [b.to(device) for b in batch]
+                weather_x, img1, img2, labels = batch
+                weather_x, img1, img2, labels = weather_x.to(device), img1.to(device), img2.to(device), labels.to(device)
                 y_pred = model(weather_x, img1, img2)
             else:
-                weather_x, images_x, labels = [b.to(device) for b in batch]
+                weather_x, images_x, labels = batch
+                weather_x, images_x, labels = weather_x.to(device), images_x.to(device), labels.to(device)
                 y_pred = model(weather_x, images_x)
 
+            # Check for NaNs or Infs in inputs or labels
+            if torch.isnan(weather_x).any() or torch.isnan(labels).any() or \
+               (num_views == 2 and (torch.isnan(img1).any() or torch.isnan(img2).any())) or \
+               torch.isinf(weather_x).any() or torch.isinf(labels).any() or \
+               (num_views == 2 and (torch.isinf(img1).any() or torch.isinf(img2).any())):
+                print("Warning: NaN or Inf values detected in input data!")
+
             batch_loss = loss_fn(y_pred, labels)
+
             if step == "train":
                 batch_loss.backward()
                 optimizer.step()
@@ -178,10 +204,13 @@ for epoch in range(num_epochs):
 
         avg_loss = total_loss / count
         losses[step].append(avg_loss)
+
         if step == "val":
             scheduler.step(avg_loss)
 
-    print(f"Train Loss: {losses['train'][-1]:.4f}, Val Loss: {losses['val'][-1]:.4f}, Test Loss: {losses['test'][-1]:.4f}")
+    print(f"Epoch [{epoch + 1}/{num_epochs}] - Train Loss: {losses['train'][-1]:.4f}, "
+          f"Validation Loss: {losses['val'][-1]:.4f}, Test Loss: {losses['test'][-1]:.4f}")
+
 
 #
 MODEL_BASE_PATH = "./models/"
@@ -228,7 +257,12 @@ def saveResults():
     plt.title("Loss")
     plt.savefig(currPath + "/loss.png")
     plt.figure()
-   
+    for key in accuracies:
+        plt.plot(accuracies[key], label=f"{key.capitalize()} accuracy")
+    plt.ylim((0, 1))
+    plt.legend()
+    plt.title("Accuracy")
+    plt.savefig(currPath + "/accuracy.png")
     # save existing file model.py in the same folder
     with open(currPath + "/model.py", "w") as f:
         f.write("# Path: model.py\n")
