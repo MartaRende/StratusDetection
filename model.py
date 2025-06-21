@@ -13,30 +13,30 @@ class StratusModel(nn.Module):
 
         # CNN 
         self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(3 * seq_len, 64, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
-            nn.BatchNorm2d(64),
+            nn.Conv2d(3 * seq_len,32, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
         )
 
 
-        self.cnn_output_size = 64 * 16 * 16  # 16384
+        self.cnn_output_size = 32 * 16 * 16  # 16384
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
@@ -54,19 +54,16 @@ class StratusModel(nn.Module):
 
         # MLP final
         self.mlp_head = nn.Sequential(
-            nn.Linear(mlp_input_size, 512),
+            nn.Linear(mlp_input_size, 256),
             nn.ReLU(),           
             nn.Dropout(0.3),
-            nn.Linear(512, 512),
+            nn.Linear(256, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(512, 512),
+            nn.Linear(128, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(256, output_size)
+            nn.Linear(64, output_size)
         )
 
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
