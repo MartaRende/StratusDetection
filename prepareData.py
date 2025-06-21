@@ -426,8 +426,7 @@ class PrepareData:
     
         x_images_train = np.array([x_images_seq[indices[-1]] for indices in train_sequences])
         x_images_val = np.array([x_images_seq[indices[-1]] for indices in val_sequences])
-        import ipdb 
-        ipdb.set_trace()
+       
         # Apply augmentation to training images only
         if data_augmentation:
             x_images_train_aug = []

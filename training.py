@@ -38,7 +38,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 
 # =================== NEW: Create or load preprocessed npz file ====================
 if sys.argv[1] == "1":
-    PREPARED_DATA_PATH = "data/datasets/marta.rende/prepared_dataset.npz"
+    PREPARED_DATA_PATH = "/data/datasets/marta.rende/prepared_dataset.npz"
 else:
     PREPARED_DATA_PATH = "data/prepared_dataset.npz"
 if not os.path.exists(PREPARED_DATA_PATH):
@@ -70,7 +70,7 @@ weather_train, images_train, y_train, weather_test, images_test, y_test  = prepa
 
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation = prepare_data.split_train_validation(
-    weather_train, images_train, y_train,data_augmentation=True
+    weather_train, images_train, y_train,data_augmentation=False
 )
 
 var_order = []
