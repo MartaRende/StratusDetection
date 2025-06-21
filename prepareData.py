@@ -471,7 +471,6 @@ class PrepareData:
         x_meteo_val_df = pd.DataFrame(x_meteo_val, columns=column_names)
         y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-        ipdb.set_trace()
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df
 
 
