@@ -70,7 +70,7 @@ weather_train, images_train, y_train, weather_test, images_test, y_test  = prepa
 
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation = prepare_data.split_train_validation(
-    weather_train, images_train, y_train
+    weather_train, images_train, y_train,data_augmentation=True
 )
 
 var_order = []
@@ -104,9 +104,8 @@ class LazyDataset(torch.utils.data.Dataset):
         
         # Only load image slice when accessed
         
-       
+        img_data = np.array(img_data)  # Convert to numpy array if not already
         if self.data_augmentation:
-            img_data = np.array(img_data)
             print(f"Image data shape: {img_data.shape}")
             img_data_view1 = img_data[:, 0]  # (seq_len, H, W, C)
             img_data_view2 = img_data[:, 1]  # (seq_len, H, W, C)
@@ -127,6 +126,7 @@ class LazyDataset(torch.utils.data.Dataset):
      
         
         if num_views == 2:
+            import ipdb; ipdb.set_trace()
             img1 = torch.tensor(img_data[:, 0], dtype=torch.float32).permute(0, 3, 1, 2)
             img2 = torch.tensor(img_data[:, 1], dtype=torch.float32).permute(0, 3, 1, 2)
             return weather_x, img1, img2, y_val
@@ -135,7 +135,7 @@ class LazyDataset(torch.utils.data.Dataset):
             return weather_x, img, y_val
 
 # Create datasets and loaders
-train_dataset = LazyDataset(weather_train, images_train, y_train, data_augmentation=False)
+train_dataset = LazyDataset(weather_train, images_train, y_train,data_augmentation=False)
 validation_dataset = LazyDataset(weather_validation, images_validation, y_validation)
 test_dataset = LazyDataset(weather_test, images_test, y_test)
 
