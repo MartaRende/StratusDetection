@@ -95,6 +95,6 @@ class StratusModel(nn.Module):
         z_meteo = self.mlp_meteo(meteo_flat)
         
         z = torch.cat([img_features, z_meteo], dim=1)
-        output = self.mlp_head(img_features)
+        output = self.mlp_head(z)
 
         return output
