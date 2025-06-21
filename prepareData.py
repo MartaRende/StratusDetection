@@ -142,7 +142,7 @@ class PrepareData:
         valid_indices = []
         
         # Define the meteorological features to use
-        meteo_features = ["gre000z0_nyon", "gre000z0_dole"
+        meteo_features = ["gre000z0_nyon", "gre000z0_dole",
              "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
         ]
