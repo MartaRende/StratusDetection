@@ -1,8 +1,8 @@
 # Path: model.py
 # Path: model.py
+# Path: model.py
 import torch
 import torch.nn as nn
-
 
 class StratusModel(nn.Module):
     def __init__(self, input_feature_size=15, output_size=2, num_views=1, seq_len=3):
@@ -11,35 +11,39 @@ class StratusModel(nn.Module):
         self.num_views = num_views
         self.input_feature_size = input_feature_size
 
-        # CNN
+        # CNN 
         self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(
-                3 *self.seq_len, 32, kernel_size=3, stride=1, padding=1
-            ),  # Input channels = 3*seq_len
+            nn.Conv2d(3 * seq_len, 64, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
         )
 
-        self.cnn_output_size = 32 * 16 * 16  # 8192
+
+        self.cnn_output_size = 64 * 16 * 16  # 16384
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
-            nn.Linear(input_feature_size*self.seq_len, 128),
+            nn.Linear(input_feature_size * seq_len, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(128, 128),
+            nn.Linear(256, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
         )
@@ -51,6 +55,9 @@ class StratusModel(nn.Module):
         # MLP final
         self.mlp_head = nn.Sequential(
             nn.Linear(mlp_input_size, 512),
+            nn.ReLU(),           
+            nn.Dropout(0.3),
+            nn.Linear(512, 512),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(512, 512),
@@ -59,12 +66,7 @@ class StratusModel(nn.Module):
             nn.Linear(512, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, output_size),
+            nn.Linear(256, output_size)
         )
 
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
@@ -73,7 +75,7 @@ class StratusModel(nn.Module):
         # image_seq_1 shape: [batch, seq_len, 3, H, W] -> [batch, 3*seq_len, H, W]
         view1_input = image_seq_1.reshape(batch_size, -1, image_seq_1.size(3), image_seq_1.size(4))
         view1_features = self.cnn_view1(view1_input).reshape(batch_size, -1)
-        
+        assert image_seq_1.size(1) == 3
         if self.num_views == 2 and image_seq_2 is not None:
             view2_input = image_seq_2.reshape(batch_size, -1, image_seq_2.size(3), image_seq_2.size(4))
             view2_features = self.cnn_view1(view2_input).reshape(batch_size, -1)
