@@ -59,7 +59,8 @@ weather_train, images_train, y_train, weather_validation, images_validation, y_v
 )
 var_order = []
 for i in range(seq_len):
-
+    var_order.append("gre000z0_nyon_t" + str(i))
+    var_order.append("gre000z0_dole_t" + str(i))
     var_order.append("RR_t" + str(i))
     var_order.append("TD_t" + str(i))
     var_order.append("WG_t" + str(i))
