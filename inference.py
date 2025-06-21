@@ -83,6 +83,8 @@ for year, month in months:
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
         var_order = []
         for i in range(seq_len):
+            var_order.append("gre000z0_nyon_t" + str(i))
+            var_order.append("gre000z0_dole_t" + str(i))
             var_order.append("RR_t" + str(i))
             var_order.append("TD_t" + str(i))
             var_order.append("WG_t" + str(i))

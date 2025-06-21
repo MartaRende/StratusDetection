@@ -64,6 +64,8 @@ weather_train, images_train, y_train, weather_validation, images_validation, y_v
 
 var_order = []
 for i in range(seq_len):
+    var_order.append("gre000z0_nyon_t" + str(i))
+    var_order.append("gre000z0_dole_t" + str(i))
     var_order.append("RR_t" + str(i))
     var_order.append("TD_t" + str(i))
     var_order.append("WG_t" + str(i))
@@ -214,7 +216,7 @@ losses = {"train": [], "eval": [], "test": []}
 accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 10  # Increase as needed
+num_epochs = 70  # Increase as needed
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")

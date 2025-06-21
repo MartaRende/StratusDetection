@@ -20,7 +20,7 @@ class PrepareData:
         self.stats_stratus_days = None
         self.seq_length = seq_length
         self.num_workers = num_workers
-        self.meteo_feats = [
+        self.meteo_feats = ["gre000z0_nyon", "gre000z0_dole",
              "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
         ]
@@ -243,7 +243,7 @@ class PrepareData:
         valid_indices = []
         
         # Define the meteorological features to use
-        meteo_features = [
+        meteo_features = ["gre000z0_nyon", "gre000z0_dole",
              "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
         ]
@@ -259,9 +259,9 @@ class PrepareData:
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
-            # if not all(diff == 10 for diff in time_diffs):
-            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-            #     continue
+            if not all(diff == 10 for diff in time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
+                continue
 
             # Check if next point is exactly 60 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
@@ -453,7 +453,7 @@ class PrepareData:
         
         # Prepare train and test DataFrames for x_meteo
         column_names = [
-            f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
+            f"{feat}_t{t}" for t in range(self.seq_length) for feat in ["gre000z0_nyon", "gre000z0_dole",
                 "RR", "TD", "WG", "TT",
                 "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ]
@@ -496,9 +496,7 @@ class PrepareData:
         test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
-        # Add label columns to test_data
-        for label in label_names:
-            test_data[label] = y_test_df[label].values
+      
         self.test_data = test_data.to_dict('records')
      
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
