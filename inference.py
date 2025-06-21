@@ -10,10 +10,11 @@ from metrics import *
 import importlib
 from datetime import datetime, timedelta
 import random
+import pandas as pd
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 43  # or any number you want
+MODEL_NUM = 46 # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -77,6 +78,7 @@ for year, month in months:
     with torch.no_grad():
         prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len)   
         x_meteo, x_images, y_expected = prepare_data.load_data(start_date=start_date, end_date=end_date)
+
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
@@ -99,6 +101,8 @@ for year, month in months:
             var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
+        # Drop 'gre000z0_nyon_t{i}' and 'gre000z0_dole_t{i}' columns from x_meteo if present
+      
       
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,

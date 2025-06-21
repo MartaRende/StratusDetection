@@ -55,7 +55,7 @@ weather_train, images_train, y_train, weather_test, images_test, y_test  = prepa
 
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation = prepare_data.split_train_validation(
-    weather_train, images_train, y_train
+    weather_train, images_train, y_train, data_augmentation=True
 )
 var_order = []
 for i in range(seq_len):
@@ -165,7 +165,7 @@ losses = {"train": [], "val": [], "test": []}
 accuracies = {"train": [], "val": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 100  # Increase as needed
+num_epochs = 150  # Increase as needed
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
