@@ -145,8 +145,8 @@ for year, month in months:
             max_nyon = stats_label["gre000z0_nyon"]["max"]
             min_dole = stats_label["gre000z0_dole"]["min"]
             max_dole = stats_label["gre000z0_dole"]["max"]
-            y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
-            y[1] = y[1] * (max_dole - min_dole) + min_dole
+            y[len(y)-2] = y[len(y)-2] * (max_nyon - min_nyon) + min_nyon
+            y[len(y)-1] = y[len(y)-1] * (max_dole - min_dole) + min_dole
             # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
             # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)
