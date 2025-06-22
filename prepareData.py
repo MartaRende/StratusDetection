@@ -151,22 +151,26 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length+5  >= len(df):
+            if i + self.seq_length+6  >= len(df):
                 break
-            next_point = df.iloc[i + self.seq_length +5]
+            next_point = df.iloc[i + self.seq_length +3: i + self.seq_length + 6]
 
             # Check for continuity (60-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
-            # if not all(diff == 10 for diff in time_diffs):
-            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-            #     continue
-          
-            # Check if next point is exactly 10 minutes after last sequence point
-            last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
+            if not all(diff == 10 for diff in time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
                 continue
+            
+            # Check continuity for next_point (should also be 10-minute intervals)
+            next_time_diffs = np.diff(next_point['datetime'].values) / np.timedelta64(1, 'm')
+            if not all(diff == 10 for diff in next_time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_point.")
+                continue
+            # last_seq_time = seq_window.iloc[-1]['datetime']
+            # if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
+            #     print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
+            #     continue
             # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
             if np.isnan(meteo_sequence).any():
@@ -197,7 +201,7 @@ class PrepareData:
                 continue
                 
             # Prepare target (next time step after sequence)
-            
+           
             target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
             # Use pd.isnull to handle all types safely
             if pd.isnull(target).any():
@@ -355,7 +359,9 @@ class PrepareData:
                 "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ]
         ]
-        label_names = ["gre000z0_nyon", "gre000z0_dole"]
+        label_names = [f"{feat}_t{t}" for t in range(self.seq_length) for feat in ["gre000z0_nyon", "gre000z0_dole"]
+            
+        ]
      
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
@@ -368,8 +374,8 @@ class PrepareData:
         x_meteo_test_df = pd.DataFrame(x_meteo_test, columns=column_names)
 
         # Prepare train and test DataFrames for y (labels)
-        y_train = np.array([y[indices[-1]] for indices in train_sequences])
-        y_test = np.array([y[indices[-1]] for indices in test_sequences])
+        y_train = np.array([y[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
+        y_test = np.array([y[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
   
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_test_df = pd.DataFrame(y_test, columns=label_names)
@@ -473,6 +479,8 @@ class PrepareData:
 
         x_meteo_train_df = pd.DataFrame(x_meteo_train, columns=column_names)
         x_meteo_val_df = pd.DataFrame(x_meteo_val, columns=column_names)
+        import ipdb
+        ipdb.set_trace()
         y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df
