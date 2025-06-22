@@ -79,13 +79,15 @@ for i in range(seq_len):
 weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(
     weather_train, weather_validation, weather_test,
     var_order=var_order)
-
+label_names =[f"{feat}_t{t}" for t in range(seq_len) for feat in ["gre000z0_nyon", "gre000z0_dole"]
+            
+        ]
 # Normalize labels
+
 y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     y_train, y_validation, y_test,
-    var_order=["gre000z0_nyon", "gre000z0_dole"]
+    var_order=label_names
 )
-
 # Dataset class
 class SimpleDataset(torch.utils.data.Dataset):
     def __init__(self, weather, images, y, augmentation=False):
@@ -102,8 +104,8 @@ class SimpleDataset(torch.utils.data.Dataset):
         weather_x = torch.tensor(self.weather[idx], dtype=torch.float32).view(seq_len, -1)
 
         # Load label
-        y_val = torch.tensor(self.y[idx], dtype=torch.float32)
-
+        y_val = torch.tensor(self.y[idx], dtype=torch.float32)  # shape: (seq_len, num_features)
+ 
         # Load image data
         img_data = self.images[idx]  # shape: (seq_len, num_views, 512, 512, 3) if num_views == 2
                                     # or (seq_len, 512, 512, 3) if num_views == 1
@@ -156,7 +158,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 # Instantiate model, loss, optimizer, scheduler
-model = StratusModel(input_feature_size=13, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
+model = StratusModel(input_feature_size=13, output_size=6, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5)
@@ -201,7 +203,7 @@ for epoch in range(num_epochs):
                torch.isinf(weather_x).any() or torch.isinf(labels).any() or \
                (num_views == 2 and (torch.isinf(img1).any() or torch.isinf(img2).any())):
                 print("Warning: NaN or Inf values detected in input data!")
-
+          
             batch_loss = loss_fn(y_pred, labels)
 
             if step == "train":

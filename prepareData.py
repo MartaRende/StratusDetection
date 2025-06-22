@@ -115,7 +115,7 @@ class PrepareData:
                         range_val = 1e-8  # Avoid division by zero
                     df_processed[var] = ((df[var] - min_val) / range_val).fillna(0)
             return df_processed
-
+     
         train_norm = process(train_df)
         validation_norm = process(validation_df)
         test_norm = process(test_df)
@@ -479,10 +479,13 @@ class PrepareData:
 
         x_meteo_train_df = pd.DataFrame(x_meteo_train, columns=column_names)
         x_meteo_val_df = pd.DataFrame(x_meteo_val, columns=column_names)
-        import ipdb
-        ipdb.set_trace()
-        y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-        y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
+        label_names =[f"{feat}_t{t}" for t in range(self.seq_length) for feat in ["gre000z0_nyon", "gre000z0_dole"]
+            
+        ]
+        label_names.append("datetime")
+     
+        y_train_df = pd.DataFrame(y_train, columns=label_names)
+        y_val_df = pd.DataFrame(y_val, columns=label_names)
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df
 
 
