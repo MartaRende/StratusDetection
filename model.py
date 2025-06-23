@@ -46,7 +46,7 @@ class StratusModel(nn.Module):
         
         # Final classification head
         self.mlp_head = nn.Sequential(
-            nn.Linear(self.cnn_output_size * factor, 2048),
+            nn.Linear(self.cnn_output_size * factor + 128, 2048),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(2048, 2048),
