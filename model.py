@@ -78,4 +78,4 @@ class StratusModel(nn.Module):
         # z = torch.cat([img_features, z_meteo], dim=1)
         output = self.mlp_head(img_features)
         
-        return outputx
+        return output
