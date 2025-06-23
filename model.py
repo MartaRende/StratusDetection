@@ -14,18 +14,23 @@ class StratusModel(nn.Module):
         # CNN 
         self.cnn_view1 = nn.Sequential(
             nn.Conv2d(3 * seq_len, 64, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
             nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
             nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
         )
@@ -51,10 +56,10 @@ class StratusModel(nn.Module):
         self.mlp_head = nn.Sequential(
             nn.Linear(mlp_input_size, 8192),  # 8192 input features
             nn.ReLU(),
-            nn.Dropout(0.6),
+            nn.Dropout(0.7),
             nn.Linear(8192, 4096),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.6),
             nn.Linear(4096, 2048),
             nn.ReLU(),
             nn.Dropout(0.5),
@@ -66,10 +71,10 @@ class StratusModel(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(1024, 1024),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(1024, 512),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(512, output_size)
         )
 
