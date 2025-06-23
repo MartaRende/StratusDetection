@@ -81,10 +81,10 @@ class StratusModel(nn.Module):
         else:
             img_features = view1_features
         
-        meteo_flat = meteo_seq.reshape(batch_size, -1)
-        z_meteo = self.mlp_meteo(meteo_flat)
+        # meteo_flat = meteo_seq.reshape(batch_size, -1)
+        # z_meteo = self.mlp_meteo(meteo_flat)
         
-        z = torch.cat([img_features, z_meteo], dim=1)
+        # z = torch.cat([img_features, z_meteo], dim=1)
         output = self.mlp_head(img_features)
         
         return output
