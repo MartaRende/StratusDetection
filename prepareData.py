@@ -502,7 +502,7 @@ class PrepareData:
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
      
-        return x_meteo_train_features_df, x_images_train, y_train_df, x_meteo_test_features_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
+        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
         if 'date_str' not in x_meteo_seq.columns:
@@ -581,9 +581,9 @@ class PrepareData:
         
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
-        drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        df = df.drop(columns=drop_cols)
-        var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
+        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
+        # df = df.drop(columns=drop_cols)
+        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
 
         
         for var in var_order:
@@ -594,7 +594,7 @@ class PrepareData:
             df_out[var] = ((col - mn) / rng).fillna(0)
 
         flat_out = df_out.values
-        new_F = 13
+        new_F = 15
         reshaped = flat_out.reshape(N, T, new_F)
 
         if original_ndim == 2:
