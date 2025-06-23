@@ -13,25 +13,28 @@ class StratusModel(nn.Module):
 
         # CNN 
         self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(3 * seq_len, 32, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.Conv2d(3 * seq_len, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
+            nn.MaxPool2d(2, 2),  # 512x200 -> 256x100
+
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
+            nn.MaxPool2d(2, 2),  # 256x100 -> 128x50
+
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
+            nn.MaxPool2d(2, 2),  # 128x50 -> 64x25
+
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
+            nn.MaxPool2d(2, 2),  # 64x25 -> 32x12
+
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(4, 4),  # 32x32 -> 16x16
+            nn.MaxPool2d(4, 4),  # 32x12 -> 8x3
         )
 
-
-        self.cnn_output_size = 32 * 8 * 8  # 8192 features after CNN layers
+        self.cnn_output_size = 32 * 8 * 3  # 768
 
         # MLP for weather data
         # self.mlp_meteo = nn.Sequential(
