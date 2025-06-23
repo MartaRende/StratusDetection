@@ -56,19 +56,19 @@ class StratusModel(nn.Module):
         self.mlp_head = nn.Sequential(
             nn.Linear(mlp_input_size, 2048),
             nn.ReLU(),
-            nn.Dropout(0.7),
+            nn.Dropout(0.3),
             nn.Linear(2048, 2048),
             nn.ReLU(),
-            nn.Dropout(0.7),
+            nn.Dropout(0.3),
             nn.Linear(2048, 1024),
             nn.ReLU(),
-            nn.Dropout(0.7),
+            nn.Dropout(0.3),
             nn.Linear(1024, 1024),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.3),
             nn.Linear(1024, 512),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.3),
             nn.Linear(512, output_size)
         )
 
