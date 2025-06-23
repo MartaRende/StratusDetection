@@ -10,7 +10,6 @@ from prepareData import PrepareData
 from metrics import Metrics
 from torch.utils.data import Dataset
 from PIL import Image
-import torchvision.transforms as transforms
 
 from prepare_data.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 # Set device
