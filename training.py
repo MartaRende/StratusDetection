@@ -10,6 +10,7 @@ from prepareData import PrepareData
 from metrics import Metrics
 from torch.utils.data import Dataset
 from PIL import Image
+import torchvision.transforms as transforms
 
 from prepare_data.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 # Set device
@@ -195,6 +196,8 @@ class SimpleDataset(Dataset):
             return weather_data, images_tensor, labels
 
 # Create datasets and loaders
+
+
 
 train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
 validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
