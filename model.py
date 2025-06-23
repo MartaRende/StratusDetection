@@ -1,6 +1,5 @@
 # Path: model.py
 # Path: model.py
-# Path: model.py
 import torch
 import torch.nn as nn
 
@@ -14,25 +13,25 @@ class StratusModel(nn.Module):
 
         # CNN 
         self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(3 * seq_len, 64, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.Conv2d(3 * seq_len, 32, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(4, 4),  # 32x32 -> 16x16
         )
 
 
-        self.cnn_output_size = 64 * 8 * 8  # 8192 features after CNN layers
+        self.cnn_output_size = 32 * 8 * 8  # 8192 features after CNN layers
 
         # MLP for weather data
         # self.mlp_meteo = nn.Sequential(
@@ -50,14 +49,15 @@ class StratusModel(nn.Module):
 
         # MLP final
         self.mlp_head = nn.Sequential(
-            nn.Linear(mlp_input_size, 2048),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(2048, 512),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(512, output_size)
-        )
+    nn.Linear(mlp_input_size, 512),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(512, 128),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(128, output_size)
+)
+
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
         batch_size = meteo_seq.size(0)
         
@@ -78,4 +78,4 @@ class StratusModel(nn.Module):
         # z = torch.cat([img_features, z_meteo], dim=1)
         output = self.mlp_head(img_features)
         
-        return output
+        return outputx
