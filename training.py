@@ -120,7 +120,7 @@ class SimpleDataset(Dataset):
                     img = random_contrast(img)
                     img = random_color_jitter(img)
                     img = random_blur(img)
-                img = img.crop((0, 0, 512, 200))  # Crop to 512x200
+                #img = img.crop((0, 0, 512, 200))  # Crop to 512x200
                 img_tensor = torch.from_numpy(np.array(img)).float().permute(2, 0, 1) 
                 
                 if len(self.cache) < self.cache_size_limit:

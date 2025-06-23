@@ -167,7 +167,7 @@ class PrepareData:
         """Helper function to load a single image"""
         if os.path.exists(path):
             img = Image.open(path).convert("RGB")
-            img = img.crop((0, 0, 512, 200))  # Crop to 512x200
+            #img = img.crop((0, 0, 512, 200))  # Crop to 512x200
             return np.array(img)
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
@@ -230,7 +230,7 @@ class PrepareData:
         image_path = self.get_image_path(dt, view)
         if os.path.exists(image_path):
             img = Image.open(image_path).convert("RGB")
-            img = img.crop((0, 0, 512, 200))  # Crop to 512x200
+            #img = img.crop((0, 0, 512, 200))  # Crop to 512x200
             return np.array(img)
         else:
             print(f"Image not found for datetime {dt} at view {view}. Returning empty image.")
@@ -583,9 +583,9 @@ class PrepareData:
         
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
-        drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        df = df.drop(columns=drop_cols)
-        var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
+        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
+        # df = df.drop(columns=drop_cols)
+        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
       
         
         for var in var_order:
@@ -596,7 +596,7 @@ class PrepareData:
             df_out[var] = ((col - mn) / rng).fillna(0)
 
         flat_out = df_out.values
-        new_F = 13
+        new_F = 15
         reshaped = flat_out.reshape(N, T, new_F)
 
         if original_ndim == 2:
