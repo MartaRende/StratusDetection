@@ -1243,3 +1243,108 @@ Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle avec
 
 
 
+
+### 1. Model_47
+Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données sauf radiation
+- **Loss**
+![str_2](models/model_47/loss_linear.png)
+- ### Modèle 47 Metrics
+#### Rapport détaillé des métriques
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 153.55    | 164.11    |
+| **RMSE**                      | 199.67    | 208.36    |
+| **Erreur relative moyenne**    | 0.63      | 0.58      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 99.29
+- **RMSE** : 149.88
+
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 130.47    | 182.60    |
+| **RMSE**                      | 155.13    | 207.37    |
+| **Erreur relative moyenne**    | 0.77      | 0.47      |
+
+- **Delta Nyon-Dôle** : MAE = 190.05, RMSE = 213.82
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 156.21    | 138.83    |
+| **RMSE**                      | 178.56    | 160.71    |
+| **Erreur relative moyenne**    | 0.72      | 0.62      |
+
+- **Delta Nyon-Dôle** : MAE = 71.76, RMSE = 89.47
+
+### Comparaison entre les modèles 48, 45 et 47
+
+| Métrique                      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) | Model_47 (Nyon/Dôle) |
+|-------------------------------|----------------------|----------------------|----------------------|
+| **MAE**                       | 109.98 / 110.25      | 125.41 / 121.88      | 153.55 / 164.11      |
+| **RMSE**                      | 143.12 / 139.87      | 172.86 / 164.17      | 199.67 / 208.36      |
+| **Erreur relative moyenne**    | 0.61 / 0.54          | 0.62 / 0.51          | 0.63 / 0.58          |
+
+#### Delta Nyon-Dôle (global)
+
+| Métrique      | Model_48 | Model_45 | Model_47 |
+|---------------|----------|----------|----------|
+| **MAE**       | 85.10    | 86.05    | 99.29    |
+| **RMSE**      | 126.50   | 128.57   | 149.88   |
+
+#### Jours de stratus
+
+| Métrique      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) | Model_47 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|----------------------|
+| **MAE**       | 120.12 / 128.33      | 79.98 / 104.27       | 130.47 / 182.60      |
+| **RMSE**      | 139.87 / 153.21      | 98.81 / 120.66       | 155.13 / 207.37      |
+| **Erreur rel.** | 0.49 / 0.38        | 0.48 / 0.27          | 0.77 / 0.47          |
+
+| Delta Nyon-Dôle | Model_48 | Model_45 | Model_47 |
+|-----------------|----------|----------|----------|
+| **MAE**         | 124.22   | 101.55   | 190.05   |
+| **RMSE**        | 146.54   | 121.64   | 213.82   |
+
+#### Jours sans stratus
+
+| Métrique      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) | Model_47 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|----------------------|
+| **MAE**       | 98.76 / 92.14        | 131.81 / 114.75      | 156.21 / 138.83      |
+| **RMSE**      | 119.32 / 110.45      | 153.16 / 133.93      | 178.56 / 160.71      |
+| **Erreur rel.** | 0.62 / 0.56        | 0.78 / 0.70          | 0.72 / 0.62          |
+
+| Delta Nyon-Dôle | Model_48 | Model_45 | Model_47 |
+|-----------------|----------|----------|----------|
+| **MAE**         | 68.45    | 78.64    | 71.76    |
+| **RMSE**        | 87.32    | 96.76    | 89.47    |
+
+---
+
+#### Synthèse comparative
+
+- **Le modèle 48** est le plus performant sur toutes les métriques globales (MAE, RMSE, erreur relative), aussi bien pour Nyon que pour Dôle.
+- **Le modèle 45** est meilleur que le modèle 47, notamment sur les jours de stratus, avec des erreurs plus faibles et une meilleure cohérence.
+- **Le modèle 47** présente les erreurs les plus élevées, surtout sur les jours de stratus, ce qui montre que l’absence de la variable radiation impacte fortement la performance.
+- Sur les jours sans stratus, le modèle 48 garde l’avantage, suivi du modèle 45, puis du modèle 47.
+- **Conclusion** : Le modèle 48 est globalement le plus robuste et performant, le modèle 45 reste compétitif sur certains cas, tandis que le modèle 47 est nettement moins performant, en particulier sans la variable radiation.
+
+Voici quelques resultats du modèle_48
+![str_2](models/model_48/metrics/2023-01/day_curve_2023-01-20.png)
+![str_2](models/model_48/metrics/2023-01/day_curve_2023-01-06.png)
+![str_2](models/model_48/metrics/2024-10/day_curve_2024-10-30.png)
+![str_2](models/model_48/metrics/2024-11/day_curve_2024-11-06.png)
+![str_2](models/model_48/metrics/2024-11/day_curve_2024-11-08.png)
+![str_2](models/model_48/metrics/2024-12/day_curve_2024-12-26.png)
+
+
+
