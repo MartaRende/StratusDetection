@@ -577,8 +577,7 @@ class PrepareData:
      
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
-        import ipdb
-        ipdb.set_trace()
+
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
 
