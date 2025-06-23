@@ -112,7 +112,7 @@ class PrepareData:
             })
 
         # Update self.data only after collecting all valid sequences
-        self.data = self.data.loc[valid_indices]
+        self.data = self.data.loc[valid_indices].reset_index(drop=True)
         for seq in valid_seqs:
             seq["indices"] = [self.data.index[i] for i in seq["indices"]]
 
@@ -319,7 +319,7 @@ class PrepareData:
         x_images_seq = np.array(x_images_seq)
         y_seq = np.array(y_seq)
         # Save filtered data
-        self.data = df.loc[valid_indices]
+        self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
