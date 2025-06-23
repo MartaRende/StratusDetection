@@ -463,7 +463,9 @@ class PrepareData:
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
-
+        feature_columns = [col for col in column_names if col not in ['gre000z0_nyon_t0', 'gre000z0_dole_t0', 'gre000z0_nyon_t1', 'gre000z0_dole_t1', 'gre000z0_nyon_t2', 'gre000z0_dole_t2']]
+        x_meteo_train_features_df = pd.DataFrame(x_meteo_train, columns=column_names)[feature_columns]
+        x_meteo_test_features_df = pd.DataFrame(x_meteo_test, columns=column_names)[feature_columns]
         x_meteo_train_df = pd.DataFrame(x_meteo_train, columns=column_names)
         x_meteo_test_df = pd.DataFrame(x_meteo_test, columns=column_names)
 
@@ -490,6 +492,8 @@ class PrepareData:
     
         # Also add datetime to train df for reference
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
+        x_meteo_train_features_df['datetime'] = train_datetimes
+        x_meteo_test_features_df['datetime'] = test_datetimes
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
         test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
@@ -498,7 +502,7 @@ class PrepareData:
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
      
-        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
+        return x_meteo_train_features_df, x_images_train, y_train_df, x_meteo_test_features_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
         if 'date_str' not in x_meteo_seq.columns:
