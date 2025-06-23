@@ -498,7 +498,7 @@ class PrepareData:
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
       
         self.test_data = test_data.to_dict('records')
-     
+    
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
 
 
@@ -577,7 +577,8 @@ class PrepareData:
      
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
-
+        import ipdb
+        ipdb.set_trace()
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
 

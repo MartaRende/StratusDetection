@@ -46,6 +46,7 @@ model.eval()
 # load data test of npz file
 data = np.load(npz_file, allow_pickle=True)
 stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
+import ipdb; ipdb.set_trace()
 stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
