@@ -29,11 +29,15 @@ class StratusModel(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),  # 32x32 ->
      
         )
 
 
-        self.cnn_output_size = 32 * 32 * 32  # 8192 features after CNN layers
+        self.cnn_output_size = 32 * 16 * 16  # 8192 features after CNN layers
 
         # MLP for weather data
         # self.mlp_meteo = nn.Sequential(
