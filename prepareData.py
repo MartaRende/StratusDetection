@@ -578,9 +578,12 @@ class PrepareData:
      
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
-
+        
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
+        drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
+        df = df.drop(columns=drop_cols)
+        var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
 
         
         for var in var_order:
