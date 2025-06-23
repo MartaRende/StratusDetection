@@ -581,10 +581,10 @@ class PrepareData:
         
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
-        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        # df = df.drop(columns=drop_cols)
-        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-
+        drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
+        df = df.drop(columns=drop_cols)
+        var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
+      
         
         for var in var_order:
             col = df[var].astype(float).fillna(0)
@@ -594,7 +594,7 @@ class PrepareData:
             df_out[var] = ((col - mn) / rng).fillna(0)
 
         flat_out = df_out.values
-        new_F = 15
+        new_F = 13
         reshaped = flat_out.reshape(N, T, new_F)
 
         if original_ndim == 2:
