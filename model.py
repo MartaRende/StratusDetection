@@ -52,19 +52,19 @@ class StratusModel(nn.Module):
         self.mlp_head = nn.Sequential(
             nn.Linear(mlp_input_size, 2048),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(2048, 2048),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(2048, 1024),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(1024, 1024),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(1024, 512),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.5),
             nn.Linear(512, output_size)
         )
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
