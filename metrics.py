@@ -266,6 +266,8 @@ class Metrics:
         else:
             days = [str(days)]
         df = self._create_comparison_dataframe()
+        import ipdb
+        ipdb.set_trace()
         df["date_str"] = df["datetime"].dt.strftime("%Y-%m-%d")
         df["hour"] = df["datetime"].dt.strftime("%H:%M")
         df["month"] = df["datetime"].dt.strftime("%Y-%m")
@@ -439,7 +441,8 @@ class Metrics:
 
             # Ensure datetimes are unique (keep first occurrence)
             day_df = day_df.drop_duplicates(subset=["datetime"])
-
+            import ipdb 
+            ipdb.set_trace()
             month = day_df["month"].iloc[0]
             month_dir = os.path.join(self.save_path, month)
             os.makedirs(month_dir, exist_ok=True)

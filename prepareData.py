@@ -14,6 +14,7 @@ class PrepareData:
         self.image_base_folder = fp_images
         self.fp_weather = fp_weather
         self.data = self._load_weather_data()
+        self.data
         self.test_data = []
         self.num_views = num_views
         self.stats_stratus_days = None
@@ -151,26 +152,26 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length+5  >= len(df):
-                break
-            next_point = df.iloc[i + self.seq_length +5]
+            # if i + self.seq_length+5  >= len(df):
+            #     break
+            next_point = df.iloc[i + self.seq_length]
 
             # Check for continuity (60-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
-            # if not all(diff == 10 for diff in time_diffs):
-            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-            #     continue
-          
+            if not all(diff == 10 for diff in time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.","at hour", seq_window.iloc[0]['datetime'].hour)
+                continue
+            
             # Check if next point is exactly 10 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.")
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.", "at hour", last_seq_time.hour)
                 continue
             # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
             if np.isnan(meteo_sequence).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
+                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.", "at hour", seq_window.iloc[0]['datetime'].hour)
                 continue
                 
             # Prepare image sequence
@@ -201,9 +202,9 @@ class PrepareData:
             target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
             # Use pd.isnull to handle all types safely
             if pd.isnull(target).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
+                print(f"Skipping sequence starting at index {i} due to NaN values in target data.", "at hour", next_point['datetime'].hour)
                 continue
-                
+
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
             x_images_seq.append(np.array(img_sequence))
@@ -218,6 +219,8 @@ class PrepareData:
         # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
+        import ipdb
+        ipdb.set_trace()
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 
@@ -495,12 +498,14 @@ class PrepareData:
      
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
+        import ipdb 
+        ipdb.set_trace()
         df = pd.DataFrame(flat, columns=var_order)
         # Remove 'gre000z0_nyon' and 'gre000z0_dole' columns at all time steps if present
    
-        drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        df = df.drop(columns=drop_cols)
-        var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
+        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
+        # df = df.drop(columns=drop_cols)
+        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
         df_out = pd.DataFrame()
 
         
@@ -512,7 +517,7 @@ class PrepareData:
             df_out[var] = ((col - mn) / rng).fillna(0)
 
         flat_out = df_out.values
-        new_F = 13
+        new_F = 15
         reshaped = flat_out.reshape(N, T, new_F)
 
         if original_ndim == 2:
