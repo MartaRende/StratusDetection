@@ -160,18 +160,18 @@ class PrepareData:
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
             if not all(diff == 10 for diff in time_diffs):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.","at hour", seq_window.iloc[0]['datetime'].hour)
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.","at hour", seq_window.iloc[0]['datetime'])
                 continue
             
             # Check if next point is exactly 10 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
             if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.", "at hour", last_seq_time.hour)
+                print(f"Skipping sequence starting at index {i} due to non-10-minute gap to next point.", "at hour", last_seq_time)
                 continue
             # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
             if np.isnan(meteo_sequence).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.", "at hour", seq_window.iloc[0]['datetime'].hour)
+                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.", "at hour", seq_window.iloc[0]['datetime'])
                 continue
                 
             # Prepare image sequence
@@ -206,6 +206,7 @@ class PrepareData:
                 continue
 
             # Add to sequences
+
             x_meteo_seq.append(meteo_sequence)
             x_images_seq.append(np.array(img_sequence))
             y_seq.append(target)
@@ -217,10 +218,9 @@ class PrepareData:
         x_images_seq = np.array(x_images_seq)
         y_seq = np.array(y_seq)
         # Save filtered data
-        self.data = df.loc[valid_indices].reset_index(drop=True)
+        self.data = df.loc[valid_indices]
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
-        import ipdb
-        ipdb.set_trace()
+
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 
@@ -399,7 +399,7 @@ class PrepareData:
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
-  
+     
         return x_meteo_train_features_df, x_images_train, y_train_df, x_meteo_test_features_df, x_images_test, y_test_df
 
 
@@ -498,8 +498,7 @@ class PrepareData:
      
         flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
         flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
-        import ipdb 
-        ipdb.set_trace()
+
         df = pd.DataFrame(flat, columns=var_order)
         # Remove 'gre000z0_nyon' and 'gre000z0_dole' columns at all time steps if present
    

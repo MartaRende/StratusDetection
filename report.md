@@ -668,89 +668,6 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 
 ### 7. Code adapté pour pouvoir traiter une serie d'images et données meteo pour avoir un sequence temporelle 
 
-### 8. modèle 0 --> essai d'un premier modèle avec temps intégré (séquence de trois images)
-
-**Loss**
-
-![str2](models/model_0/loss.png)
-
-## Synthèse des métriques et comparaison des modèles
-
-### Résultats du modèle séquentiel (modèle 0)
-
-| Métrique                      | Nyon      | Dôle      |
-|-------------------------------|-----------|-----------|
-| **MAE**                       | 47.90     | 48.16     |
-| **RMSE**                      | 70.47     | 70.32     |
-| **Erreur relative moyenne**    | 0.32      | 0.33      |
-
-
-#### Delta Nyon-Dôle
-
-- **MAE** : 52.93
-- **RMSE** : 84.76
-
-#### Jours de stratus
-
-| Métrique                      | Nyon      | Dôle      |
-|-------------------------------|-----------|-----------|
-| **MAE**                       | 44.17     | 41.55     |
-| **RMSE**                      | 55.35     | 55.53     |
-| **Erreur relative moyenne**    | 0.36      | 0.15      |
-
-- **Delta Nyon-Dôle** : MAE = 56.80, RMSE = 77.84
-
-#### Jours sans stratus
-
-| Métrique                      | Nyon      | Dôle      |
-|-------------------------------|-----------|-----------|
-| **MAE**                       | 46.39     | 46.88     |
-| **RMSE**                      | 59.95     | 60.03     |
-| **Erreur relative moyenne**    | 0.32      | 0.37      |
-
-- **Delta Nyon-Dôle** : MAE = 50.45, RMSE = 68.19
-
----
-
-### Comparaison avec les modèles 19 et 23
-
-| Métrique                      | Modèle 0 (Nyon/Dôle) | Modèle 19 (Nyon/Dôle) | Modèle 23 (Nyon/Dôle) |
-|-------------------------------|----------------------|-----------------------|-----------------------|
-| **MAE**                       | 47.90 / 48.16        | 49.34 / 49.88         | 46.43 / 48.71         |
-| **RMSE**                      | 70.47 / 70.32        | 73.98 / 69.39         | 69.56 / 70.98         |
-| **Erreur relative moyenne**    | 0.32 / 0.33          | 0.44 / 0.46           | 0.39 / 0.50           |
-
-**Delta Nyon-Dôle**
-
-| Métrique      | Modèle 0 | Modèle 19 | Modèle 23 |
-|---------------|----------|-----------|-----------|
-| **MAE**       | 52.93    | 55.50     | 59.34     |
-| **RMSE**      | 84.76    | 88.09     | 93.09     |
-
-#### Jours de stratus
-
-| Métrique      | Modèle 0 (Nyon/Dôle) | Modèle 19 (Nyon/Dôle) | Modèle 23 (Nyon/Dôle) |
-|---------------|----------------------|-----------------------|-----------------------|
-| **MAE**       | 44.17 / 41.55        | 41.90 / 43.98         | 48.45 / 48.23         |
-| **RMSE**      | 55.35 / 55.53        | 54.88 / 53.24         | 64.16 / 62.38         |
-| **Erreur rel.** | 0.36 / 0.15        | 0.50 / 0.29           | 0.41 / 0.19           |
-
-#### Jours sans stratus
-
-| Métrique      | Modèle 0 (Nyon/Dôle) | Modèle 19 (Nyon/Dôle) | Modèle 23 (Nyon/Dôle) |
-|---------------|----------------------|-----------------------|-----------------------|
-| **MAE**       | 46.39 / 46.88        | 47.69 / 48.68         | 43.50 / 45.39         |
-| **RMSE**      | 59.95 / 60.03        | 63.53 / 62.25         | 57.54 / 58.33         |
-| **Erreur rel.** | 0.32 / 0.37        | 0.43 / 0.49           | 0.39 / 0.56           |
-
----
-
-### Analyse comparative
-
-- **Le modèle séquentiel (modèle 0) obtient des résultats très proches du modèle 23 sur les métriques globales (MAE, RMSE), et reste compétitif avec le modèle 19.**
-- **Pour les jours de stratus, le modèle 19 reste légèrement meilleur en MAE et RMSE, mais le modèle 0 présente une erreur relative plus faible.**
-- **Pour les jours sans stratus, le modèle 23 reste le plus performant, mais le modèle 0 est très proche.**
-- **Le modèle 0 montre une bonne robustesse globale, notamment grâce à l’intégration de la séquence temporelle, et confirme l’intérêt de cette approche pour la détection du stratus.**
 
 
 
@@ -759,3 +676,297 @@ Par conséquent, selon les sources trouvées, le z-score modifié pourrait être
 1. Améliorer les résultats du modèle actuel. 
 2. Essayez de faire des prévisions à une heure, deux heures, etc.
 3. Mettre dans les output non seulement les prévisions au temps t+1 mais aussi celles au temps t+2, t+3, etc.
+
+# 2025-06-24
+
+## Tasks
+
+### 1. J'ai fait une comparaison avec la variable SU pour voir si les pics de variation des valeurs de rayonnement de nyon et de dôle étaient également présents dans SU --> sont présents
+- Examples: 
+
+![str_2](models/model_46/metrics/2023-09/day_curve_2023-09-19.png)
+![str_2](analysis/2023-09-19_all.png)
+
+Il n'y aurait donc aucun avantage à prédire avec cette variable
+
+### 2. Model Testing
+
+**Resumé des modèles téstés**
+1. Resultats sur des prévisions de dix minutes 
+### 1. Model_31
+Modèle entraîné sur les deux vues de la dôle 3 images en séquence temporelle
+- **Loss**
+![str_2](models/model_31/loss.png)
+- ### Modèle 31 Metrics
+
+| Métrique                | Nyon    | Dôle    |
+|-------------------------|---------|---------|
+| **MAE**                 | 92.34   | 99.39   |
+| **RMSE**                | 121.66  | 130.79  |
+| **Erreur relative**     | 0.63    | 0.57    |
+
+#### Delta Nyon-Dôle (global)
+- **MAE** : 85.42
+- **RMSE** : 130.62
+
+
+#### Jours de stratus
+| Métrique                | Nyon    | Dôle    |
+|-------------------------|---------|---------|
+| **MAE**                 | 72.40   | 98.91   |
+| **RMSE**                | 92.71   | 119.26  |
+| **Erreur relative**     | 0.37    | 0.25    |
+
+- **Delta Nyon-Dôle** : MAE = 102.26, RMSE = 126.17
+#### Jours sans stratus
+| Métrique                | Nyon    | Dôle    |
+|-------------------------|---------|---------|
+| **MAE**                 | 89.98   | 91.10   |
+| **RMSE**                | 107.28  | 108.92  |
+| **Erreur relative**     | 0.69    | 0.60    |
+
+- **Delta Nyon-Dôle** : MAE = 73.33, RMSE = 94.65
+### 2. Model_0
+Modèle entraîné sur les deux vues de la dôle 3 images en séquence temporelle donnés d'entrée que les images, 1 seule view de la dôle
+- **Loss**
+![str_2](models/model_0/loss_log_first15.png)
+![str_2](models/model_0/loss_linear_after15.png)
+On peut voir qu'il y a de l'overfit 
+- ### Modèle 0 Metrics
+#### Résumé des métriques
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 78.15     | 62.13     |
+| **RMSE**                      | 118.35    | 89.95     |
+| **Erreur relative moyenne**    | 0.64      | 0.56      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 66.01
+- **RMSE** : 102.26
+
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 66.88     | 59.58     |
+| **RMSE**                      | 86.59     | 75.89     |
+| **Erreur relative moyenne**    | 0.52      | 0.38      |
+
+- **Delta Nyon-Dôle** : MAE = 76.79, RMSE = 103.08
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 77.76     | 59.67     |
+| **RMSE**                      | 98.98     | 76.40     |
+| **Erreur relative moyenne**    | 0.69      | 0.59      |
+
+- **Delta Nyon-Dôle** : MAE = 59.68, RMSE = 80.14
+
+### Comparaison entre le modèle 31 et le modèle 0
+
+| Métrique                      | Model_31 (Nyon/Dôle) | Model_0 (Nyon/Dôle) |
+|-------------------------------|----------------------|---------------------|
+| **MAE**                       | 92.34 / 99.39        | 78.15 / 62.13       |
+| **RMSE**                      | 121.66 / 130.79      | 118.35 / 89.95      |
+| **Erreur relative moyenne**    | 0.63 / 0.57          | 0.64 / 0.56         |
+
+#### Delta Nyon-Dôle (global)
+
+| Métrique      | Model_31 | Model_0 |
+|---------------|----------|---------|
+| **MAE**       | 85.42    | 66.01   |
+| **RMSE**      | 130.62   | 102.26  |
+
+#### Jours de stratus
+
+| Métrique      | Model_31 (Nyon/Dôle) | Model_0 (Nyon/Dôle) |
+|---------------|----------------------|---------------------|
+| **MAE**       | 72.40 / 98.91        | 66.88 / 59.58       |
+| **RMSE**      | 92.71 / 119.26       | 86.59 / 75.89       |
+| **Erreur rel.** | 0.37 / 0.25        | 0.52 / 0.38         |
+
+| Delta Nyon-Dôle | Model_31 | Model_0 |
+|-----------------|----------|---------|
+| **MAE**         | 102.26   | 76.79   |
+| **RMSE**        | 126.17   | 103.08  |
+
+#### Jours sans stratus
+
+| Métrique      | Model_31 (Nyon/Dôle) | Model_0 (Nyon/Dôle) |
+|---------------|----------------------|---------------------|
+| **MAE**       | 89.98 / 91.10        | 77.76 / 59.67       |
+| **RMSE**      | 107.28 / 108.92      | 98.98 / 76.40       |
+| **Erreur rel.** | 0.69 / 0.60        | 0.69 / 0.59         |
+
+| Delta Nyon-Dôle | Model_31 | Model_0 |
+|-----------------|----------|---------|
+| **MAE**         | 73.33    | 59.68   |
+| **RMSE**        | 94.65    | 80.14   |
+
+---
+
+#### Synthèse comparative
+
+- Le modèle 0 surpasse le modèle 31 sur toutes les métriques principales (MAE, RMSE, erreur relative), aussi bien globalement que pour les jours de stratus et sans stratus.
+- Les écarts entre Nyon et Dôle (delta) sont également plus faibles pour le modèle 0, indiquant une meilleure cohérence.
+- Le modèle 31, utilisant deux vues et une séquence temporelle, n’apporte pas d’amélioration par rapport au modèle 0 qui n’utilise qu’une seule vue et uniquement les images.
+- Le modèle 0 reste donc préférable dans cette configuration.
+
+### 2. Model_0
+Modèle entraîné sur les deux vues de la dôle 3 images en séquence temporelle donnés d'entrée que les images, 1 seule view de la dôle
+- **Loss**
+![str_2](models/model_1/loss.png)
+Il a moins tendence à overfit 
+
+### Model 1 metrics 
+=== Metrics Report ===
+#### Rapport détaillé des métriques
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 97.32     | 92.50     |
+| **RMSE**                      | 134.74    | 126.30    |
+| **Erreur relative moyenne**    | 0.62      | 0.62      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 87.90
+- **RMSE** : 133.78
+
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 96.95     | 91.75     |
+| **RMSE**                      | 119.62    | 112.09    |
+| **Erreur relative moyenne**    | 0.50      | 0.28      |
+
+- **Delta Nyon-Dôle** : MAE = 122.50, RMSE = 150.36
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 92.91     | 85.60     |
+| **RMSE**                      | 113.20    | 104.70    |
+| **Erreur relative moyenne**    | 0.71      | 0.76      |
+
+- **Delta Nyon-Dôle** : MAE = 72.54, RMSE = 93.97
+
+### Comparaison entre le modèle 0 et le modèle 1
+
+| Métrique                      | Model_0 (Nyon/Dôle) | Model_1 (Nyon/Dôle) |
+|-------------------------------|---------------------|---------------------|
+| **MAE**                       | 78.15 / 62.13       | 97.32 / 92.50       |
+| **RMSE**                      | 118.35 / 89.95      | 134.74 / 126.30     |
+| **Erreur relative moyenne**    | 0.64 / 0.56         | 0.62 / 0.62         |
+
+#### Delta Nyon-Dôle (global)
+
+| Métrique      | Model_0 | Model_1 |
+|---------------|---------|---------|
+| **MAE**       | 66.01   | 87.90   |
+| **RMSE**      | 102.26  | 133.78  |
+
+#### Jours de stratus
+
+| Métrique      | Model_0 (Nyon/Dôle) | Model_1 (Nyon/Dôle) |
+|---------------|---------------------|---------------------|
+| **MAE**       | 66.88 / 59.58       | 96.95 / 91.75       |
+| **RMSE**      | 86.59 / 75.89       | 119.62 / 112.09     |
+| **Erreur rel.** | 0.52 / 0.38       | 0.50 / 0.28         |
+
+| Delta Nyon-Dôle | Model_0 | Model_1 |
+|-----------------|---------|---------|
+| **MAE**         | 76.79   | 122.50  |
+| **RMSE**        | 103.08  | 150.36  |
+
+#### Jours sans stratus
+
+| Métrique      | Model_0 (Nyon/Dôle) | Model_1 (Nyon/Dôle) |
+|---------------|---------------------|---------------------|
+| **MAE**       | 77.76 / 59.67       | 92.91 / 85.60       |
+| **RMSE**      | 98.98 / 76.40       | 113.20 / 104.70     |
+| **Erreur rel.** | 0.69 / 0.59       | 0.71 / 0.76         |
+
+| Delta Nyon-Dôle | Model_0 | Model_1 |
+|-----------------|---------|---------|
+| **MAE**         | 59.68   | 72.54   |
+| **RMSE**        | 80.14   | 93.97   |
+
+---
+
+#### Synthèse comparative
+
+- Le modèle 0 surpasse le modèle 1 sur toutes les métriques principales (MAE, RMSE, erreur relative), aussi bien globalement que pour les jours de stratus et sans stratus.
+- Les écarts entre Nyon et Dôle (delta) sont également plus faibles pour le modèle 0, indiquant une meilleure cohérence.
+- Le modèle 0 reste donc préférable dans cette configuration. --> la sequence temporelle que avec des images porte des amèlioration 
+### Comparaison entre le modèle 31 et le modèle 1
+
+| Métrique                      | Model_31 (Nyon/Dôle) | Model_1 (Nyon/Dôle) |
+|-------------------------------|----------------------|---------------------|
+| **MAE**                       | 92.34 / 99.39        | 97.32 / 92.50       |
+| **RMSE**                      | 121.66 / 130.79      | 134.74 / 126.30     |
+| **Erreur relative moyenne**    | 0.63 / 0.57          | 0.62 / 0.62         |
+
+#### Delta Nyon-Dôle (global)
+
+| Métrique      | Model_31 | Model_1 |
+|---------------|----------|---------|
+| **MAE**       | 85.42    | 87.90   |
+| **RMSE**      | 130.62   | 133.78  |
+
+#### Jours de stratus
+
+| Métrique      | Model_31 (Nyon/Dôle) | Model_1 (Nyon/Dôle) |
+|---------------|----------------------|---------------------|
+| **MAE**       | 72.40 / 98.91        | 96.95 / 91.75       |
+| **RMSE**      | 92.71 / 119.26       | 119.62 / 112.09     |
+| **Erreur rel.** | 0.37 / 0.25        | 0.50 / 0.28         |
+
+| Delta Nyon-Dôle | Model_31 | Model_1 |
+|-----------------|----------|---------|
+| **MAE**         | 102.26   | 122.50  |
+| **RMSE**        | 126.17   | 150.36  |
+
+#### Jours sans stratus
+
+| Métrique      | Model_31 (Nyon/Dôle) | Model_1 (Nyon/Dôle) |
+|---------------|----------------------|---------------------|
+| **MAE**       | 89.98 / 91.10        | 92.91 / 85.60       |
+| **RMSE**      | 107.28 / 108.92      | 113.20 / 104.70     |
+| **Erreur rel.** | 0.69 / 0.60        | 0.71 / 0.76         |
+
+| Delta Nyon-Dôle | Model_31 | Model_1 |
+|-----------------|----------|---------|
+| **MAE**         | 73.33    | 72.54   |
+| **RMSE**        | 94.65    | 93.97   |
+
+---
+
+#### Synthèse comparative
+
+- Les deux modèles ont des performances globales proches, mais le modèle 31 présente un léger avantage en RMSE global et sur les jours de stratus.
+- Le modèle 1 a une erreur relative moyenne légèrement supérieure sur Dôle, mais reste comparable sur Nyon.
+- Sur les jours de stratus, le modèle 31 est meilleur en MAE et RMSE, tandis que sur les jours sans stratus, les résultats sont similaires.
+- Les deltas Nyon-Dôle sont légèrement plus faibles pour le modèle 31 sur les jours de stratus, mais très proches sur les jours sans stratus.
+- Aucun des deux modèles ne surpasse nettement l’autre sur l’ensemble des métriques, mais le modèle 31 semble un peu plus robuste sur les jours de stratus.
+2. Resultats sur des prévisions de 1h 
+### 1. Model_31
+Modèle entraîné sur les deux vues de la dôle 3 images en séquence temporelle
+- **Loss**
+![str_2](models/model_31/loss.png)
+- ### Modèle 31 Metrics
