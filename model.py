@@ -55,7 +55,7 @@ class StratusModel(nn.Module):
             nn.Linear(8192, 4096),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(4096, 4096),
+            nn.Linear(4096, 2048),
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(2048, 2048),
