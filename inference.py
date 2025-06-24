@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 6  # or any number you want
+MODEL_NUM = 53  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -76,6 +76,7 @@ for year, month in months:
     with torch.no_grad():
         prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len)   
         x_meteo, x_images, y_expected = prepare_data.load_data_test(start_date=start_date, end_date=end_date)
+        
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue

@@ -102,7 +102,8 @@ class PrepareData:
 
             if not all_images_exist:
                 continue
-
+            # import ipdb
+            # ipdb.set_trace()
             # Save valid sequence
             valid_indices.append(i)
             valid_seqs.append({
@@ -113,6 +114,7 @@ class PrepareData:
 
         # Update self.data only after collecting all valid sequences
         self.data = self.data.loc[valid_indices].reset_index(drop=True)
+
         for seq in valid_seqs:
             seq["indices"] = [self.data.index[i] for i in seq["indices"]]
 
@@ -259,22 +261,22 @@ class PrepareData:
             next_point = df.iloc[i + self.seq_length+5]
 
             # Check for continuity (10-minute intervals)
-            time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
+            # time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
-            if not all(diff == 10 for diff in time_diffs):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-                continue
+            # if not all(diff == 10 for diff in time_diffs):
+            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
+            #     continue
 
-            # Check if next point is exactly 60 minutes after last sequence point
-            last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
-                print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
-                continue
-            # Prepare meteorological data sequence
+            # # Check if next point is exactly 60 minutes after last sequence point
+            # last_seq_time = seq_window.iloc[-1]['datetime']
+            # if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
+            #     print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
+            #     continue
+            # # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
-            if np.isnan(meteo_sequence).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
-                continue
+            # if np.isnan(meteo_sequence).any():
+            #     print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
+            #     continue
                 
             # Prepare image sequence
             img_sequence = []
@@ -303,9 +305,9 @@ class PrepareData:
             
             target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
             # Use pd.isnull to handle all types safely
-            if pd.isnull(target).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
-                continue
+            # if pd.isnull(target).any():
+            #     print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
+            #     continue
                 
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
