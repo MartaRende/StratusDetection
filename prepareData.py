@@ -15,6 +15,7 @@ class PrepareData:
         self.fp_weather = fp_weather
         if fp_weather.endswith('.npz'):
             self.data = self._load_weather_data()
+            self.data_backup=self.data           
         self.test_data = []
         self.num_views = num_views
         self.stats_stratus_days = None
@@ -261,22 +262,22 @@ class PrepareData:
             next_point = df.iloc[i + self.seq_length+5]
 
             # Check for continuity (10-minute intervals)
-            # time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
+            time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
-            # if not all(diff == 10 for diff in time_diffs):
-            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-            #     continue
+            if not all(diff == 10 for diff in time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
+                continue
 
-            # # Check if next point is exactly 60 minutes after last sequence point
-            # last_seq_time = seq_window.iloc[-1]['datetime']
-            # if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
-            #     print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
-            #     continue
+            # Check if next point is exactly 60 minutes after last sequence point
+            last_seq_time = seq_window.iloc[-1]['datetime']
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
+                print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
+                continue
             # # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
-            # if np.isnan(meteo_sequence).any():
-            #     print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
-            #     continue
+            if np.isnan(meteo_sequence).any():
+                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
+                continue
                 
             # Prepare image sequence
             img_sequence = []
@@ -305,9 +306,9 @@ class PrepareData:
             
             target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
             # Use pd.isnull to handle all types safely
-            # if pd.isnull(target).any():
-            #     print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
-            #     continue
+            if pd.isnull(target).any():
+                print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
+                continue
                 
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
@@ -315,7 +316,7 @@ class PrepareData:
             y_seq.append(target)
             valid_indices.append(i)
            
-        
+        import ipdb
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)
@@ -323,6 +324,7 @@ class PrepareData:
         # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
+        ipdb.set_trace()
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 
@@ -434,6 +436,11 @@ class PrepareData:
         # Ensure indices in self.data are reset and consistent
         self.data = self.data.reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
+        self.data_backup['date_str'] = self.data_backup['datetime'].dt.strftime('%Y-%m-%d')
+          # Find all rows in self.data present in test_days
+        test_rows = self.data_backup[self.data_backup['date_str'].isin(test_days)]
+      
+        self.test_data = test_rows
 
         # Get train and test indices based on date_str
         train_indices = self.data[self.data['date_str'].isin(train_days)].index
@@ -500,6 +507,11 @@ class PrepareData:
         x_meteo_test_features_df['datetime'] = test_datetimes
         x_meteo_train_df['datetime'] = train_datetimes
         y_train_df['datetime'] = train_datetimes
+        
+        # Find all rows in self.data present in test_days
+        test_rows = self.data[self.data['date_str'].isin(test_days)]
+        print(f"Number of rows in self.data present in test_days: {len(test_rows)}")
+        
         test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
 
         # Rename columns to remove '_t0' suffix

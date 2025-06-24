@@ -201,7 +201,7 @@ losses = {"train": [], "eval": [], "test": []}
 accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 50  # Increase as needed
+num_epochs = 30  # Increase as needed
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")
