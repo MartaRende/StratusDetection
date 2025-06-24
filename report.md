@@ -1,25 +1,25 @@
 # Introduction au problème
+L'objectif de ce projet est de détecter la présence de la couche de stratus et de prévoir à court terme (prévision pour les 6 prochaines heures) sa disparition ou son apparition. Le stratus est une accumulation de nuages présente dans le canton de Vaud. Sa particularité est d’être très bas : si l’on se place sur une montagne suffisamment haute, on peut observer une mer de nuages recouvrant la plaine vaudoise. Heureusement, nous disposons d’une caméra, grâce aux images de MétéoSuisse, qui nous permet de nous placer juste au-dessus du stratus et d’avoir une bonne vue de la plaine vaudoise. Cette caméra est située à la Dôle et sera utilisée dans le cadre de ce projet.
 
-L'objectif de ce projet est de détecter la présence de la couche de stratus et de prévoir à court terme (prévision pour les 6 prochaines heures) sa disparition ou son apparition. Le stratus est une accumulation de nuages présente dans le canton de Vaud. Sa particularité est d’être très bas : si l’on se place sur une montagne suffisamment haute, on peut observer une mer de nuages recouvrant la plaine vaudoise. Heureusement, nous disposons d’une caméra, grâce aux images de MétéoSuisse, qui nous permet de nous placer juste au-dessus du stratus et d’avoir une bonne vue de la plaine vaudoise. Cette caméra est située à la Dôle et sera utilisée dans le cadre de ce projet. Afin de mieux comprendre les images dont nous disposons et le phénomène météorologique étudié, nous allons préciser le contexte. Voici quelques exemples d’images disponibles.
-
+Afin de mieux comprendre les images dont nous disposons et le phénomène météorologique étudié, nous allons préciser le contexte. Voici quelques exemples d’images disponibles :
 
 ![Non Stratus](analysis/non_startus_dole.jpeg)
-
 ![Stratus](analysis/startus_dole.jpeg)
 
-
 Maintenant que nous avons une vue d’ensemble du problème, nous pouvons détailler les caractéristiques de ce phénomène météorologique.
-Voici quelques recherches effectuées :
 
-### Différence entre le brouillard et le stratus :
+## Différence entre le brouillard et le stratus
+
 - **Distance du sol** :
 - **Visibilité** :
     - Brouillard : < 1 km
-    - Stratus : > 1 km
+    - Stratus : > 1 km  
 (Source : [MétéoSuisse](https://www.meteosuisse.admin.ch/portrait/meteosuisse-blog/fr/2025/02/grisailles-frequentes-semestre-hiver.html))
 
-### Facteurs influençant la présence du brouillard ou du stratus :
+## Facteurs influençant la présence du brouillard ou du stratus
+
 (Source : [Météonews](https://meteonews.ch/fr/News/N14196/Brouillard-et-stratus-%E2%80%93-Compagnons-de-la-saison-froide))
+
 - **Direction du vent** :
     - Si le vent vient du **Nord-Est** : c’est la bise (transport d’air continental → froid et lourd). Comme l’air est froid et lourd, le brouillard monte et crée ainsi du stratus.
     - **Bise plus forte** : stratus avec une limite supérieure plus haute.
@@ -27,39 +27,39 @@ Voici quelques recherches effectuées :
     - **Bise moyenne** : limite supérieure ≤ 1500 m.
     - **Bise forte** : limite supérieure > 2000 m.
 
-### Comment le stratus disparaît-il ?
+## Comment le stratus disparaît-il ?
+
 - **Grâce au rayonnement solaire** : Le soleil chauffe la couche froide, ce qui rend la dissipation plus difficile en hiver.
 - **Le vent** : Si le vent amène de l’air chaud (vent de sud-ouest à ouest) ou de l’air sec (foehn).
 - **Arrivée d’une perturbation** : Changement de pression ou de température.
 - **Modification de la pression atmosphérique**.
-- Plus la limite supérieure est élevée, plus les chances de dissolution sont faibles, mais d’autres facteurs jouent aussi un rôle.
+- Plus la limite supérieure est élevée, plus les chances de dissolution sont faibles, mais d’autres facteurs jouent aussi un rôle.  
 (Source : [MétéoSuisse](https://www.meteosuisse.admin.ch/portrait/meteosuisse-blog/fr/2024/10/limite-superieure-brouillard.html))
 
-### Formation du stratus :
-Source : [MétéoSuisse](https://www.meteosuisse.admin.ch/meteo/meteo-et-climat-de-a-a-z/brouillard/le-plateau-une-region-a-brouillard.html#:~:text=,remplie%20sur%20le%20Plateau%20suisse)
-La bise est souvent présente lors de la formation du stratus.
+## Formation du stratus
+
+Source : [MétéoSuisse](https://www.meteosuisse.admin.ch/meteo/meteo-et-climat-de-a-a-z/brouillard/le-plateau-une-region-a-brouillard.html#:~:text=,remplie%20sur%20le%20Plateau%20suisse)  
+La bise est souvent présente lors de la formation du stratus.  
 Source : [Agrometeo](https://api.agrometeo.ch/storage/uploads/Web_Wetterlagen_FR_low.pdf)
 
 - En situation anticyclonique stable, il y a une **inversion thermique**.
 - Dans le cas du stratus, on a une inversion thermique (l’air est plus chaud en hauteur qu’au sol), créée par les anticyclones. L’air froid emprisonné près du sol est souvent humide, surtout après des nuits claires où le refroidissement radiatif est important. Lorsque l’humidité atteint le point de saturation, elle se condense et forme des nuages bas appelés stratus.
-  - **Inversion thermique** : Se forme avec une situation anticyclonique stable, qui prévoit des pressions atmosphériques élevées, poussant l’air froid en bas (source : [MétéoSuisse](https://www.meteosuisse.admin.ch/meteo/meteo-et-climat-de-a-a-z/brouillard/le-plateau-une-region-a-brouillard.html#:~:text=,remplie%20sur%20le%20Plateau%20suisse)) → Données très importantes, il faut regarder la pression.
+    - **Inversion thermique** : Se forme avec une situation anticyclonique stable, qui prévoit des pressions atmosphériques élevées, poussant l’air froid en bas ([MétéoSuisse](https://www.meteosuisse.admin.ch/meteo/meteo-et-climat-de-a-a-z/brouillard/le-plateau-une-region-a-brouillard.html#:~:text=,remplie%20sur%20le%20Plateau%20suisse)).  
+      → Données très importantes, il faut regarder la pression.
 - Faible ensoleillement ou soleil bas.
 - Vent faible dans les basses couches de l’atmosphère (sauf la bise) : condition satisfaite en situation de haute pression.
 - **Topographie** : L’air froid et humide doit pouvoir s’accumuler dans un bassin (ex. la région suisse entre les Alpes et le Jura) → ce qui crée une inversion thermique.
 - Ciel clair → satisfait en conditions de haute pression.
 - Humidité élevée : Comme l’air froid peut contenir moins d’humidité que l’air chaud, la vapeur d’eau finit par se condenser et former du brouillard ou du stratus.
 
-### La saison influence la présence du stratus :
-Le stratus est plus présent en **hiver** et **automne**, et la vitesse à laquelle il peut disparaître varie.
+## Influence de la saison
+
+Le stratus est plus présent en **hiver** et **automne**, et la vitesse à laquelle il peut disparaître varie.  
 *À voir si diviser les études en saisons pourrait avoir des avantages.*
 
-Comme on le voit, plusieurs facteurs météorologiques influencent l’apparition et la disparition du stratus. Actuellement, MétéoSuisse utilise certaines de ces données pour prédire ce phénomène. Malheureusement, dans certains cas, ces données ne sont pas suffisantes ou nécessitent une intervention humaine pour garantir l’exactitude des prévisions et les réaliser de manière autonome.
+---
 
-Dans ce projet, je vais donc essayer de créer un modèle qui, au lieu d’utiliser uniquement les données météorologiques, utilise aussi les images de la Dôle afin d’obtenir le plus d’informations possible.
-Pour cela, je dispose de deux années d’images et de deux années de données météorologiques Inca avec un timestamp de 10 minutes, plus des données de la plateforme idaweb, afin d’obtenir des informations supplémentaires non disponibles dans Inca.
-
-Dans notre cas, comment déterminer s’il y a un stratus à un moment donné ? Pour résumer, ce phénomène obscurcit la plaine vaudoise, ce qui signifie que dans la plaine il n’y aura pas de soleil, contrairement à la Dôle où il y aura du soleil. Donc, pour savoir si on est en présence d’un stratus à un moment donné, il suffit de mesurer la puissance d’irradiation donnée par le soleil à la Dôle et en plaine. Les deux données d’irradiation, ainsi que toutes les autres données météorologiques, sont disponibles grâce aux stations météorologiques de la Dôle et de Nyon (en plaine). Si la différence de rayonnement entre Dôle et Nyon est importante, cela signifie que nous avons un stratus.
-
+Comme on le voit, plusieurs facteurs météorologiques influencent l’apparition et la disparition du stratus.
 On pourrait alors mesurer la couverture nuageuse des deux stations, mais pour l’instant on ne dispose que d’un pourcentage qui indique à quel point le ciel est couvert, ce qui est beaucoup moins fiable (voici les résultats). La prévision des stratus nocturnes est donc un cas isolé que nous laissons de côté pour l’instant.
 
 # 2025-05-27
@@ -1169,6 +1169,7 @@ Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle avec
 - **MAE** : 86.05
 - **RMSE** : 128.57
 
+
 ---
 
 #### Jours de stratus
@@ -1191,6 +1192,8 @@ Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle avec
 | **Erreur relative moyenne**    | 0.78      | 0.70      |
 
 - **Delta Nyon-Dôle** : MAE = 78.64, RMSE = 96.76
+
+
 ### Comparaison entre le modèle 45 et le modèle 2
 
 | Métrique                      | Model_45 (Nyon/Dôle) | Model_2 (Nyon/Dôle) |
@@ -1361,3 +1364,242 @@ Voici quelques resultats du modèle_45 --> que img
 Voici quelques resultats du modèle_47 --> img + meteo data sans radiation
 
 ![str_2](models/model_47/metrics/2023-01/day_curve_2023-01-29.png)
+
+2. Resultats sur des prévisions dans 1h avec img cropped
+### 1. Model_52
+Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données
+- **Loss**
+![str_2](models/model_52/loss_log_all.png)
+
+- ### Modèle 52 Metrics
+#### Rapport détaillé des métriques
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 88.26     | 90.79     |
+| **RMSE**                      | 117.46    | 121.73    |
+| **Erreur relative moyenne**    | 0.54      | 0.42      |
+| **Accuracy (tolérance=20.0)** | 0.0546    |           |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 78.43
+- **RMSE** : 119.47
+- **Erreur relative moyenne** : 1.70
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 95.34     | 106.09    |
+| **RMSE**                      | 117.39    | 125.21    |
+| **Erreur relative moyenne**    | 0.51      | 0.29      |
+
+- **Delta Nyon-Dôle** : MAE = 127.80, RMSE = 151.96, Erreur relative = 1.15
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 85.43     | 83.90     |
+| **RMSE**                      | 101.14    | 100.63    |
+| **Erreur relative moyenne**    | 0.58      | 0.46      |
+
+- **Delta Nyon-Dôle** : MAE = 64.87, RMSE = 82.41, Erreur relative = 1.84
+
+---
+### 1. Model_51
+Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle avec que des images
+- **Loss**
+![str_2](models/model_51/loss_log_all.png)
+
+- ### Modèle 51 Metrics
+#### Rapport détaillé des métriques
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 121.58    | 110.63    |
+| **RMSE**                      | 161.04    | 146.29    |
+| **Erreur relative moyenne**    | 0.77      | 0.56      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 102.36
+- **RMSE** : 149.64
+- **Erreur relative moyenne** : 1.50
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 131.91    | 136.86    |
+| **RMSE**                      | 154.71    | 158.25    |
+| **Erreur relative moyenne**    | 0.67      | 0.37      |
+
+- **Delta Nyon-Dôle** : MAE = 150.03, RMSE = 179.75, Erreur relative = 1.20
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 109.87    | 98.56     |
+| **RMSE**                      | 129.35    | 117.71    |
+| **Erreur relative moyenne**    | 0.86      | 0.65      |
+
+- **Delta Nyon-Dôle** : MAE = 79.04, RMSE = 98.37, Erreur relative = 1.59
+
+### 1. Model_53
+Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle avec tout les donnés sauf radiation
+- **Loss**
+![str_2](models/model_53/loss_log_all.png)
+Pour ce qui concerne un modèle que avec les images --> modèle_45 meiulleur, marche mieux avec images no cropped
+- ### Modèle 53 Metrics
+#### Rapport détaillé des métriques
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 112.46    | 107.79    |
+| **RMSE**                      | 147.06    | 143.84    |
+| **Erreur relative moyenne**    | 0.69      | 0.49      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 78.66
+- **RMSE** : 117.95
+
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 100.41    | 96.93     |
+| **RMSE**                      | 117.73    | 114.68    |
+| **Erreur relative moyenne**    | 0.61      | 0.26      |
+
+- **Delta Nyon-Dôle** : MAE = 126.90, RMSE = 150.31
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 111.85    | 102.66    |
+| **RMSE**                      | 129.06    | 118.89    |
+| **Erreur relative moyenne**    | 0.74      | 0.54      |
+
+- **Delta Nyon-Dôle** : MAE = 67.04, RMSE = 85.13
+### Comparaison entre les modèles 52, 51 et 53
+
+| Métrique                      | Model_52 (Nyon/Dôle) | Model_51 (Nyon/Dôle) | Model_53 (Nyon/Dôle) |
+|-------------------------------|----------------------|----------------------|----------------------|
+| **MAE**                       | 88.26 / 90.79        | 121.58 / 110.63      | 112.46 / 107.79      |
+| **RMSE**                      | 117.46 / 121.73      | 161.04 / 146.29      | 147.06 / 143.84      |
+| **Erreur relative moyenne**    | 0.54 / 0.42          | 0.77 / 0.56          | 0.69 / 0.49          |
+
+#### Delta Nyon-Dôle (global)
+
+| Métrique      | Model_52 | Model_51 | Model_53 |
+|---------------|----------|----------|----------|
+| **MAE**       | 78.43    | 102.36   | 78.66    |
+| **RMSE**      | 119.47   | 149.64   | 117.95   |
+
+#### Jours de stratus
+
+| Métrique      | Model_52 (Nyon/Dôle) | Model_51 (Nyon/Dôle) | Model_53 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|----------------------|
+| **MAE**       | 95.34 / 106.09       | 131.91 / 136.86      | 100.41 / 96.93       |
+| **RMSE**      | 117.39 / 125.21      | 154.71 / 158.25      | 117.73 / 114.68      |
+| **Erreur rel.** | 0.51 / 0.29        | 0.67 / 0.37          | 0.61 / 0.26          |
+
+| Delta Nyon-Dôle | Model_52 | Model_51 | Model_53 |
+|-----------------|----------|----------|----------|
+| **MAE**         | 127.80   | 150.03   | 126.90   |
+| **RMSE**        | 151.96   | 179.75   | 150.31   |
+
+#### Jours sans stratus
+
+| Métrique      | Model_52 (Nyon/Dôle) | Model_51 (Nyon/Dôle) | Model_53 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|----------------------|
+| **MAE**       | 85.43 / 83.90        | 109.87 / 98.56       | 111.85 / 102.66      |
+| **RMSE**      | 101.14 / 100.63      | 129.35 / 117.71      | 129.06 / 118.89      |
+| **Erreur rel.** | 0.58 / 0.46        | 0.86 / 0.65          | 0.74 / 0.54          |
+
+| Delta Nyon-Dôle | Model_52 | Model_51 | Model_53 |
+|-----------------|----------|----------|----------|
+| **MAE**         | 64.87    | 79.04    | 67.04    |
+| **RMSE**        | 82.41    | 98.37    | 85.13    |
+
+---
+
+#### Synthèse comparative
+
+- **Le modèle 52** (images + données météo, images crop) est le plus performant sur toutes les métriques principales (MAE, RMSE, erreur relative), aussi bien globalement que pour les jours de stratus et sans stratus.
+- **Le modèle 53** (images + données météo sans radiation) est légèrement moins performant que le modèle 52, mais reste bien meilleur que le modèle 51.
+- **Le modèle 51** (images seules) présente les erreurs les plus élevées, ce qui confirme l’importance d’ajouter les données météo pour améliorer la performance.
+- Sur les jours sans stratus, le modèle 52 garde l’avantage, suivi du modèle 53, puis du modèle 51.
+- **Conclusion** : Le modèle 52 est globalement le plus robuste et performant, le modèle 53 reste compétitif, tandis que le modèle 51 est nettement moins performant sans données météo.
+
+## Comparaison détaillée des modèles 48 et 52
+
+| Métrique                      | Model_48 (Nyon/Dôle) | Model_52 (Nyon/Dôle) |
+|-------------------------------|----------------------|----------------------|
+| **MAE**                       | 92.34 / 99.39        | 88.26 / 90.79        |
+| **RMSE**                      | 121.66 / 130.79      | 117.46 / 121.73      |
+| **Erreur relative moyenne**    | 0.63 / 0.57          | 0.54 / 0.42          |
+
+### Delta Nyon-Dôle (global)
+
+| Métrique      | Model_48 | Model_52 |
+|---------------|----------|----------|
+| **MAE**       | 85.42    | 78.43    |
+| **RMSE**      | 130.62   | 119.47   |
+
+### Jours de stratus
+
+| Métrique      | Model_48 (Nyon/Dôle) | Model_52 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 72.40 / 98.91        | 95.34 / 106.09       |
+| **RMSE**      | 92.71 / 119.26       | 117.39 / 125.21      |
+| **Erreur rel.** | 0.37 / 0.25        | 0.51 / 0.29          |
+| **Delta MAE** | 102.26               | 127.80               |
+| **Delta RMSE**| 126.17               | 151.96               |
+
+### Jours sans stratus
+
+| Métrique      | Model_48 (Nyon/Dôle) | Model_52 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 89.98 / 91.10        | 85.43 / 83.90        |
+| **RMSE**      | 107.28 / 108.92      | 101.14 / 100.63      |
+| **Erreur rel.** | 0.69 / 0.60        | 0.58 / 0.46          |
+| **Delta MAE** | 73.33                | 64.87                |
+| **Delta RMSE**| 94.65                | 82.41                |
+
+---
+
+### Synthèse comparative
+
+- **Globalement**, le modèle 52 surpasse le modèle 48 sur toutes les métriques principales (MAE, RMSE, erreur relative) pour Nyon et Dôle, ainsi que sur les jours sans stratus.
+- **Sur les jours de stratus**, le modèle 48 garde l’avantage avec des erreurs plus faibles (MAE/RMSE/erreur relative) et des deltas Nyon-Dôle plus faibles.
+- **Conclusion** : Le modèle 52 est plus performant globalement et sur les jours sans stratus, tandis que le modèle 48 reste meilleur pour la détection des jours de stratus. Le choix dépendra donc de l’importance relative accordée à la performance sur les jours de stratus ou sur l’ensemble des jours.
+
+- Quelques exemples du modèle_52
+![str2](models/model_52/metrics/2023-01/day_curve_2023-01-26.png)
+![str2](models/model_52/metrics/2023-03/day_curve_2023-03-05.png)
+![str2](models/model_52/metrics/2023-09/day_curve_2023-09-25.png)
+![str2](models/model_52/metrics/2024-10/day_curve_2024-10-25.png)
+![str2](models/model_52/metrics/2024-11/day_curve_2024-11-07.png)
+![str2](models/model_52/metrics/2024-11/day_curve_2024-11-09.png)
+![str2](models/model_52/metrics/2024-12/day_curve_2024-12-01.png)
+
+
