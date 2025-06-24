@@ -145,6 +145,7 @@ class SimpleDataset(Dataset):
                 img_tensor = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1)  # Convert to (C, H, W)
                 return img_tensor
         except:
+            print(f"Warning: Could not load image at {path}. Returning blank tensor.")
             return torch.zeros((3, 512, 512), dtype=torch.float32)  # Return a blank tensor for missing images
         
     def __getitem__(self, idx):

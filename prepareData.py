@@ -491,7 +491,7 @@ class PrepareData:
     # Find the datetime sequence for each train and test sample
         train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
         test_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in test_sequences]
-    
+
         # Also add datetime to train df for reference
         train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         x_meteo_train_features_df['datetime'] = train_datetimes
@@ -555,10 +555,9 @@ class PrepareData:
         train_datetimes = x_meteo_seq.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         val_datetimes = x_meteo_seq.loc[[indices[-1] for indices in val_sequences], 'datetime'].values
 
-        train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
-        val_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in val_sequences]
-     
-    
+        train_datetime_seq = [x_meteo_seq.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
+        val_datetime_seq = [x_meteo_seq.loc[list(indices), 'datetime'].tolist() for indices in val_sequences]
+
         y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
        
