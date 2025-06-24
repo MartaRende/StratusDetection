@@ -1338,7 +1338,7 @@ Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout
 - Sur les jours sans stratus, le modèle 48 garde l’avantage, suivi du modèle 45, puis du modèle 47.
 - **Conclusion** : Le modèle 48 est globalement le plus robuste et performant, le modèle 45 reste compétitif sur certains cas, tandis que le modèle 47 est nettement moins performant, en particulier sans la variable radiation.
 
-Voici quelques resultats du modèle_48
+Voici quelques resultats du modèle_48 --> avec tout
 ![str_2](models/model_48/metrics/2023-01/day_curve_2023-01-20.png)
 ![str_2](models/model_48/metrics/2023-01/day_curve_2023-01-06.png)
 ![str_2](models/model_48/metrics/2024-10/day_curve_2024-10-30.png)
@@ -1347,4 +1347,17 @@ Voici quelques resultats du modèle_48
 ![str_2](models/model_48/metrics/2024-12/day_curve_2024-12-26.png)
 
 
+Voici quelques resultats du modèle_45 --> que img
+![str_2](models/model_45/metrics/2023-01/day_curve_2023-01-27.png)
+![str_2](models/model_45/metrics/2023-01/day_curve_2023-01-25.png)
+![str_2](models/model_45/metrics/2023-02/day_curve_2023-02-10.png)
+![str_2](models/model_45/metrics/2023-12/day_curve_2023-12-18.png)
+![str_2](models/model_45/metrics/2023-12/day_curve_2023-12-18.png)
+![str_2](models/model_45/metrics/2024-01/day_curve_2024-01-27.png)
+![str_2](models/model_45/metrics/2024-10/day_curve_2024-10-12.png)
+![str_2](models/model_45/metrics/2024-11/day_curve_2024-11-16.png)
 
+
+Voici quelques resultats du modèle_47 --> img + meteo data sans radiation
+
+![str_2](models/model_47/metrics/2023-01/day_curve_2023-01-29.png)
