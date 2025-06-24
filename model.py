@@ -16,25 +16,26 @@ class StratusModel(nn.Module):
 
         # CNN 
         self.cnn_view1 = nn.Sequential(
-            nn.Conv2d(3 * seq_len, 32, kernel_size=3, stride=1, padding=1),  # Input channels = 3*seq_len
+            nn.Conv2d(3 * seq_len, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 512x512 -> 256x256
+            nn.MaxPool2d(2, 2),  # 512x200 -> 256x100
+
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 256x256 -> 128x128
+            nn.MaxPool2d(2, 2),  # 256x100 -> 128x50
+
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 128x128 -> 64x64
+            nn.MaxPool2d(2, 2),  # 128x50 -> 64x25
+
             nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 64x64 -> 32x32
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
+            nn.MaxPool2d(2, 2),  # 64x25 -> 32x12
+
         )
 
+        self.cnn_output_size = 32 * 32 * 12  
 
-        self.cnn_output_size = 32 * 16 * 16  # 8192
 
         # # MLP for weather data
         # self.mlp_meteo = nn.Sequential(
@@ -52,16 +53,13 @@ class StratusModel(nn.Module):
 
         # MLP final
         self.mlp_head = nn.Sequential(
-            nn.Linear(mlp_input_size, 1024),
+            nn.Linear(mlp_input_size, 2048),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(1024, 1024),
+            nn.Linear(2048, 1024),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(512, 512),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(512, 256),
@@ -70,10 +68,7 @@ class StratusModel(nn.Module):
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(64, output_size)
+            nn.Linear(128, output_size)
         )
 
 
