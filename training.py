@@ -44,7 +44,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -97,6 +97,8 @@ class SimpleDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False):
         self.weather = torch.tensor(weather, dtype=torch.float32)  
         self.labels = torch.tensor(labels, dtype=torch.float32)
+        import ipdb 
+        ipdb.set_trace()
         self.image_base_folder = image_base_folder
         self.seq_infos = seq_infos
         self.num_views = num_views
@@ -188,8 +190,7 @@ class SimpleDataset(Dataset):
             for p in img_paths:
                 img_tensor = self._load_single_image(p)
                 images.append(img_tensor)
-            
-            
+           
             images_tensor = torch.stack(images)
             
             return weather_data, images_tensor, labels
