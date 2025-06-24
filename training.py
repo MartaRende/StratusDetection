@@ -97,42 +97,17 @@ class SimpleDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False):
         self.weather = torch.tensor(weather, dtype=torch.float32)  
         self.labels = torch.tensor(labels, dtype=torch.float32)
-        import ipdb 
-        ipdb.set_trace()
         self.image_base_folder = image_base_folder
         self.seq_infos = seq_infos
         self.num_views = num_views
         self.seq_len = seq_len
         self.data_augmentation = data_augmentation
         
+        # Precompute image paths
         self.image_paths = self._precompute_image_paths()
-        
-        self.cache = {}
-        self.cache_size_limit = 1000  
-        
-    def _load_single_image(self, path):
-        if path in self.cache:
-            return self.cache[path]
-        
-        try:
-            with Image.open(path) as img:
-                if self.data_augmentation:
-                    img = random_brightness(img)
-                    img = random_contrast(img)
-                    img = random_color_jitter(img)
-                    img = random_blur(img)
-                #img = img.crop((0, 0, 512, 200))  # Crop to 512x200
-                img_tensor = torch.from_numpy(np.array(img)).float().permute(2, 0, 1) 
-                
-                if len(self.cache) < self.cache_size_limit:
-                    self.cache[path] = img_tensor
-                
-                return img_tensor
-        except:
-            return torch.zeros((3, 512, 512), dtype=torch.float32)
-        
+
     def _precompute_image_paths(self):
-        """Precompute all image paths to avoid repeated disk access during training"""
+        """Precompute all image paths to avoid repeated disk access during training."""
         paths = []
         for seq_info in self.seq_infos:
             view_paths = []
@@ -141,9 +116,9 @@ class SimpleDataset(Dataset):
                 view_paths.append(seq_paths)
             paths.append(view_paths if self.num_views > 1 else view_paths[0])
         return paths
-    
+
     def get_image_path(self, dt, view=1):
-        """Your existing method for getting image paths"""
+        """Generate the image path based on the datetime and view."""
         if isinstance(dt, np.datetime64):
             dt = pd.Timestamp(dt)
             
@@ -162,8 +137,16 @@ class SimpleDataset(Dataset):
     
     def __len__(self):
         return len(self.weather)
-    
-    
+    def _load_single_image(self, path):
+        try:
+            with Image.open(path) as img:
+                img = img.resize((512, 512))  # Ensure consistent size
+                img_array = np.array(img) # Normalize pixel values to [0, 1]
+                img_tensor = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1)  # Convert to (C, H, W)
+                return img_tensor
+        except:
+            return torch.zeros((3, 512, 512), dtype=torch.float32)  # Return a blank tensor for missing images
+        
     def __getitem__(self, idx):
         weather_data = self.weather[idx]
         labels = self.labels[idx]
@@ -177,7 +160,7 @@ class SimpleDataset(Dataset):
                 view1_images.append(self._load_single_image(p1))
                 view2_images.append(self._load_single_image(p2))
             
-            view1_tensor = torch.stack(view1_images)
+            view1_tensor = torch.stack(view1_images)  # Shape: (seq_len, C, H, W)
             view2_tensor = torch.stack(view2_images)
             
             return weather_data, view1_tensor, view2_tensor, labels
@@ -189,7 +172,7 @@ class SimpleDataset(Dataset):
                 img_tensor = self._load_single_image(p)
                 images.append(img_tensor)
            
-            images_tensor = torch.stack(images)
+            images_tensor = torch.stack(images)  # Shape: (seq_len, C, H, W)
             
             return weather_data, images_tensor, labels
 
