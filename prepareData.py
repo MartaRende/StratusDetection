@@ -439,6 +439,7 @@ class PrepareData:
         test_rows = self.data_backup[self.data_backup['date_str'].isin(test_days)]
       
         self.test_data = test_rows
+        import ipdb; ipdb.set_trace()
 
         # Get train and test indices based on date_str
         train_indices = self.data[self.data['date_str'].isin(train_days)].index

@@ -44,7 +44,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(start_date="2024-02-10", end_date="2024-02-16")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -56,6 +56,10 @@ allY = y
 weather_train, images_train, y_train, weather_test, images_test, y_test, train_datetimes, test_datetimes = prepare_data.split_data(
     all_weatherX, all_imagesX, allY
 )
+test_save_path = os.path.join("test_data.npz")
+np.savez(test_save_path, dole=prepare_data.test_data)
+d = np.load(test_save_path, allow_pickle=True)
+import ipdb; ipdb.set_trace()
 
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation, train_datetimes, val_datetimes = prepare_data.split_train_validation(
