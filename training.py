@@ -44,7 +44,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -140,8 +140,8 @@ class SimpleDataset(Dataset):
     def _load_single_image(self, path):
         try:
             with Image.open(path) as img:
-                img.crop((0, 0, 512, 200))  
-                img_array = np.array(img) # Normalize pixel values to [0, 1]
+                img = img.crop((0, 0, 512, 200))  
+                img_array = np.array(img) 
                 img_tensor = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1)  # Convert to (C, H, W)
                 return img_tensor
         except:
