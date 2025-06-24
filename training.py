@@ -111,7 +111,6 @@ class SimpleDataset(Dataset):
         self.cache_size_limit = 1000  
         
     def _load_single_image(self, path):
-        """Versione ottimizzata con cache intelligente"""
         if path in self.cache:
             return self.cache[path]
         
@@ -166,7 +165,6 @@ class SimpleDataset(Dataset):
     
     
     def __getitem__(self, idx):
-        """Versione ottimizzata per grandi dataset"""
         weather_data = self.weather[idx]
         labels = self.labels[idx]
         
