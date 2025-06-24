@@ -20,21 +20,21 @@ class StratusModel(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 512x200 -> 256x100
 
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 256x100 -> 128x50
 
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 128x50 -> 64x25
 
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 64x25 -> 32x12
 
         )
 
-        self.cnn_output_size = 32 * 32 * 12  
+        self.cnn_output_size = 128 * 32 * 12  
 
 
         # # MLP for weather data
