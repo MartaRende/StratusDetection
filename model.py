@@ -34,7 +34,7 @@ class StratusModel(nn.Module):
 
         )
 
-        self.cnn_output_size = 64 * 32 * 12  
+        self.cnn_output_size = 32 * 32 * 12  
 
 
         # # MLP for weather data
