@@ -99,7 +99,6 @@ for year, month in months:
             var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
-        import ipdb; ipdb.set_trace()
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
             var_order=var_order,
@@ -143,7 +142,6 @@ for year, month in months:
             max_dole = stats_label["gre000z0_dole"]["max"]
             y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
             y[1] = y[1] * (max_dole - min_dole) + min_dole
-            import ipdb; ipdb.set_trace()
             # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
             # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)
