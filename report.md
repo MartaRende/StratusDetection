@@ -954,7 +954,7 @@ modèle_0
 
 2. Resultats sur des prévisions dans 1h
 ### 1. Model_37
-Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données
+Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données, reseaux plus petit
 - **Loss**
 ![str_2](models/model_37/loss_log_first15.png)
 ![str_2](models/model_37/loss_linear_after15.png)
@@ -996,7 +996,7 @@ Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout
 - **Delta Nyon-Dôle** : MAE = 71.28, RMSE = 90.07,
 
 ### 1. Model_46
-Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données
+Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données, cnn plus grand
 - **Loss**
 ![str_2](models/model_46/loss_linear.png)
 
@@ -1036,6 +1036,52 @@ Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout
 | **Erreur relative moyenne**    | 0.57      | 0.48      |
 
 - **Delta Nyon-Dôle** : MAE = 83.18, RMSE = 103.06
+
+### 1. Model_48
+Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données, cnn et reseaux le plus grand
+- **Loss**
+![str_2](models/model_48/loss_log_all.png)
+
+- ### Modèle 48 Metrics
+#### Rapport détaillé des métriques
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 109.98    | 110.25    |
+| **RMSE**                      | 143.12    | 139.87    |
+| **Erreur relative moyenne**    | 0.61      | 0.54      |
+
+#### Statistiques globales Delta Nyon-Dôle
+
+- **MAE** : 85.10
+- **RMSE** : 126.50
+
+---
+
+#### Jours de stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 120.12    | 128.33    |
+| **RMSE**                      | 139.87    | 153.21    |
+| **Erreur relative moyenne**    | 0.49      | 0.38      |
+
+- **Delta Nyon-Dôle** : MAE = 124.22, RMSE = 146.54
+
+---
+
+#### Jours sans stratus
+
+| Métrique                      | Nyon      | Dôle      |
+|-------------------------------|-----------|-----------|
+| **MAE**                       | 98.76     | 92.14     |
+| **RMSE**                      | 119.32    | 110.45    |
+| **Erreur relative moyenne**    | 0.62      | 0.56      |
+
+- **Delta Nyon-Dôle** : MAE = 68.45, RMSE = 87.32
+
+---
+
 ### Comparaison entre les modèles 37, 46 et 48
 
 | Métrique                      | Model_37 (Nyon/Dôle) | Model_46 (Nyon/Dôle) | Model_48 (Nyon/Dôle) |
