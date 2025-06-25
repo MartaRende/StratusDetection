@@ -492,7 +492,7 @@ class PrepareData:
             ]
         ]
         label_names =[
-            f"{feat}_t{t}" for t in range(self.seq_length+2) for feat in  
+            f"{feat}_t{t}" for t in range(self.seq_length+3) for feat in  
             ["gre000z0_nyon", "gre000z0_dole"]
      
         ]

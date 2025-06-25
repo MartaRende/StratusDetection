@@ -88,7 +88,7 @@ weather_train, weather_validation, weather_test, stats_input = prepare_data.norm
     var_order=var_order)
 
 label_names =[
-    f"{feat}_t{t}" for t in range(seq_len+2) for feat in  
+    f"{feat}_t{t}" for t in range(seq_len+3) for feat in  
     ["gre000z0_nyon", "gre000z0_dole"]
 
 ]
