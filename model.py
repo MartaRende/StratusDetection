@@ -51,7 +51,7 @@ class StratusModel(nn.Module):
             nn.Linear(mlp_input_size, 8192),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(8129, 4096),
+            nn.Linear(8192, 4096),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(4096, 2048),
