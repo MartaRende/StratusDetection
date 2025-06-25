@@ -44,7 +44,7 @@ FP_WEATHER_DATA = "data/complete_data.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -66,8 +66,8 @@ weather_train, images_train, y_train, weather_validation, images_validation, y_v
 
 var_order = []
 for i in range(seq_len):
-    # var_order.append("gre000z0_nyon_t" + str(i))
-    # var_order.append("gre000z0_dole_t" + str(i))
+    var_order.append("gre000z0_nyon_t" + str(i))
+    var_order.append("gre000z0_dole_t" + str(i))
     var_order.append("RR_t" + str(i))
     var_order.append("TD_t" + str(i))
     var_order.append("WG_t" + str(i))
@@ -194,7 +194,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, num_workers=8)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, num_workers=8)
 # Instantiate model, loss, optimizer, scheduler
-model = StratusModel(input_feature_size=13, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
+model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
@@ -203,7 +203,7 @@ losses = {"train": [], "eval": [], "test": []}
 accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 30  # Increase as needed
+num_epochs = 40  # Increase as needed
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")

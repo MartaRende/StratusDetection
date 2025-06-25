@@ -195,6 +195,7 @@ class Metrics:
         """Calculate relative error for each variable"""
         abs_error = (self.predicted - self.expected).abs()
         rel_error = abs_error / self.expected.replace(0, np.nan)
+
         return rel_error.fillna(0).to_dict(orient='list')
 
     def get_mean_relative_error(self) -> Dict[str, float]:
