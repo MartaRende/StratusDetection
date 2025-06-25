@@ -252,7 +252,7 @@
 
                 if step == "train":
                     batch_loss.backward()
-                    print("Gradient mean:", model.layer.weight.grad.mean().item())
+                    
                     optimizer.step()
 
                 total_loss += batch_loss.item()
