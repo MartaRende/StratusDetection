@@ -6,11 +6,11 @@ def read_txt_file(filepath):
         lines = file.readlines()
     return [line.strip() for line in lines]
 
-data = np.load("data/data.npz", allow_pickle=True)
+data = np.load("data/complete_data.npz", allow_pickle=True)
 df = pd.DataFrame(data['dole'])
 df = pd.json_normalize(df[0])
 
-idaweb_data = read_txt_file("data/pressure/pressure.txt")
+idaweb_data = read_txt_file("data/rayonnement_global/geneva.txt")
 
 # Convert the list to a DataFrame
 idaweb_df = pd.DataFrame(idaweb_data)
@@ -24,7 +24,7 @@ idaweb_df = idaweb_df.drop(index=2)  # Drop the header row from the data
 # Reset the index
 idaweb_df = idaweb_df.reset_index(drop=True)
 # filter idaweb_df to have only rows where stn == 'dol'
-idaweb_df = idaweb_df[idaweb_df['stn'] == 'DOL']
+idaweb_df = idaweb_df[idaweb_df['gre0'] == 'DOL']
 
 idaweb_df = idaweb_df[['time', 'prestas0']]
 # Transform 'time' column from 'YYYYMMDDHHMM' to 'YYYY-MM-DDTHH:MM:SS'

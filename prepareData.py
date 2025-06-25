@@ -352,7 +352,7 @@ class PrepareData:
 
     def find_stratus_days(self, df=None, median_gap=None, mad_gap=None):
         if df is None:
-            df = self.data_backup
+            df = self.data
         df = df.copy()
         
         weather_df = df.reset_index()[['datetime', 'gre000z0_dole', 'gre000z0_nyon']].copy()
