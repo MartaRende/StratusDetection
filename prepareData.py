@@ -596,7 +596,7 @@ class PrepareData:
         train_datetimes = x_meteo_seq.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
         val_datetimes = x_meteo_seq.loc[[indices[-1] for indices in val_sequences], 'datetime'].values
         label_names =[
-            f"{feat}_t{t}" for t in range(self.seq_length+2) for feat in  
+            f"{feat}_t{t}" for t in range(self.seq_length+3) for feat in  
             ["gre000z0_nyon", "gre000z0_dole"]
      
         ]
