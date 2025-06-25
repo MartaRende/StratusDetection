@@ -316,7 +316,6 @@ class PrepareData:
             y_seq.append(target)
             valid_indices.append(i)
            
-        import ipdb
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)
@@ -324,7 +323,6 @@ class PrepareData:
         # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
-        ipdb.set_trace()
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 
