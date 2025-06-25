@@ -45,6 +45,7 @@ class Metrics:
                  fp_images: Optional[str] = None,
                  start_date: Optional[str] = None,
                  end_date: Optional[str] = None,
+                 time_key: Optional[str] = None,
                  num_views: int = 1,
                  stats_for_month: bool = True,
                  tolerance: float = 20.0,
@@ -65,6 +66,8 @@ class Metrics:
             plot_config: Configuration for plotting parameters
             log_level: Logging level (default: INFO)
         """
+        self.time_key = time_key
+
         self._initialize_data(expected, predicted, data)
         self._setup_datetime_filters(start_date, end_date)
         self._setup_paths(save_path)
@@ -114,7 +117,7 @@ class Metrics:
         self.save_path = save_path
         if save_path:
             os.makedirs(save_path, exist_ok=True)
-            metrics_folder = os.path.join(save_path, "metrics")
+            metrics_folder = os.path.join(save_path, f"metrics_{self.time_key}") if self.time_key else os.path.join(save_path, "metrics")
             os.makedirs(metrics_folder, exist_ok=True)
             self.save_path = metrics_folder
             
