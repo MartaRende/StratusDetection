@@ -938,7 +938,8 @@ Il a moins tendence à overfit
 ![st](models/model_0/metrics/2024-10/day_curve_2024-10-12.png)
 ![st](models/model_0/metrics/2024-10/day_curve_2024-10-28.png)
 
-Comparaison entre un jour de startus 
+### Comparaison entre un jour de startus 
+
 modèle_31
 ![st](models/model_31/metrics/2024-10/day_curve_2024-10-28.png)
 
@@ -952,7 +953,7 @@ modèle_31
 modèle_0
 ![st](models/model_0/metrics/2024-11/day_curve_2024-11-06.png)
 
-2. Resultats sur des prévisions dans 1h
+### 2. Resultats sur des prévisions dans 1h
 ### 1. Model_37
 Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle tout les données, reseaux plus petit
 - **Loss**
@@ -1228,55 +1229,55 @@ Modèle entraîné sur une vue de la dôle 3 images en séquence temporelle avec
 - **Le modèle 45** reste compétitif sur certains cas, notamment sur les jours de stratus où il présente des erreurs plus faibles.
 - Sur les jours sans stratus, le modèle 48 garde l’avantage.
 - **Conclusion** : Le modèle 48 est globalement le plus robuste et performant, le modèle 45 reste intéressant sur certains cas spécifiques.
-### Comparaison entre les modèles 48, 45 et 47
-
-| Métrique                      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) | Model_47 (Nyon/Dôle) |
-|-------------------------------|----------------------|----------------------|----------------------|
-| **MAE**                       | 109.98 / 110.25      | 125.41 / 121.88      | 153.55 / 164.11      |
-| **RMSE**                      | 143.12 / 139.87      | 172.86 / 164.17      | 199.67 / 208.36      |
-| **Erreur relative moyenne**    | 0.61 / 0.54          | 0.62 / 0.51          | 0.63 / 0.58          |
+### Comparaison entre les modèles 48, 45 
+| Métrique                      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) |
+|-------------------------------|----------------------|----------------------|
+| **MAE**                       | 109.98 / 110.25      | 125.41 / 121.88      |
+| **RMSE**                      | 143.12 / 139.87      | 172.86 / 164.17      |
+| **Erreur relative moyenne**    | 0.61 / 0.54          | 0.62 / 0.51          |
 
 #### Delta Nyon-Dôle (global)
 
-| Métrique      | Model_48 | Model_45 | Model_47 |
-|---------------|----------|----------|----------|
-| **MAE**       | 85.10    | 86.05    | 99.29    |
-| **RMSE**      | 126.50   | 128.57   | 149.88   |
+| Métrique      | Model_48 | Model_45 |
+|---------------|----------|----------|
+| **MAE**       | 85.10    | 86.05    |
+| **RMSE**      | 126.50   | 128.57   |
 
 #### Jours de stratus
 
-| Métrique      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) | Model_47 (Nyon/Dôle) |
-|---------------|----------------------|----------------------|----------------------|
-| **MAE**       | 120.12 / 128.33      | 79.98 / 104.27       | 130.47 / 182.60      |
-| **RMSE**      | 139.87 / 153.21      | 98.81 / 120.66       | 155.13 / 207.37      |
-| **Erreur rel.** | 0.49 / 0.38        | 0.48 / 0.27          | 0.77 / 0.47          |
+| Métrique      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 120.12 / 128.33      | 79.98 / 104.27       |
+| **RMSE**      | 139.87 / 153.21      | 98.81 / 120.66       |
+| **Erreur rel.** | 0.49 / 0.38        | 0.48 / 0.27          |
 
-| Delta Nyon-Dôle | Model_48 | Model_45 | Model_47 |
-|-----------------|----------|----------|----------|
-| **MAE**         | 124.22   | 101.55   | 190.05   |
-| **RMSE**        | 146.54   | 121.64   | 213.82   |
+| Delta Nyon-Dôle | Model_48 | Model_45 |
+|-----------------|----------|----------|
+| **MAE**         | 124.22   | 101.55   |
+| **RMSE**        | 146.54   | 121.64   |
 
 #### Jours sans stratus
 
-| Métrique      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) | Model_47 (Nyon/Dôle) |
-|---------------|----------------------|----------------------|----------------------|
-| **MAE**       | 98.76 / 92.14        | 131.81 / 114.75      | 156.21 / 138.83      |
-| **RMSE**      | 119.32 / 110.45      | 153.16 / 133.93      | 178.56 / 160.71      |
-| **Erreur rel.** | 0.62 / 0.56        | 0.78 / 0.70          | 0.72 / 0.62          |
+| Métrique      | Model_48 (Nyon/Dôle) | Model_45 (Nyon/Dôle) |
+|---------------|----------------------|----------------------|
+| **MAE**       | 98.76 / 92.14        | 131.81 / 114.75      |
+| **RMSE**      | 119.32 / 110.45      | 153.16 / 133.93      |
+| **Erreur rel.** | 0.62 / 0.56        | 0.78 / 0.70          |
 
-| Delta Nyon-Dôle | Model_48 | Model_45 | Model_47 |
-|-----------------|----------|----------|----------|
-| **MAE**         | 68.45    | 78.64    | 71.76    |
-| **RMSE**        | 87.32    | 96.76    | 89.47    |
+| Delta Nyon-Dôle | Model_48 | Model_45 |
+|-----------------|----------|----------|
+| **MAE**         | 68.45    | 78.64    |
+| **RMSE**        | 87.32    | 96.76    |
 
 ---
 
 #### Synthèse comparative
 
 - **Le modèle 48** est le plus performant sur toutes les métriques globales (MAE, RMSE, erreur relative), aussi bien pour Nyon que pour Dôle.
-- **Le modèle 45** est meilleur que le modèle 47, notamment sur les jours de stratus, avec des erreurs plus faibles et une meilleure cohérence.
-- Sur les jours sans stratus, le modèle 48 garde l’avantage, suivi du modèle 45, puis du modèle 47.
-- **Conclusion** : Le modèle 48 est globalement le plus robuste et performant, le modèle 45 reste compétitif sur certains cas
+- **Le modèle 45** reste compétitif sur certains cas, notamment sur les jours de stratus où il présente des erreurs plus faibles.
+- Sur les jours sans stratus, le modèle 48 garde l’avantage.
+- **Conclusion** : Le modèle 48 est globalement le plus robuste et performant, le modèle 45 reste intéressant sur certains cas spécifiques.
+
 
 Voici quelques resultats du modèle_48 --> avec tout
 ![str_2](models/model_48/metrics/2023-01/day_curve_2023-01-20.png)
@@ -1298,9 +1299,6 @@ Voici quelques resultats du modèle_45 --> que img
 ![str_2](models/model_45/metrics/2024-11/day_curve_2024-11-16.png)
 
 
-Voici quelques resultats du modèle_47 --> img + meteo data sans radiation
-
-![str_2](models/model_47/metrics/2023-01/day_curve_2023-01-29.png)
 
 
 Comparaison entre le modèle_45 et le modèle_48
@@ -1540,7 +1538,7 @@ Pour ce qui concerne un modèle que avec les images --> modèle_45 meiulleur, ma
 - **Sur les jours de stratus**, le modèle 48 garde l’avantage avec des erreurs plus faibles (MAE/RMSE/erreur relative) et des deltas Nyon-Dôle plus faibles.
 - **Conclusion** : Le modèle 52 est plus performant globalement et sur les jours sans stratus, tandis que le modèle 48 reste meilleur pour la détection des jours de stratus. Le choix dépendra donc de l’importance relative accordée à la performance sur les jours de stratus ou sur l’ensemble des jours.
 
-- Quelques exemples du modèle_52
+### - Quelques exemples du modèle_52
 ![str2](models/model_52/metrics/2023-01/day_curve_2023-01-26.png)
 ![str2](models/model_52/metrics/2023-03/day_curve_2023-03-05.png)
 ![str2](models/model_52/metrics/2023-09/day_curve_2023-09-25.png)
@@ -1549,11 +1547,11 @@ Pour ce qui concerne un modèle que avec les images --> modèle_45 meiulleur, ma
 ![str2](models/model_52/metrics/2024-11/day_curve_2024-11-09.png)
 ![str2](models/model_52/metrics/2024-12/day_curve_2024-12-01.png)
 
-- Quelques example du modèle_53
+### - Quelques example du modèle_53
 ![str2](models/model_53/metrics/2024-12/day_curve_2024-12-01.png)
 ![str2](models/model_53/metrics/2024-10/day_curve_2024-10-25.png)
 C'est pas la radiation qui fait que le startus disparait plus tard
-- Comparaison entre le modèle_48 et le modèle_52
+### - Comparaison entre le modèle_48 et le modèle_52
 
 modèle_52 --> que images
 ![str2](models/model_52/metrics/2024-12/day_curve_2024-12-26.png)
