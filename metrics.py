@@ -77,7 +77,7 @@ class Metrics:
         """Initialize and normalize data structures"""
         self.expected = pd.DataFrame(expected, columns=["nyon", "dole"])
         self.predicted = pd.DataFrame(predicted, columns=["nyon", "dole"])
-        
+     
         # Normalize the input data
         self.data = pd.json_normalize(pd.DataFrame(data["dole"])[0])
         
@@ -90,7 +90,7 @@ class Metrics:
         self._nyon_values = self.data["gre000z0_nyon"].to_numpy()
         self._dole_values = self.data["gre000z0_dole"].to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
-
+    
     def get_image_for_datetime(self, dt, view=1):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
@@ -143,7 +143,7 @@ class Metrics:
         # Convert expected to numpy for faster access
         exp_nyon = self.expected["nyon"].to_numpy()
         exp_dole = self.expected["dole"].to_numpy()
-        
+   
         for nyon, dole in zip(exp_nyon, exp_dole):
             # Vectorized comparison
             mask = (
@@ -161,7 +161,7 @@ class Metrics:
             
             matches = self._datetime_values[mask]
             datetimes.append(matches[0] if len(matches) > 0 else None)
-            
+
         return datetimes
 
     def get_correct_predictions(self, tol: Optional[float] = None) -> int:
@@ -267,6 +267,7 @@ class Metrics:
         else:
             days = [str(days)]
         df = self._create_comparison_dataframe()
+
         df["date_str"] = df["datetime"].dt.strftime("%Y-%m-%d")
         df["hour"] = df["datetime"].dt.strftime("%H:%M")
         df["month"] = df["datetime"].dt.strftime("%Y-%m")

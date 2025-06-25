@@ -137,27 +137,28 @@ for year, month in months:
                 y = model(x_meteo_sample, img_seq)
             y = y.squeeze(0).cpu().numpy()
             expected = y_expected[idx_test]
-            min_nyon = stats_label["gre000z0_nyon_t0"]["min"]
-            max_nyon = stats_label["gre000z0_nyon_t0"]["max"]
-            min_dole = stats_label["gre000z0_dole_t0"]["min"]
-            max_dole = stats_label["gre000z0_dole_t0"]["max"]
+            min_nyon = stats_label["gre000z0_nyon_t4"]["min"]
+            max_nyon = stats_label["gre000z0_nyon_t4"]["max"]
+            min_dole = stats_label["gre000z0_dole_t4"]["min"]
+            max_dole = stats_label["gre000z0_dole_t4"]["max"]
             # import ipdb
             # ipdb.set_trace()
-            y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
-            y[1] = y[1] * (max_dole - min_dole) + min_dole
+            y[8] = y[8] * (max_nyon - min_nyon) + min_nyon
+            y[9] = y[9] * (max_dole - min_dole) + min_dole
             
             # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
             # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
-            y_predicted.append([y[0], y[1]])
-            final_expected.append([expected[0], expected[1]])
+     
+            y_predicted.append([y[8], y[9]])
+            final_expected.append([expected[4][0], expected[4][1]])
+        
      
         all_predicted.append(y_predicted)
         all_expected.append(final_expected)
 
         stratus_days.append(stratus_days_for_month)
         non_stratus_days.append(non_stratus_days_for_month)
-        import ipdb
-        ipdb.set_trace()
+   
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date)
        
         metrics.plot_day_curves(stratus_days_for_month)

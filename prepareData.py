@@ -68,7 +68,7 @@ class PrepareData:
             if i + self.seq_length + 5 >= len(df):
                 break
             # next_t is composed by 3 points: actual point, +10 min, +20 min
-            next_t = df.iloc[i + self.seq_length : i + self.seq_length + 5]
+            next_t = df.iloc[i + self.seq_length : i + self.seq_length + 6]
         
             # Ensure next_t has 10-minute intervals between its points
             next_time_diffs = np.diff(next_t['datetime'].values) / np.timedelta64(1, 'm')
@@ -268,13 +268,15 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
+            
             if i + self.seq_length + 5 >= len(df):
                 break
             # Get the next three points at t+10, t+20, t+30 after the sequence
-            next_points = df.iloc[i + self.seq_length : i + self.seq_length + 5]
-            if len(next_points) < 3:
-                print(f"Skipping sequence starting at index {i} due to insufficient next points.")
-                continue
+            next_points = df.iloc[i + self.seq_length : i + self.seq_length + 6]
+       
+            # if len(next_points) < 3:
+            #     print(f"Skipping sequence starting at index {i} due to insufficient next points.")
+            #     continue
             # Ensure next_points have 10-minute intervals
             next_time_diffs = np.diff(next_points['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in next_time_diffs):
