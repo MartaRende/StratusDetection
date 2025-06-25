@@ -80,10 +80,10 @@ class PrepareData:
                 continue
 
             # Check time continuity
-            time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
-            if not all(d == 10 for d in time_diffs):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-                continue
+            # time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
+            # if not all(d == 10 for d in time_diffs):
+            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
+            #     continue
 
             # if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
             #     print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
@@ -463,7 +463,7 @@ class PrepareData:
       
         self.test_data = test_rows
         self.test_data = self.test_data.to_dict('records')
-
+        
         # Get train and test indices based on date_str
         train_indices = self.data[self.data['date_str'].isin(train_days)].index
         test_indices = self.data[self.data['date_str'].isin(test_days)].index
@@ -544,7 +544,8 @@ class PrepareData:
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
 
-
+        import ipdb
+        ipdb.set_trace()
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
