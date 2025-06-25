@@ -170,7 +170,7 @@ class PrepareData:
         """Helper function to load a single image"""
         if os.path.exists(path):
             img = Image.open(path).convert("RGB")
-            img = img.crop((0, 0, 512, 200))  # Crop to 512x200
+            # img = img.crop((0, 0, 512, 200))  # Crop to 512x200
             return np.array(img)
         else:
             return np.zeros((512, 512, 3), dtype=np.uint8)
@@ -233,7 +233,7 @@ class PrepareData:
         image_path = self.get_image_path(dt, view)
         if os.path.exists(image_path):
             img = Image.open(image_path).convert("RGB")
-            img = img.crop((0, 0, 512, 200))  # Crop to 512x200
+            # img = img.crop((0, 0, 512, 200))  # Crop to 512x200
             return np.array(img)
         else:
             print(f"Image not found for datetime {dt} at view {view}. Returning empty image.")

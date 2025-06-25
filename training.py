@@ -142,7 +142,7 @@ class SimpleDataset(Dataset):
     def _load_single_image(self, path):
         try:
             with Image.open(path) as img:
-                img = img.crop((0, 0, 512, 200))  
+                # img = img.crop((0, 0, 512, 200))  
                 img_array = np.array(img) 
                 img_tensor = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1)  # Convert to (C, H, W)
                 return img_tensor
