@@ -503,8 +503,7 @@ class PrepareData:
         x_meteo_test_features_df = pd.DataFrame(x_meteo_test, columns=column_names)[feature_columns]
         x_meteo_train_df = pd.DataFrame(x_meteo_train, columns=column_names)
         x_meteo_test_df = pd.DataFrame(x_meteo_test, columns=column_names)
-        import ipdb
-        ipdb.set_trace()
+
         # Prepare train and test DataFrames for y (labels)
         y_train = np.array([y[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
         y_test = np.array([y[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
@@ -605,8 +604,7 @@ class PrepareData:
 
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_val_df = pd.DataFrame(y_val, columns=label_names)
-        import ipdb
-        ipdb.set_trace()
+
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
