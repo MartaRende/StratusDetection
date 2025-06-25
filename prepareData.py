@@ -517,8 +517,7 @@ class PrepareData:
         # # Rename columns to remove '_t0' suffix
         # test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         # self.test_data = test_data.to_dict('records')
-        import ipdb 
-        ipdb.set_trace()
+
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
