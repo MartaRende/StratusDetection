@@ -1503,4 +1503,15 @@ Pour ce qui concerne un modèle que avec les images --> modèle_45 meiulleur, ma
 ![str2](models/model_52/metrics/2024-11/day_curve_2024-11-09.png)
 ![str2](models/model_52/metrics/2024-12/day_curve_2024-12-01.png)
 
+- Quelques example du modèle_53
+![str2](models/model_53/metrics/2024-12/day_curve_2024-12-01.png)
+![str2](models/model_53/metrics/2024-10/day_curve_2024-10-25.png)
+C'est pas la radiation qui fait que le startus disparait plus tard
+- Comparaison entre le modèle_48 et le modèle_52
 
+modèle_52 --> que images
+![str2](models/model_52/metrics/2024-12/day_curve_2024-12-26.png)
+modèle_48 img no crop + tout les données
+![str2](models/model_48/metrics/2024-12/day_curve_2024-12-26.png)
+modèle_53 img crop + meteo sans radiation
+![str2](models/model_53/metrics/2024-12/day_curve_2024-12-26.png)
