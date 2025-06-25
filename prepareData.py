@@ -316,6 +316,7 @@ class PrepareData:
             y_seq.append(target)
             valid_indices.append(i)
            
+        import ipdb
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)
@@ -323,6 +324,7 @@ class PrepareData:
         # Save filtered data
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
+        ipdb.set_trace()
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 
@@ -439,7 +441,7 @@ class PrepareData:
         test_rows = self.data_backup[self.data_backup['date_str'].isin(test_days)]
       
         self.test_data = test_rows
-        import ipdb; ipdb.set_trace()
+        self.test_data = self.test_data.to_dict('records')
 
         # Get train and test indices based on date_str
         train_indices = self.data[self.data['date_str'].isin(train_days)].index
@@ -511,8 +513,11 @@ class PrepareData:
         test_rows = self.data[self.data['date_str'].isin(test_days)]
         print(f"Number of rows in self.data present in test_days: {len(test_rows)}")
         
+        # test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
 
-      
+        # # Rename columns to remove '_t0' suffix
+        # test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
+        # self.test_data = test_data.to_dict('records')
      
         return x_meteo_train_features_df, x_images_train, y_train_df, x_meteo_test_features_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
