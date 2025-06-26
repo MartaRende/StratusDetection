@@ -35,7 +35,7 @@ class PrepareData:
         df['datetime'] = pd.to_datetime(df['datetime'])
         return df
 
-    def get_image_path(self, dt, view=1):
+    def get_image_path(self, dt, view=2):
         """Get the path for an image without loading it"""
         if isinstance(dt, np.datetime64):
             dt = pd.Timestamp(dt)  # Convert to pandas Timestamp, which supports strftime
@@ -53,7 +53,7 @@ class PrepareData:
             img_filename
         )
 
-    def image_exists(self, dt, view=1):
+    def image_exists(self, dt, view=2):
         """Check if image exists without loading it"""
         return os.path.exists(self.get_image_path(dt, view))
 
