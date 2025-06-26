@@ -96,7 +96,7 @@ class PrepareData:
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing image for datetime {row['datetime']}.")
                     break
-                if self.num_views > 1 and not self.image_exists(row['datetime'], view=2):
+                if self.num_views > 1 and not self.image_exists(row['datetime'], view=1):
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                     break
@@ -227,7 +227,7 @@ class PrepareData:
                (self.data['datetime'].dt.month.isin(months_to_take))
         self.data = self.data[mask].copy()
         return self.data
-    def get_image_for_datetime(self, dt, view=1):
+    def get_image_for_datetime(self, dt, view=2):
         """Get the image for a specific datetime without loading it into memory"""
         if isinstance(dt, np.datetime64):
             dt = pd.Timestamp(dt)
@@ -290,7 +290,7 @@ class PrepareData:
                     valid_images = False
                     break
                 if self.num_views > 1:
-                    img2 = self.get_image_for_datetime(row['datetime'], view=2)
+                    img2 = self.get_image_for_datetime(row['datetime'], view=1)
                     if np.all(img2 == 0):
                         print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                         valid_images = False
