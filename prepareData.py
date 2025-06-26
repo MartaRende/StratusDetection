@@ -290,7 +290,9 @@ class PrepareData:
             if not all(d == 10 for d in next_time_diffs):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_points.")
                 # Interpolate missing values in next_points
-                next_points = next_points.interpolate(method='linear', limit_direction='both')
+                # next_points = next_points.interpolate(method='linear', limit_direction='both')
+                # import ipdb
+                # ipdb.set_trace()
                 continue
             # Use the three next points as the target
             target = next_points[["gre000z0_nyon", "gre000z0_dole"]].values
@@ -298,9 +300,9 @@ class PrepareData:
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
-            # if not all(diff == 10 for diff in time_diffs):
-            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-            #     continue
+            if not all(diff == 10 for diff in time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
+                continue
 
             # Check if next point is exactly 60 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
@@ -341,7 +343,8 @@ class PrepareData:
             if pd.isnull(target).any():
                 print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
                 continue
-                
+            import ipdb
+            ipdb.set_trace()
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
             x_images_seq.append(np.array(img_sequence))
