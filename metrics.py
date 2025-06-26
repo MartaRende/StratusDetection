@@ -311,6 +311,7 @@ class Metrics:
                     "nyon": np.sqrt(((group["predicted_nyon"] - group["expected_nyon"]) ** 2).mean()),
                     "dole": np.sqrt(((group["predicted_dole"] - group["expected_dole"]) ** 2).mean()),
                 },
+                
                 "relative_error": {
                     "nyon": ((group["predicted_nyon"] - group["expected_nyon"]).abs() / 
                             group["expected_nyon"].replace(0, np.nan)).fillna(0).mean(),
