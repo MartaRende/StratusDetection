@@ -50,6 +50,9 @@ df_gen= pd.json_normalize(df_gen[0])
 import ipdb
 ipdb.set_trace()
 df_gen['gre000z0_nyon'] = df_gen['gre000z0_gen']
+df_gen['gre000z0_dole'] = pd.to_numeric(df_gen['gre000z0_dole'], errors='coerce')
+df_gen['gre000z0_nyon'] = pd.to_numeric(df_gen['gre000z0_nyon'], errors='coerce')
+np.savez_compressed(npz_file, dole=df_gen.to_dict(orient='records'))
 import ipdb
 ipdb.set_trace()
 
