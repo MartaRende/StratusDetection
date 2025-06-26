@@ -727,6 +727,7 @@ class Metrics:
             with open(report_path, 'w') as f:
                 f.write("\n".join(report_lines))
             self.logger.info(f"Saved metrics report to {report_path}")
+        
 
     def compute_and_save_metrics_by_month(self, days: List[str], label: str = "stratus_days") -> None:
         """

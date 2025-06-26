@@ -67,7 +67,8 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction_times}
 all_expected = {t: [] for t in prediction_times}
 
-months = [(2023, m) for m in range(2, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 2)] 
+#+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -194,19 +195,19 @@ for year, month in months:
        
             
             # Create metrics instance for this month
-            metrics = Metrics(final_expected[t], y_predicted[t], data, save_path=MODEL_PATH,
-                            fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=t)
+            # metrics = Metrics(final_expected[t], y_predicted[t], data, save_path=MODEL_PATH,
+            #                 fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=t)
             
-            # Plot curves for stratus days
-            metrics.plot_day_curves(stratus_days_for_month)
+            # # Plot curves for stratus days
+            # metrics.plot_day_curves(stratus_days_for_month)
             
-            # Plot curves for random non-stratus days
+            # # Plot curves for random non-stratus days
            
-            metrics.plot_day_curves(random_non_stratus_days)
+            # metrics.plot_day_curves(random_non_stratus_days)
         
-            # Compute metrics for this month
-            metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-            metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+            # # Compute metrics for this month
+            # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+            # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
 
 for t in prediction_times:
     
@@ -217,9 +218,9 @@ for t in prediction_times:
     )
 
     # Save global metrics report
-    global_metrics.save_metrics_report(
-        stratus_days=stratus_days, non_stratus_days=non_stratus_days
-    )
+    # global_metrics.save_metrics_report(
+    #     stratus_days=stratus_days, non_stratus_days=non_stratus_days
+    # )
     
 # Add this after your existing code, inside the same script
 
@@ -239,45 +240,90 @@ for t in time_steps:
     )
     
     # Compute metrics
-    mae, rmse, rel_err = metrics.compute_metrics(return_values=True)
-    
+    mae_global, rmse_global, rel_err_global = metrics.get_mean_absolute_error(), metrics.get_root_mean_squared_error(), metrics.get_mean_relative_error()
+    non_stratus_metrics = metrics.get_global_metrics_for_days(non_stratus_days)
+    stratus_days_metrics = metrics.get_global_metrics_for_days(stratus_days)
     # Store metrics
-    metrics_collection['mae'].append(mae)
-    metrics_collection['rmse'].append(rmse)
-    metrics_collection['rel_err'].append(rel_err)
+    metrics_collection['mae'].append(mae_global)
+    metrics_collection['rmse'].append(rmse_global)
+    metrics_collection['rel_err'].append(rel_err_global)
+    # Plot metrics for stratus and non-stratus days
+if stratus_days:
+    stratus_mae, stratus_rmse, stratus_rel_err = stratus_days_metrics
+    non_stratus_mae, non_stratus_rmse, non_stratus_rel_err = non_stratus_metrics
+
+    plt.figure(figsize=(8, 4))
+    plt.suptitle('Stratus vs Non-Stratus Days Metrics')
+    plt.subplot(1, 3, 1)
+    plt.plot(['MAE'], [stratus_mae], marker='o', linestyle='-', color='skyblue', label='Stratus')
+    if non_stratus_days:
+        plt.plot(['MAE'], [non_stratus_mae], marker='o', linestyle='-', color='lightcoral', label='Non-Stratus')
+    plt.title('MAE')
+    plt.ylabel('Error')
+    plt.legend()
+
+    plt.subplot(1, 3, 2)
+    plt.plot(['RMSE'], [stratus_rmse], marker='o', linestyle='-', color='skyblue', label='Stratus')
+    if non_stratus_days:
+        plt.plot(['RMSE'], [non_stratus_rmse], marker='o', linestyle='-', color='lightcoral', label='Non-Stratus')
+    plt.title('RMSE')
+    plt.legend()
+
+    plt.subplot(1, 3, 3)
+    plt.plot(['RelErr'], [stratus_rel_err], marker='o', linestyle='-', color='skyblue', label='Stratus')
+    if non_stratus_days:
+        plt.plot(['RelErr'], [non_stratus_rel_err], marker='o', linestyle='-', color='lightcoral', label='Non-Stratus')
+    plt.title('RelErr')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(f"{MODEL_PATH}/stratus_vs_non_stratus_days_metrics.png")
 
 # Now plot the metrics across time steps
 plt.figure(figsize=(12, 8))
 
 # MAE plot
 plt.subplot(3, 1, 1)
-plt.plot(time_steps, metrics_collection['mae'], 'o-', label='MAE')
-plt.title('MAE across Prediction Times')
-plt.xlabel('Prediction Time')
+
+# Prepare data for plotting: extract 'nyon' and 'dole' for each metric across time steps
+mae_nyon = [v['nyon'] for v in metrics_collection['mae']]
+mae_dole = [v['dole'] for v in metrics_collection['mae']]
+rmse_nyon = [v['nyon'] for v in metrics_collection['rmse']]
+rmse_dole = [v['dole'] for v in metrics_collection['rmse']]
+relerr_nyon = [float(v['nyon']) for v in metrics_collection['rel_err']]
+relerr_dole = [float(v['dole']) for v in metrics_collection['rel_err']]
+
+# MAE plot
+plt.plot(time_steps, mae_nyon, 'o-', label='MAE Nyon')
+plt.plot(time_steps, mae_dole, 's-', label='MAE Dole')
+plt.legend()
+plt.title('MAE across time steps')
 plt.ylabel('MAE')
-plt.grid(True)
+mae_plot_path = f"{MODEL_PATH}/mae_across_times.png"
+plt.savefig(mae_plot_path)
+plt.cla()
 
 # RMSE plot
-plt.subplot(3, 1, 2)
-plt.plot(time_steps, metrics_collection['rmse'], 'o-', color='orange', label='RMSE')
-plt.title('RMSE across Prediction Times')
-plt.xlabel('Prediction Time')
+plt.plot(time_steps, rmse_nyon, 'o-', color='orange', label='RMSE Nyon')
+plt.plot(time_steps, rmse_dole, 's-', color='red', label='RMSE Dole')
+plt.legend()
+plt.title('RMSE across time steps')
 plt.ylabel('RMSE')
-plt.grid(True)
+rmse_plot_path = f"{MODEL_PATH}/rmse_across_times.png"
+plt.savefig(rmse_plot_path)
+plt.cla()
 
 # Relative Error plot
-plt.subplot(3, 1, 3)
-plt.plot(time_steps, metrics_collection['rel_err'], 'o-', color='green', label='Relative Error')
-plt.title('Relative Error across Prediction Times')
-plt.xlabel('Prediction Time')
-plt.ylabel('Relative Error (%)')
-plt.grid(True)
-
-plt.tight_layout()
-
-# Save the plot
-plot_path = f"{MODEL_PATH}/metrics_across_times.png"
-plt.savefig(plot_path)
+plt.plot(time_steps, relerr_nyon, 'o-', color='green', label='RelErr Nyon')
+plt.plot(time_steps, relerr_dole, 's-', color='purple', label='RelErr Dole')
+plt.legend()
+plt.title('Relative Error across time steps')
+plt.ylabel('Relative Error')
+relerr_plot_path = f"{MODEL_PATH}/relerr_across_times.png"
+plt.savefig(relerr_plot_path)
 plt.close()
 
-print(f"Saved metrics comparison plot to {plot_path}")
+print(f"Saved MAE plot to {mae_plot_path}")
+print(f"Saved RMSE plot to {rmse_plot_path}")
+print(f"Saved Relative Error plot to {relerr_plot_path}")
+

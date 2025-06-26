@@ -111,7 +111,7 @@ class PrepareData:
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing image for datetime {row['datetime']}.")
                     break
-                if self.num_views > 1 and not self.image_exists(row['datetime'], view=1):
+                if self.num_views > 1 and not self.image_exists(row['datetime'], view=2):
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                     break
@@ -131,31 +131,36 @@ class PrepareData:
         self.data = df.loc[valid_indices].reset_index(drop=True)
         
         index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(valid_indices)}
-        # for seq in valid_seqs:
-        #     seq["indices"] = [index_map[idx] for idx in seq["indices"]]
-    
+        for seq in valid_seqs:
+            seq["indices"] = [index_map[idx] for idx in seq["indices"]]
+
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
+        """Load and prepare data without loading images into memory"""
         df = self.filter_data(start_date, end_date, take_all_seasons=False)
         self.data = df.sort_values("datetime").reset_index(drop=True)
-        
+        self.data_backup = self.data.copy()
         valid_seqs = self.get_valid_sequences()
         
-        x_meteo = np.zeros((len(self.data), self.seq_length, len(self.meteo_feats)))
-        y = np.zeros((len(self.data), 6, 2))
-        seq_counter = 0
-        for i in range(len(self.data) - self.seq_length):
-            if i in [seq['indices'][0] for seq in valid_seqs]:
-                seq_data = valid_seqs[seq_counter]
-                x_meteo[i:i+self.seq_length] = self.data.loc[seq_data['indices'], self.meteo_feats].values
-                y[i:i+self.seq_length] = seq_data['target']
-                seq_counter += 1
+        # Prepare metadata and targets
+        meteo_data = []
+        targets = []
+        datetime_info = []
+       
+        for seq in valid_seqs:
+            meteo_data.append(self.data.loc[seq["indices"]][self.meteo_feats].values)
+            targets.append(seq["target"])
+            datetime_info.append(self.data.loc[seq["indices"][-1], 'datetime'])
         
-        valid_mask = ~np.all(x_meteo == 0, axis=(1,2))
-        self.data = self.data[valid_mask].copy()
-        x_meteo = x_meteo[valid_mask]
-        y = y[valid_mask]
+        # Convert to numpy arrays
+        x_meteo = np.array(meteo_data)
+        y = np.array(targets)
         
+        # Store datetime information for later use
+        self.datetime_info = datetime_info
+        
+        print(f"Number of valid sequences: {len(valid_seqs)}")
+
         return x_meteo, valid_seqs, y
 
     def load_images_for_sequence(self, seq_info):
@@ -320,7 +325,7 @@ class PrepareData:
                     valid_images = False
                     break
                 if self.num_views > 1:
-                    img2 = self.get_image_for_datetime(row['datetime'], view=1)
+                    img2 = self.get_image_for_datetime(row['datetime'], view=2)
                     if np.all(img2 == 0):
                         print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                         valid_images = False
@@ -333,7 +338,6 @@ class PrepareData:
                 print(f"Skipping sequence starting at index {i} due to missing images.")
                 continue
                 
-            # Prepare target (next time step after sequence)
             
           
             # Use pd.isnull to handle all types safely
@@ -356,7 +360,6 @@ class PrepareData:
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
         print(len(self.data), "valid sequences found after filtering")
-  
         return x_meteo_seq, x_images_seq, y_seq
 
 
@@ -506,7 +509,8 @@ class PrepareData:
             ["gre000z0_nyon", "gre000z0_dole"]
      
         ]
-       
+        import ipdb
+        ipdb.set_trace()
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
@@ -525,8 +529,8 @@ class PrepareData:
 
         # Prepare train and test arrays for x_images
 
-        x_images_train =  []
-        x_images_test = []
+        x_images_train = np.array([x_images[indices[-1]] for indices in train_sequences])
+        x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
     
         # Prepare test data for evaluation
         test_datetimes = self.data.loc[[indices[-1] for indices in test_sequences], 'datetime'].values
@@ -590,9 +594,11 @@ class PrepareData:
                          for indices in train_sequences])
         x_meteo_val = np.array([x_meteo_seq.loc[indices[-1], column_names].values
                          for indices in val_sequences])
-
-        x_images_train = []
-        x_images_val = []
+   
+        x_images_train = np.array([x_images_seq[indices[-1]] for indices in train_sequences])
+        x_images_val = np.array([x_images_seq[indices[-1]] for indices in val_sequences])
+    
+        
         y_train = np.array([y_seq.iloc[indices[-1]] for indices in train_sequences])
         y_val = np.array([y_seq.iloc[indices[-1]] for indices in val_sequences])
 
@@ -613,7 +619,7 @@ class PrepareData:
 
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_val_df = pd.DataFrame(y_val, columns=label_names)
-        
+
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
