@@ -284,10 +284,10 @@ class PrepareData:
             #     print(f"Skipping sequence starting at index {i} due to insufficient next points.")
             #     continue
             # Ensure next_points have 10-minute intervals
-            # next_time_diffs = np.diff(next_points['datetime'].values) / np.timedelta64(1, 'm')
-            # if not all(d == 10 for d in next_time_diffs):
-            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_points.")
-            #     continue
+            next_time_diffs = np.diff(next_points['datetime'].values) / np.timedelta64(1, 'm')
+            if not all(d == 10 for d in next_time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_points.")
+                continue
             # Use the three next points as the target
             target = next_points[["gre000z0_nyon", "gre000z0_dole"]].values
 
