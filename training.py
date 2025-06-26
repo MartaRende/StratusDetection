@@ -120,12 +120,12 @@ class SimpleDataset(Dataset):
         for seq_info in self.seq_infos:
             view_paths = []
             for view in range(1, self.num_views + 1):
-                seq_paths = [self.get_image_path(dt, view) for dt in seq_info]
+                seq_paths = [self.get_image_path(dt, 2) for dt in seq_info]
                 view_paths.append(seq_paths)
             paths.append(view_paths if self.num_views > 1 else view_paths[0])
         return paths
 
-    def get_image_path(self, dt, view=1):
+    def get_image_path(self, dt, view=2):
         """Generate the image path based on the datetime and view."""
         if isinstance(dt, np.datetime64):
             dt = pd.Timestamp(dt)
