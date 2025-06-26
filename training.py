@@ -84,8 +84,8 @@ for i in range(seq_len):
 
 # Normalize input data
 weather_train, weather_validation, weather_test, stats_input = prepare_data.normalize_data(
-    weather_train, weather_validation, weather_test,
-    var_order=var_order)
+    weather_train, weather_validation, weather_test, var_order=var_order
+   )
 
 label_names =[
     f"{feat}_t{t}" for t in range(seq_len+3) for feat in  
@@ -209,7 +209,7 @@ losses = {"train": [], "eval": [], "test": []}
 accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 100  # Increase as needed
+num_epochs = 40  # Increase as needed
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")

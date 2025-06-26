@@ -15,7 +15,7 @@ import json
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 3  # or any number you want
+MODEL_NUM = 57  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -66,7 +66,8 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction_times}
 all_expected = {t: [] for t in prediction_times}
 
-months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 2)] 
+#+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -170,6 +171,9 @@ for year, month in months:
                 
                 y_predicted[time_key].append([y[nyon_idx], y[dole_idx]])
                 final_expected[time_key].append([expected[t][0], expected[t][1]])
+                print(f"Expected values for {time_key}: {final_expected[time_key][:5]}")
+                print(f"Predicted values for {time_key}: {y_predicted[time_key][:5]}")
+           
         stratus_days.append(stratus_days_for_month)
         non_stratus_days.append(non_stratus_days_for_month)
         
@@ -186,6 +190,7 @@ for year, month in months:
         
         # Append to global results
         for t in prediction_times:
+
             all_predicted[t].extend(y_predicted[t])
             all_expected[t].extend(final_expected[t])
 

@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 import numpy as np
 import pandas as pd
@@ -187,45 +188,50 @@ class PrepareData:
             return np.zeros((512, 512, 3), dtype=np.uint8)
 
 
+
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
         log_vars = ["RR", "RS"]
         angle_var = "DD"
         stats = {}
-
+        
         if var_order is None:
             min_vals = train_df.min()
             max_vals = train_df.max()
             range_vals = max_vals - min_vals
-            range_vals = range_vals.replace(0, 1e-8)  # Avoid division by zero
+            range_vals = range_vals.replace(0, 1e-8)
             train_norm = (train_df - min_vals) / range_vals
             validation_norm = (validation_df - min_vals) / range_vals
             test_norm = (test_df - min_vals) / range_vals
             return train_norm.fillna(0), validation_norm.fillna(0), test_norm.fillna(0), {"min": min_vals, "max": max_vals}
+
+        grouped_stats = defaultdict(list)
+
         for var in var_order:
-            if var == angle_var:
-                continue
-            values = train_df[var]
-            stats[var] = {"min": values.min(), "max": values.max()}
+        
+            base_var = var.split("_")[0]
+            grouped_stats[base_var].append(train_df[var])
+
+        for base_var, columns in grouped_stats.items():
+            all_values = pd.concat(columns)
+            min_val = all_values.min()
+            max_val = all_values.max()
+            stats[base_var] = {"min": min_val, "max": max_val}
 
         def process(df):
             df_processed = pd.DataFrame()
             for var in var_order:
-                if var == angle_var:
-                    angle_rad = np.deg2rad(pd.to_numeric(df[var], errors="coerce").fillna(0))
-                    df_processed[f"{var}_cos"] = np.cos(angle_rad)
-                    df_processed[f"{var}_sin"] = np.sin(angle_rad)
-                else:
-                    min_val = stats[var]["min"]
-                    max_val = stats[var]["max"]
-                    range_val = max_val - min_val
-                    if range_val == 0:
-                        range_val = 1e-8  # Avoid division by zero
-                    df_processed[var] = ((df[var] - min_val) / range_val).fillna(0)
+                base_var = var.split("_")[0]
+                min_val = stats[base_var]["min"]
+                max_val = stats[base_var]["max"]
+                range_val = max_val - min_val if (max_val - min_val) != 0 else 1e-8
+                df_processed[var] = ((df[var] - min_val) / range_val).fillna(0)
             return df_processed
 
         train_norm = process(train_df)
         validation_norm = process(validation_df)
         test_norm = process(test_df)
+  
+
         return train_norm.values, validation_norm.values, test_norm.values, stats
 
 
@@ -273,7 +279,7 @@ class PrepareData:
                 break
             # Get the next three points at t+10, t+20, t+30 after the sequence
             next_points = df.iloc[i + self.seq_length : i + self.seq_length + 6]
-       
+
             # if len(next_points) < 3:
             #     print(f"Skipping sequence starting at index {i} due to insufficient next points.")
             #     continue
