@@ -94,7 +94,7 @@ class Metrics:
         self._dole_values = self.data["gre000z0_dole"].to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
     
-    def get_image_for_datetime(self, dt, view=1):
+    def get_image_for_datetime(self, dt, view=2):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
         img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
