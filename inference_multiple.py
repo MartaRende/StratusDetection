@@ -176,6 +176,7 @@ for year, month in months:
        
         # Plot curves for random non-stratus days
         num_days_to_plot = min(3, len(non_stratus_days_for_month))
+        random_non_stratus_days = []
         if num_days_to_plot > 0:
             random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
             print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
