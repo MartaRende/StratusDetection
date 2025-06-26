@@ -66,8 +66,7 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction_times}
 all_expected = {t: [] for t in prediction_times}
 
-months = [(2023, m) for m in range(1, 2)] 
-#+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -156,10 +155,10 @@ for year, month in months:
                 time_key = f"t_{t}"
                 
                 # Get normalization parameters for this time step
-                min_nyon = stats_label[f"gre000z0_nyon_t{t}"]["min"]
-                max_nyon = stats_label[f"gre000z0_nyon_t{t}"]["max"]
-                min_dole = stats_label[f"gre000z0_dole_t{t}"]["min"]
-                max_dole = stats_label[f"gre000z0_dole_t{t}"]["max"]
+                min_nyon = stats_label[f"gre000z0_nyon"]["min"]
+                max_nyon = stats_label[f"gre000z0_nyon"]["max"]
+                min_dole = stats_label[f"gre000z0_dole"]["min"]
+                max_dole = stats_label[f"gre000z0_dole"]["max"]
                 
                 # Assuming the output is structured as [nyon_t0, dole_t0, nyon_t1, dole_t1, ...]
                 nyon_idx = 2 * t

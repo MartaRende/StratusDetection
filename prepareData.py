@@ -617,41 +617,35 @@ class PrepareData:
     def normalize_data_test(self, data, var_order=None, stats=None):
         arr = np.array(data)
         original_ndim = arr.ndim
-    
 
         if arr.ndim == 2:
-            arr = arr[:, np.newaxis, :]  # Add the time dimension: (N, 1, F)
+            arr = arr[:, np.newaxis, :]  # Add the time dimension
 
         N, T, F = arr.shape
+        flat = arr.reshape(N, T * F)
 
-        # Reshape to (145, 45)
-        new_N = N
-        new_F = F * self.seq_length  # 15 features per time step, seq_length = 3
-     
-        flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
-        flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
-        
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
-        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        # df = df.drop(columns=drop_cols)
-        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-      
-        
+
         for var in var_order:
+            base_var = var.split('_')[0]  # es. 'T_0' → 'T'
+            
+            if base_var not in stats:
+                raise ValueError(f"Missing stats for variable base '{base_var}'")
+
             col = df[var].astype(float).fillna(0)
-            mn = stats[var]["min"]
-            mx = stats[var]["max"]
+            mn = stats[base_var]["min"]
+            mx = stats[base_var]["max"]
             rng = mx - mn if mx != mn else 1e-8
             df_out[var] = ((col - mn) / rng).fillna(0)
 
         flat_out = df_out.values
-        new_F = 15
-        reshaped = flat_out.reshape(N, T, new_F)
+        reshaped = flat_out.reshape(N, T, F)
 
         if original_ndim == 2:
-            return reshaped[:, 0, :]  #
+            return reshaped[:, 0, :]  # Back to 2D
         return reshaped
+
 
     def load_data_test(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
         filtered_df = self.filter_data(start_date, end_date, take_all_seasons)
