@@ -153,8 +153,7 @@ for year, month in months:
 
         stratus_days.append(stratus_days_for_month)
         non_stratus_days.append(non_stratus_days_for_month)
-        import ipdb 
-        ipdb.set_trace()
+  
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date)
        
         metrics.plot_day_curves(stratus_days_for_month)
