@@ -52,8 +52,7 @@ stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
 
 stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
-import ipdb
-ipdb.set_trace()
+
 print(f"Stats keys: {stats}")
 
 # Define prediction times from t_0 to t_5
@@ -157,10 +156,10 @@ for year, month in months:
                 time_key = f"t_{t}"
                 
                 # Get normalization parameters for this time step
-                min_nyon = stats_label[f"gre000z0_nyon"]["min"]
-                max_nyon = stats_label[f"gre000z0_nyon"]["max"]
-                min_dole = stats_label[f"gre000z0_dole"]["min"]
-                max_dole = stats_label[f"gre000z0_dole"]["max"]
+                min_nyon = stats_label[f"gre000z0"]["min"]
+                max_nyon = stats_label[f"gre000z0"]["max"]
+                min_dole = stats_label[f"gre000z0"]["min"]
+                max_dole = stats_label[f"gre000z0"]["max"]
                 
                 # Assuming the output is structured as [nyon_t0, dole_t0, nyon_t1, dole_t1, ...]
                 nyon_idx = 2 * t
@@ -172,12 +171,9 @@ for year, month in months:
                 
                 y_predicted[time_key].append([y[nyon_idx], y[dole_idx]])
                 final_expected[time_key].append([expected[t][0], expected[t][1]])
-                print(f"Expected values for {time_key}: {final_expected[time_key][:5]}")
-                print(f"Predicted values for {time_key}: {y_predicted[time_key][:5]}")
            
         stratus_days.append(stratus_days_for_month)
         non_stratus_days.append(non_stratus_days_for_month)
-        
        
         # Plot curves for random non-stratus days
         num_days_to_plot = min(3, len(non_stratus_days_for_month))
