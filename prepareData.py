@@ -343,8 +343,7 @@ class PrepareData:
             if pd.isnull(target).any():
                 print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
                 continue
-            import ipdb
-            ipdb.set_trace()
+            
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
             x_images_seq.append(np.array(img_sequence))
