@@ -192,8 +192,6 @@ for year, month in months:
             all_expected[t].extend(final_expected[t])
 
        
-            
-            Create metrics instance for this month
             metrics = Metrics(final_expected[t], y_predicted[t], data, save_path=MODEL_PATH,
                             fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=t)
             
