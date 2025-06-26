@@ -74,6 +74,8 @@ class PrepareData:
             # Ensure next_t has 10-minute intervals between its points
             next_time_diffs = np.diff(next_t['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in next_time_diffs):
+                next_t = next_t.interpolate(method='linear', limit_direction='both')
+
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_t.")
                 continue
             if len(next_t) < 3:
@@ -287,6 +289,8 @@ class PrepareData:
             next_time_diffs = np.diff(next_points['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in next_time_diffs):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_points.")
+                # Interpolate missing values in next_points
+                next_points = next_points.interpolate(method='linear', limit_direction='both')
                 continue
             # Use the three next points as the target
             target = next_points[["gre000z0_nyon", "gre000z0_dole"]].values
