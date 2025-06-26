@@ -338,6 +338,7 @@ class PrepareData:
         weather_df = df.reset_index()[['datetime', 'gre000z0_dole', 'gre000z0_nyon']].copy()
         # Suppose we have a DataFrame 'weather_df' with columns 'gre000z0_dole' and 'gre000z0_nyon'
         # Calculate the absolute difference between the two columns
+       
         weather_df['gap_abs'] = weather_df['gre000z0_dole'] - weather_df['gre000z0_nyon']
 
         # Calculate the median and MAD of the difference
