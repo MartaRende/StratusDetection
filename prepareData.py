@@ -35,7 +35,7 @@ class PrepareData:
         df['datetime'] = pd.to_datetime(df['datetime'])
         return df
 
-    def get_image_path(self, dt, view=1):
+    def get_image_path(self, dt,   view=2):
         """Get the path for an image without loading it"""
         if isinstance(dt, np.datetime64):
             dt = pd.Timestamp(dt)  # Convert to pandas Timestamp, which supports strftime
@@ -111,7 +111,7 @@ class PrepareData:
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing image for datetime {row['datetime']}.")
                     break
-                if self.num_views > 1 and not self.image_exists(row['datetime'], view=1):
+                if self.num_views > 1 and not self.image_exists(row['datetime'], view=2):
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                     break
@@ -173,7 +173,7 @@ class PrepareData:
 
             if self.num_views == 2:
                 # Load the second view image if available
-                img2 = self._load_single_image(self.get_image_path(dt, view=2))
+                img2 = self._load_single_image(self.get_image_path(dt, view=1))
                 view2_imgs.append(img2)
 
         if self.num_views == 2:
@@ -245,7 +245,7 @@ class PrepareData:
                (self.data['datetime'].dt.month.isin(months_to_take))
         self.data = self.data[mask].copy()
         return self.data
-    def get_image_for_datetime(self, dt, view=2):
+    def get_image_for_datetime(self, dt, view=1):
         """Get the image for a specific datetime without loading it into memory"""
         if isinstance(dt, np.datetime64):
             dt = pd.Timestamp(dt)
