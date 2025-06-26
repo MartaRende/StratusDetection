@@ -623,7 +623,8 @@ class PrepareData:
 
         N, T, F = arr.shape
         flat = arr.reshape(N, T * F)
-
+        import ipdb
+        ipdb.set_trace()
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
 

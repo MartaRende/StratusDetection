@@ -15,7 +15,7 @@ import json
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 57  # or any number you want
+MODEL_NUM = 58  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -52,6 +52,8 @@ stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
 
 stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
+import ipdb
+ipdb.set_trace()
 print(f"Stats keys: {stats}")
 
 # Define prediction times from t_0 to t_5
@@ -111,7 +113,7 @@ for year, month in months:
             var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
-            
+        #var_order = ["gre000z0", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"] 
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
             var_order=var_order,
