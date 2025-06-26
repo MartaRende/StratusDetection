@@ -38,7 +38,7 @@ else:
     print(f"Path {FP_IMAGES} exists.")
 
 print("FP_IMAGES:", FP_IMAGES)
-FP_WEATHER_DATA = "data/complete_data.npz"
+FP_WEATHER_DATA = "data/complete_data_gen.npz"
 
 # Initialize data loader
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
