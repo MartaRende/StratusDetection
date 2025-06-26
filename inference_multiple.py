@@ -250,14 +250,11 @@ for t in time_steps:
     # Plot metrics for stratus and non-stratus days
 
     # Now plot the metrics across time steps on three different subplots
-import matplotlib.pyplot as plt
 
-# Assicurati che queste variabili siano definite correttamente
-# metrics_collection, time_steps, MODEL_PATH devono esistere
+
 
 fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
 
-# Estrai i dati
 mae_nyon = [v['nyon'] for v in metrics_collection['mae']]
 mae_dole = [v['dole'] for v in metrics_collection['mae']]
 rmse_nyon = [v['nyon'] for v in metrics_collection['rmse']]
@@ -265,32 +262,30 @@ rmse_dole = [v['dole'] for v in metrics_collection['rmse']]
 relerr_nyon = [float(v['nyon']) for v in metrics_collection['rel_err']]
 relerr_dole = [float(v['dole']) for v in metrics_collection['rel_err']]
 
-# Plot MAE
 axs[0].plot(time_steps, mae_nyon, 'o-', color='blue', label='Nyon')
 axs[0].plot(time_steps, mae_dole, 's-', color='red', label='Dole')
 axs[0].set_ylabel('MAE')
 axs[0].set_title('Mean Absolute Error (MAE)')
+axs[0].set_xlabel('Time Step')
 axs[0].legend()
 axs[0].grid(True, linestyle='--', alpha=0.6)
 
-# Plot RMSE
 axs[1].plot(time_steps, rmse_nyon, 'o--', color='blue', label='Nyon')
 axs[1].plot(time_steps, rmse_dole, 's--', color='red', label='Dole')
 axs[1].set_ylabel('RMSE')
 axs[1].set_title('Root Mean Square Error (RMSE)')
+axs[1].set_xlabel('Time Step')
 axs[1].legend()
 axs[1].grid(True, linestyle='--', alpha=0.6)
 
-# Plot Relative Error
 axs[2].plot(time_steps, relerr_nyon, 'o-.', color='blue', label='Nyon')
 axs[2].plot(time_steps, relerr_dole, 's-.', color='red', label='Dole')
-axs[2].set_ylabel('Relative Error (%)')
+axs[2].set_ylabel('Relative Error')
 axs[2].set_title('Relative Error')
 axs[2].set_xlabel('Time Step')
 axs[2].legend()
 axs[2].grid(True, linestyle='--', alpha=0.6)
 
-# Migliora la formattazione
 plt.tight_layout(pad=3.0)
 
 
@@ -298,32 +293,99 @@ combined_plot_path = os.path.join(MODEL_PATH, "metrics_across_times.png")
 plt.savefig(combined_plot_path, dpi=300, bbox_inches='tight')
 plt.close()
 
-print(f"Grafico salvato correttamente in: {combined_plot_path}")
+print(f"Saved combined metrics plot to {combined_plot_path}")
 
-if stratus_days:
-    stratus_mae, stratus_rmse, stratus_rel_err = stratus_days_metrics
-    non_stratus_mae, non_stratus_rmse, non_stratus_rel_err = non_stratus_metrics
+# Extract and plot metrics for stratus and non-stratus days across time steps
 
-    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle('Stratus vs Non-Stratus Days Metrics')
+stratus_mae_nyon = []
+stratus_mae_dole = []
+stratus_rmse_nyon = []
+stratus_rmse_dole = []
+stratus_relerr_nyon = []
+stratus_relerr_dole = []
 
-    x_labels = ['Stratus', 'Non-Stratus']
+non_stratus_mae_nyon = []
+non_stratus_mae_dole = []
+non_stratus_rmse_nyon = []
+non_stratus_rmse_dole = []
+non_stratus_relerr_nyon = []
+non_stratus_relerr_dole = []
 
-    # MAE subplot
-    axs[0].bar(x_labels, [stratus_mae, non_stratus_mae], color=['skyblue', 'lightcoral'])
-    axs[0].set_title('MAE')
-    axs[0].set_ylabel('Error')
+for t in time_steps:
+    # Metrics for stratus days
+    stratus_metrics = Metrics(
+        all_expected[t], all_predicted[t], data, save_path=MODEL_PATH, 
+        fp_images=FP_IMAGES, start_date="2023-01-01", end_date="2024-12-31", 
+        time_key=t, stats_for_month=False
+    ).get_global_metrics_for_days(stratus_days)
+    # Extract metrics according to new return structure
+    stratus_mae = stratus_metrics.get("mae", {"nyon": None, "dole": None})
+    stratus_rmse = stratus_metrics.get("rmse", {"nyon": None, "dole": None})
+    stratus_rel_err = stratus_metrics.get("relative_error", {"nyon": None, "dole": None})
+    stratus_mae_nyon.append(stratus_mae["nyon"])
+    stratus_mae_dole.append(stratus_mae["dole"])
+    stratus_rmse_nyon.append(stratus_rmse["nyon"])
+    stratus_rmse_dole.append(stratus_rmse["dole"])
+    stratus_relerr_nyon.append(float(stratus_rel_err["nyon"]) if stratus_rel_err["nyon"] is not None else None)
+    stratus_relerr_dole.append(float(stratus_rel_err["dole"]) if stratus_rel_err["dole"] is not None else None)
 
-    # RMSE subplot
-    axs[1].bar(x_labels, [stratus_rmse, non_stratus_rmse], color=['skyblue', 'lightcoral'])
-    axs[1].set_title('RMSE')
+    # Metrics for non-stratus days
+    non_stratus_metrics = Metrics(
+        all_expected[t], all_predicted[t], data, save_path=MODEL_PATH, 
+        fp_images=FP_IMAGES, start_date="2023-01-01", end_date="2024-12-31", 
+        time_key=t, stats_for_month=False
+    ).get_global_metrics_for_days(non_stratus_days)
 
-    # RelErr subplot
-    axs[2].bar(x_labels, [stratus_rel_err, non_stratus_rel_err], color=['skyblue', 'lightcoral'])
-    axs[2].set_title('RelErr')
+    non_stratus_mae = non_stratus_metrics.get("mae", {"nyon": None, "dole": None})
+    non_stratus_rmse = non_stratus_metrics.get("rmse", {"nyon": None, "dole": None})
+    non_stratus_rel_err = non_stratus_metrics.get("relative_error", {"nyon": None, "dole": None})
+    non_stratus_mae_nyon.append(non_stratus_mae["nyon"])
+    non_stratus_mae_dole.append(non_stratus_mae["dole"])
+    non_stratus_rmse_nyon.append(non_stratus_rmse["nyon"])
+    non_stratus_rmse_dole.append(non_stratus_rmse["dole"])
+    non_stratus_relerr_nyon.append(float(non_stratus_rel_err["nyon"]) if non_stratus_rel_err["nyon"] is not None else None)
+    non_stratus_relerr_dole.append(float(non_stratus_rel_err["dole"]) if non_stratus_rel_err["dole"] is not None else None)
 
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    combined_plot_stratus_path = f"{MODEL_PATH}/combined_plot_stratus_vs_non_stratus.png"
-    plt.savefig(combined_plot_stratus_path)
-    plt.close()
-    print(f"Saved combined stratus vs non-stratus metrics plot to {combined_plot_stratus_path}")
+# Plot metrics for stratus and non-stratus days
+fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+
+# MAE
+axs[0].plot(time_steps, stratus_mae_nyon, 'o-', color='blue', label='Stratus Nyon')
+axs[0].plot(time_steps, stratus_mae_dole, 's-', color='red', label='Stratus Dole')
+axs[0].plot(time_steps, non_stratus_mae_nyon, 'o--', color='cyan', label='Non-Stratus Nyon')
+axs[0].plot(time_steps, non_stratus_mae_dole, 's--', color='orange', label='Non-Stratus Dole')
+axs[0].set_ylabel('MAE')
+axs[0].set_title('MAE: Stratus vs Non-Stratus Days')
+axs[0].legend()
+axs[0].grid(True, linestyle='--', alpha=0.6)
+
+# RMSE
+axs[1].plot(time_steps, stratus_rmse_nyon, 'o-', color='blue', label='Stratus Nyon')
+axs[1].plot(time_steps, stratus_rmse_dole, 's-', color='red', label='Stratus Dole')
+axs[1].plot(time_steps, non_stratus_rmse_nyon, 'o--', color='cyan', label='Non-Stratus Nyon')
+axs[1].plot(time_steps, non_stratus_rmse_dole, 's--', color='orange', label='Non-Stratus Dole')
+axs[1].set_ylabel('RMSE')
+axs[1].set_title('RMSE: Stratus vs Non-Stratus Days')
+axs[1].legend()
+axs[1].grid(True, linestyle='--', alpha=0.6)
+
+# Relative Error
+axs[2].plot(time_steps, stratus_relerr_nyon, 'o-', color='blue', label='Stratus Nyon')
+axs[2].plot(time_steps, stratus_relerr_dole, 's-', color='red', label='Stratus Dole')
+axs[2].plot(time_steps, non_stratus_relerr_nyon, 'o--', color='cyan', label='Non-Stratus Nyon')
+axs[2].plot(time_steps, non_stratus_relerr_dole, 's--', color='orange', label='Non-Stratus Dole')
+axs[2].set_ylabel('Relative Error')
+axs[2].set_title('Relative Error: Stratus vs Non-Stratus Days')
+axs[2].set_xlabel('Time Step')
+axs[2].legend()
+axs[2].grid(True, linestyle='--', alpha=0.6)
+
+plt.tight_layout(pad=3.0)
+stratus_nonstratus_plot_path = os.path.join(MODEL_PATH, "stratus_vs_nonstratus_metrics.png")
+plt.savefig(stratus_nonstratus_plot_path, dpi=300, bbox_inches='tight')
+plt.close()
+
+print(f"Saved stratus vs non-stratus metrics plot to {stratus_nonstratus_plot_path}")
+stratus_mae, stratus_rmse, stratus_rel_err = stratus_days_metrics
+non_stratus_mae, non_stratus_rmse, non_stratus_rel_err = non_stratus_metrics
+
