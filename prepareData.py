@@ -138,8 +138,7 @@ class PrepareData:
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
         df = self.filter_data(start_date, end_date, take_all_seasons=False)
         self.data = df.sort_values("datetime").reset_index(drop=True)
-        import ipdb
-        ipdb.set_trace()    
+       
         valid_seqs = self.get_valid_sequences()
         
         x_meteo = np.zeros((len(self.data), self.seq_length, len(self.meteo_feats)))
@@ -156,8 +155,7 @@ class PrepareData:
         self.data = self.data[valid_mask].copy()
         x_meteo = x_meteo[valid_mask]
         y = y[valid_mask]
-        import ipdb
-        ipdb.set_trace()
+  
         return x_meteo, valid_seqs, y
 
     def load_images_for_sequence(self, seq_info):
@@ -525,8 +523,7 @@ class PrepareData:
                     np.array(x_images_out), 
                     np.array(y_out),
                     datetime_out)
-        import ipdb
-        ipdb.set_trace()
+   
         # Crea i dataset finali
         x_meteo_train, x_images_train, y_train, train_datetime_seq = prepare_final_data(train_sequences)
         x_meteo_test, x_images_test, y_test, test_datetime_seq = prepare_final_data(test_sequences)
@@ -616,8 +613,7 @@ class PrepareData:
 
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_val_df = pd.DataFrame(y_val, columns=label_names)
-        import ipdb
-        ipdb.set_trace()
+
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
