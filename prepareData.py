@@ -35,7 +35,7 @@ class PrepareData:
         df['datetime'] = pd.to_datetime(df['datetime'])
         return df
 
-    def get_image_path(self, dt, view=2):
+    def get_image_path(self, dt, view=1):
         """Get the path for an image without loading it"""
         if isinstance(dt, np.datetime64):
             dt = pd.Timestamp(dt)  # Convert to pandas Timestamp, which supports strftime
@@ -53,7 +53,7 @@ class PrepareData:
             img_filename
         )
 
-    def image_exists(self, dt, view=2):
+    def image_exists(self, dt, view=1):
         """Check if image exists without loading it"""
         return os.path.exists(self.get_image_path(dt, view))
 
@@ -111,28 +111,26 @@ class PrepareData:
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing image for datetime {row['datetime']}.")
                     break
-                if self.num_views > 1 and not self.image_exists(row['datetime'], view=2):
+                if self.num_views > 1 and not self.image_exists(row['datetime'], view=1):
                     all_images_exist = False
                     print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                     break
 
             if not all_images_exist:
                 continue
-           
+
             # Save valid sequence
-            valid_indices.extend(range(i, i + self.seq_length))  
+            valid_indices.append(i)
             valid_seqs.append({
-                "indices": list(range(i, i + self.seq_length)), 
+                "indices": list(range(len(valid_indices) - self.seq_length, len(valid_indices))),
                 "datetimes": seq['datetime'].tolist(),
                 "target": next_t[["gre000z0_nyon", "gre000z0_dole"]].values
             })
-      
-        valid_indices = sorted(list(set(valid_indices)))
-        self.data = df.loc[valid_indices].reset_index(drop=True)
-        
-        index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(valid_indices)}
+
+        # Update self.data only after collecting all valid sequences
+        self.data = self.data.loc[valid_indices].reset_index(drop=True)
         for seq in valid_seqs:
-            seq["indices"] = [index_map[idx] for idx in seq["indices"]]
+            seq["indices"] = [self.data.index[i] for i in seq["indices"]]
 
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
@@ -325,7 +323,7 @@ class PrepareData:
                     valid_images = False
                     break
                 if self.num_views > 1:
-                    img2 = self.get_image_for_datetime(row['datetime'], view=2)
+                    img2 = self.get_image_for_datetime(row['datetime'], view=1)
                     if np.all(img2 == 0):
                         print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
                         valid_images = False
@@ -338,6 +336,7 @@ class PrepareData:
                 print(f"Skipping sequence starting at index {i} due to missing images.")
                 continue
                 
+            # Prepare target (next time step after sequence)
             
           
             # Use pd.isnull to handle all types safely
@@ -509,7 +508,7 @@ class PrepareData:
             ["gre000z0_nyon", "gre000z0_dole"]
      
         ]
-      
+     
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
