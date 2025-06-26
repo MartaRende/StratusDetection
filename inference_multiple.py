@@ -250,9 +250,14 @@ for t in time_steps:
     # Plot metrics for stratus and non-stratus days
 
     # Now plot the metrics across time steps on three different subplots
+import matplotlib.pyplot as plt
+
+# Assicurati che queste variabili siano definite correttamente
+# metrics_collection, time_steps, MODEL_PATH devono esistere
+
 fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
 
-# Prepare data for plotting: extract 'nyon' and 'dole' for each metric across time steps
+# Estrai i dati
 mae_nyon = [v['nyon'] for v in metrics_collection['mae']]
 mae_dole = [v['dole'] for v in metrics_collection['mae']]
 rmse_nyon = [v['nyon'] for v in metrics_collection['rmse']]
@@ -260,36 +265,40 @@ rmse_dole = [v['dole'] for v in metrics_collection['rmse']]
 relerr_nyon = [float(v['nyon']) for v in metrics_collection['rel_err']]
 relerr_dole = [float(v['dole']) for v in metrics_collection['rel_err']]
 
-# MAE subplot
-axs[0].plot(time_steps, mae_nyon, 'o-', label='MAE Nyon')
-axs[0].plot(time_steps, mae_dole, 's-', label='MAE Dole')
+# Plot MAE
+axs[0].plot(time_steps, mae_nyon, 'o-', color='blue', label='Nyon')
+axs[0].plot(time_steps, mae_dole, 's-', color='red', label='Dole')
 axs[0].set_ylabel('MAE')
-axs[0].set_title('MAE across time steps')
+axs[0].set_title('Mean Absolute Error (MAE)')
 axs[0].legend()
-axs[0].grid(True)
+axs[0].grid(True, linestyle='--', alpha=0.6)
 
-# RMSE subplot
-axs[1].plot(time_steps, rmse_nyon, 'o--', color='orange', label='RMSE Nyon')
-axs[1].plot(time_steps, rmse_dole, 's--', color='red', label='RMSE Dole')
+# Plot RMSE
+axs[1].plot(time_steps, rmse_nyon, 'o--', color='blue', label='Nyon')
+axs[1].plot(time_steps, rmse_dole, 's--', color='red', label='Dole')
 axs[1].set_ylabel('RMSE')
-axs[1].set_title('RMSE across time steps')
+axs[1].set_title('Root Mean Square Error (RMSE)')
 axs[1].legend()
-axs[1].grid(True)
+axs[1].grid(True, linestyle='--', alpha=0.6)
 
-# Relative Error subplot
-axs[2].plot(time_steps, relerr_nyon, 'o-.', color='green', label='RelErr Nyon')
-axs[2].plot(time_steps, relerr_dole, 's-.', color='purple', label='RelErr Dole')
-axs[2].set_ylabel('Relative Error')
-axs[2].set_title('Relative Error across time steps')
+# Plot Relative Error
+axs[2].plot(time_steps, relerr_nyon, 'o-.', color='blue', label='Nyon')
+axs[2].plot(time_steps, relerr_dole, 's-.', color='red', label='Dole')
+axs[2].set_ylabel('Relative Error (%)')
+axs[2].set_title('Relative Error')
 axs[2].set_xlabel('Time Step')
 axs[2].legend()
-axs[2].grid(True)
+axs[2].grid(True, linestyle='--', alpha=0.6)
 
-plt.tight_layout()
-combined_plot_path = f"{MODEL_PATH}/metrics_across_times.png"
-plt.savefig(combined_plot_path)
+# Migliora la formattazione
+plt.tight_layout(pad=3.0)
+
+
+combined_plot_path = os.path.join(MODEL_PATH, "metrics_across_times.png")
+plt.savefig(combined_plot_path, dpi=300, bbox_inches='tight')
 plt.close()
-print(f"Saved combined metrics plot to {combined_plot_path}")
+
+print(f"Grafico salvato correttamente in: {combined_plot_path}")
 
 if stratus_days:
     stratus_mae, stratus_rmse, stratus_rel_err = stratus_days_metrics
