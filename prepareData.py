@@ -138,7 +138,7 @@ class PrepareData:
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
         df = self.filter_data(start_date, end_date, take_all_seasons=False)
         self.data = df.sort_values("datetime").reset_index(drop=True)
-       
+        
         valid_seqs = self.get_valid_sequences()
         
         x_meteo = np.zeros((len(self.data), self.seq_length, len(self.meteo_feats)))
@@ -155,7 +155,7 @@ class PrepareData:
         self.data = self.data[valid_mask].copy()
         x_meteo = x_meteo[valid_mask]
         y = y[valid_mask]
-  
+        
         return x_meteo, valid_seqs, y
 
     def load_images_for_sequence(self, seq_info):
@@ -462,99 +462,99 @@ class PrepareData:
         return train_days, test_days
 
     def split_data(self, x_meteo, x_images, y):
-    # Mantieni la tua logica originale di split per giorni
         train_days, test_days = self.get_test_train_days()
+
+        # Ensure indices in self.data are reset and consistent
+        self.data = self.data.reset_index(drop=True)
+        self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
+        self.data_backup['date_str'] = self.data_backup['datetime'].dt.strftime('%Y-%m-%d')
+          # Find all rows in self.data present in test_days
+        test_rows = self.data_backup[self.data_backup['date_str'].isin(test_days)]
+      
+        self.test_data = test_rows
+        self.test_data = self.test_data.to_dict('records')
         
-        # Identifica le sequenze continue per train e test
-        def get_continuous_sequences(days):
-            day_set = set(days)
-            sequences = []
-            current_seq = []
-            
-            # Ordina i dati per datetime
-            sorted_data = self.data.sort_values('datetime')
-            
-            for idx, row in sorted_data.iterrows():
-                if row['date_str'] in day_set:
-                    if not current_seq:
-                        current_seq.append(idx)
-                    else:
-                        # Verifica continuità temporale (10 minuti)
-                        last_time = sorted_data.loc[current_seq[-1], 'datetime']
-                        if (row['datetime'] - last_time) == timedelta(minutes=10):
-                            current_seq.append(idx)
-                        else:
-                            if len(current_seq) >= self.seq_length:
-                                sequences.append(current_seq)
-                            current_seq = [idx]
-                else:
-                    if current_seq and len(current_seq) >= self.seq_length:
-                        sequences.append(current_seq)
-                    current_seq = []
-            
-            if current_seq and len(current_seq) >= self.seq_length:
-                sequences.append(current_seq)
-                
-            return sequences
-
-        # Ottieni sequenze continue per train e test
-        train_sequences = get_continuous_sequences(train_days)
-        test_sequences = get_continuous_sequences(test_days)
-
-        # Prepara i dati finali
-        def prepare_final_data(sequences):
-            x_meteo_out = []
-            x_images_out = []
-            y_out = []
-            datetime_out = []
-            
-            for seq in sequences:
-                for i in range(len(seq) - self.seq_length + 1):
-                    indices = seq[i:i+self.seq_length]
-                    x_meteo_out.append(x_meteo[indices[-1]])  # Usa l'ultimo indice della sequenza
-                    if isinstance(x_images, list):
-                        x_images_out.append([x_images[idx] for idx in indices])
-                    else:
-                        x_images_out.append(x_images[indices[-1]])
-                    y_out.append(y[indices[-1]])
-                    datetime_out.append([self.data.loc[idx, 'datetime'] for idx in indices])
-            
-            return (np.array(x_meteo_out), 
-                    np.array(x_images_out), 
-                    np.array(y_out),
-                    datetime_out)
-   
-        # Crea i dataset finali
-        x_meteo_train, x_images_train, y_train, train_datetime_seq = prepare_final_data(train_sequences)
-        x_meteo_test, x_images_test, y_test, test_datetime_seq = prepare_final_data(test_sequences)
-
-        # Prepara i DataFrame (mantenendo la tua struttura originale)
-        column_names = [f"{feat}_t{t}" for t in range(self.seq_length) for feat in self.meteo_feats]
-        x_meteo_train_df = pd.DataFrame(
-            x_meteo_train.reshape(-1, self.seq_length * len(self.meteo_feats)),
-            columns=column_names
-        )
-        x_meteo_test_df = pd.DataFrame(
-            x_meteo_test.reshape(-1, self.seq_length * len(self.meteo_feats)),
-            columns=column_names
-        )
-
-        # Aggiungi datetime ai DataFrame
-        train_datetimes = [seq[-1] for seq in train_datetime_seq]
-        test_datetimes = [seq[-1] for seq in test_datetime_seq]
+        # Get train and test indices based on date_str
+        train_indices = self.data[self.data['date_str'].isin(train_days)].index
+        test_indices = self.data[self.data['date_str'].isin(test_days)].index
         
-        x_meteo_train_df['datetime'] = train_datetimes
+        # Create sequence indices (3 timestamps per sequence)
+        def generate_sequence_indices():
+            sequence_indices = []
+            for i in range(len(self.data) - self.seq_length):
+                seq_window = self.data.iloc[i:i+self.seq_length]
+                time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
+                if all(diff == 10 for diff in time_diffs):  # Ensure 10-minute intervals
+                    sequence_indices.append(range(i, i + self.seq_length))
+            return sequence_indices
+        num_sequences = len(x_meteo)
+        sequence_indices = generate_sequence_indices()
+     
+        # Filter sequences based on train and test indices
+        train_sequences = [indices for indices in sequence_indices if all(idx in train_indices for idx in indices)]
+        test_sequences = [indices for indices in sequence_indices if all(idx in test_indices for idx in indices)]
+        
+        # Prepare train and test DataFrames for x_meteo
+        column_names = [
+            f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
+                "gre000z0_nyon", "gre000z0_dole", "RR", "TD", "WG", "TT",
+                "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
+            ]
+        ]
+        label_names =[
+            f"{feat}_t{t}" for t in range(self.seq_length+3) for feat in  
+            ["gre000z0_nyon", "gre000z0_dole"]
+     
+        ]
+       
+        # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
+        x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
+        x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
+        feature_columns = [col for col in column_names if col not in ['gre000z0_nyon_t0', 'gre000z0_dole_t0', 'gre000z0_nyon_t1', 'gre000z0_dole_t1', 'gre000z0_nyon_t2', 'gre000z0_dole_t2']]
+        x_meteo_train_features_df = pd.DataFrame(x_meteo_train, columns=column_names)[feature_columns]
+        x_meteo_test_features_df = pd.DataFrame(x_meteo_test, columns=column_names)[feature_columns]
+        x_meteo_train_df = pd.DataFrame(x_meteo_train, columns=column_names)
+        x_meteo_test_df = pd.DataFrame(x_meteo_test, columns=column_names)
+
+        # Prepare train and test DataFrames for y (labels)
+        y_train = np.array([y[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
+        y_test = np.array([y[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
+
+        y_train_df = pd.DataFrame(y_train, columns=label_names)
+        y_test_df = pd.DataFrame(y_test, columns=label_names)
+
+        # Prepare train and test arrays for x_images
+
+        x_images_train =  []
+        x_images_test = []
+    
+        # Prepare test data for evaluation
+        test_datetimes = self.data.loc[[indices[-1] for indices in test_sequences], 'datetime'].values
         x_meteo_test_df['datetime'] = test_datetimes
+        y_test_df['datetime'] = test_datetimes
+      
+    # Find the datetime sequence for each train and test sample
+        train_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
+        test_datetime_seq = [self.data.loc[list(indices), 'datetime'].tolist() for indices in test_sequences]
 
-        # Prepara i dati di test (mantenendo la tua logica)
-        test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns 
-                                                if c.endswith(('_t1', '_t2'))])
+        # Also add datetime to train df for reference
+        train_datetimes = self.data.loc[[indices[-1] for indices in train_sequences], 'datetime'].values
+        x_meteo_train_features_df['datetime'] = train_datetimes
+        x_meteo_test_features_df['datetime'] = test_datetimes
+        x_meteo_train_df['datetime'] = train_datetimes
+        y_train_df['datetime'] = train_datetimes
+        
+        # Find all rows in self.data present in test_days
+        test_rows = self.data[self.data['date_str'].isin(test_days)]
+        print(f"Number of rows in self.data present in test_days: {len(test_rows)}")
+        
+        test_data = x_meteo_test_df.drop(columns=[c for c in x_meteo_test_df.columns if c.endswith('_t1') or c.endswith('_t2')])
+
+        # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
-        
-        return (x_meteo_train_df, x_images_train, y_train,
-                x_meteo_test_df, x_images_test, y_test,
-                train_datetime_seq, test_datetime_seq)
+
+        return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
         if 'date_str' not in x_meteo_seq.columns:
@@ -613,7 +613,7 @@ class PrepareData:
 
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_val_df = pd.DataFrame(y_val, columns=label_names)
-
+        
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
