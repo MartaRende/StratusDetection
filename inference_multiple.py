@@ -193,20 +193,20 @@ for year, month in months:
 
        
             
-            # Create metrics instance for this month
-            # metrics = Metrics(final_expected[t], y_predicted[t], data, save_path=MODEL_PATH,
-            #                 fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=t)
+            Create metrics instance for this month
+            metrics = Metrics(final_expected[t], y_predicted[t], data, save_path=MODEL_PATH,
+                            fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=t)
             
-            # # Plot curves for stratus days
-            # metrics.plot_day_curves(stratus_days_for_month)
+            # Plot curves for stratus days
+            metrics.plot_day_curves(stratus_days_for_month)
             
-            # # Plot curves for random non-stratus days
+            # Plot curves for random non-stratus days
            
-            # metrics.plot_day_curves(random_non_stratus_days)
+            metrics.plot_day_curves(random_non_stratus_days)
         
-            # # Compute metrics for this month
-            # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-            # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+            # Compute metrics for this month
+            metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+            metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
 
 for t in prediction_times:
     
@@ -216,10 +216,9 @@ for t in prediction_times:
         start_date="2023-01-01", end_date="2024-12-31", time_key=t,stats_for_month=False
     )
 
-    # Save global metrics report
-    # global_metrics.save_metrics_report(
-    #     stratus_days=stratus_days, non_stratus_days=non_stratus_days
-    # )
+    global_metrics.save_metrics_report(
+        stratus_days=stratus_days, non_stratus_days=non_stratus_days
+    )
     
 # Add this after your existing code, inside the same script
 
