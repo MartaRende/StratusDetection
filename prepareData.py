@@ -131,36 +131,39 @@ class PrepareData:
         self.data = df.loc[valid_indices].reset_index(drop=True)
         
         index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(valid_indices)}
-        for seq in valid_seqs:
-            seq["indices"] = [index_map[idx] for idx in seq["indices"]]
-
+        # for seq in valid_seqs:
+        #     seq["indices"] = [index_map[idx] for idx in seq["indices"]]
+    
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
-        """Load and prepare data without loading images into memory"""
+        """Carica dati mantenendo allineamento perfetto tra x_meteo e self.data"""
+        # 1. Filtra e ordina i dati
         df = self.filter_data(start_date, end_date, take_all_seasons=False)
         self.data = df.sort_values("datetime").reset_index(drop=True)
-        self.data_backup = self.data.copy()
+        
+        # 2. Ottieni sequenze valide SENZA modificare self.data
         valid_seqs = self.get_valid_sequences()
         
-        # Prepare metadata and targets
-        meteo_data = []
-        targets = []
-        datetime_info = []
-       
-        for seq in valid_seqs:
-            meteo_data.append(self.data.loc[seq["indices"]][self.meteo_feats].values)
-            targets.append(seq["target"])
-            datetime_info.append(self.data.loc[seq["indices"][-1], 'datetime'])
+        # 3. Crea array allineati
+        x_meteo = np.zeros((len(self.data), self.seq_length, len(self.meteo_feats)))
+        y = np.zeros((len(self.data), 6, 2))  # 6 timesteps, 2 variabili (nyon/dole)
         
-        # Convert to numpy arrays
-        x_meteo = np.array(meteo_data)
-        y = np.array(targets)
+        # 4. Mappa ogni riga di self.data alle corrispondenti sequenze
+        seq_counter = 0
+        for i in range(len(self.data) - self.seq_length):
+            if i in [seq['indices'][0] for seq in valid_seqs]:
+                seq_data = valid_seqs[seq_counter]
+                x_meteo[i:i+self.seq_length] = self.data.loc[seq_data['indices'], self.meteo_feats].values
+                y[i:i+self.seq_length] = seq_data['target']
+                seq_counter += 1
         
-        # Store datetime information for later use
-        self.datetime_info = datetime_info
+        # 5. Filtra solo le righe con dati validi
+        valid_mask = ~np.all(x_meteo == 0, axis=(1,2))
+        self.data = self.data[valid_mask].copy()
+        x_meteo = x_meteo[valid_mask]
+        y = y[valid_mask]
         
-        print(f"Number of valid sequences: {len(valid_seqs)}")
-
+        print(f"Dati finali - x_meteo: {x_meteo.shape}, self.data: {len(self.data)}, y: {y.shape}")
         return x_meteo, valid_seqs, y
 
     def load_images_for_sequence(self, seq_info):
@@ -361,6 +364,7 @@ class PrepareData:
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
         print(len(self.data), "valid sequences found after filtering")
+  
         return x_meteo_seq, x_images_seq, y_seq
 
 
@@ -510,8 +514,7 @@ class PrepareData:
             ["gre000z0_nyon", "gre000z0_dole"]
      
         ]
-        import ipdb
-        ipdb.set_trace()
+       
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
@@ -530,8 +533,8 @@ class PrepareData:
 
         # Prepare train and test arrays for x_images
 
-        x_images_train = np.array([x_images[indices[-1]] for indices in train_sequences])
-        x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
+        x_images_train =  []
+        x_images_test = []
     
         # Prepare test data for evaluation
         test_datetimes = self.data.loc[[indices[-1] for indices in test_sequences], 'datetime'].values
@@ -595,11 +598,9 @@ class PrepareData:
                          for indices in train_sequences])
         x_meteo_val = np.array([x_meteo_seq.loc[indices[-1], column_names].values
                          for indices in val_sequences])
-   
-        x_images_train = np.array([x_images_seq[indices[-1]] for indices in train_sequences])
-        x_images_val = np.array([x_images_seq[indices[-1]] for indices in val_sequences])
-    
-        
+
+        x_images_train = []
+        x_images_val = []
         y_train = np.array([y_seq.iloc[indices[-1]] for indices in train_sequences])
         y_val = np.array([y_seq.iloc[indices[-1]] for indices in val_sequences])
 
