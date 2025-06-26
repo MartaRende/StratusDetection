@@ -220,3 +220,64 @@ for t in prediction_times:
     global_metrics.save_metrics_report(
         stratus_days=stratus_days, non_stratus_days=non_stratus_days
     )
+    
+# Add this after your existing code, inside the same script
+
+time_steps = prediction_times
+metrics_collection = {
+    'mae': [],
+    'rmse': [],
+    'rel_err': []
+}
+
+for t in time_steps:
+    # Create metrics instance for this time step
+    metrics = Metrics(
+        all_expected[t], all_predicted[t], data, save_path=MODEL_PATH, 
+        fp_images=FP_IMAGES, start_date="2023-01-01", end_date="2024-12-31", 
+        time_key=t, stats_for_month=False
+    )
+    
+    # Compute metrics
+    mae, rmse, rel_err = metrics.compute_metrics(return_values=True)
+    
+    # Store metrics
+    metrics_collection['mae'].append(mae)
+    metrics_collection['rmse'].append(rmse)
+    metrics_collection['rel_err'].append(rel_err)
+
+# Now plot the metrics across time steps
+plt.figure(figsize=(12, 8))
+
+# MAE plot
+plt.subplot(3, 1, 1)
+plt.plot(time_steps, metrics_collection['mae'], 'o-', label='MAE')
+plt.title('MAE across Prediction Times')
+plt.xlabel('Prediction Time')
+plt.ylabel('MAE')
+plt.grid(True)
+
+# RMSE plot
+plt.subplot(3, 1, 2)
+plt.plot(time_steps, metrics_collection['rmse'], 'o-', color='orange', label='RMSE')
+plt.title('RMSE across Prediction Times')
+plt.xlabel('Prediction Time')
+plt.ylabel('RMSE')
+plt.grid(True)
+
+# Relative Error plot
+plt.subplot(3, 1, 3)
+plt.plot(time_steps, metrics_collection['rel_err'], 'o-', color='green', label='Relative Error')
+plt.title('Relative Error across Prediction Times')
+plt.xlabel('Prediction Time')
+plt.ylabel('Relative Error (%)')
+plt.grid(True)
+
+plt.tight_layout()
+
+# Save the plot
+plot_path = f"{MODEL_PATH}/metrics_across_times.png"
+plt.savefig(plot_path)
+plt.close()
+
+print(f"Saved metrics comparison plot to {plot_path}")
