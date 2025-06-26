@@ -74,19 +74,19 @@ class PrepareData:
             # Ensure next_t has 10-minute intervals between its points
             next_time_diffs = np.diff(next_t['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in next_time_diffs):
-                next_t = next_t.interpolate(method='linear', limit_direction='both')
+                # next_t = next_t.interpolate(method='linear', limit_direction='both')
 
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_t.")
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_t. ", "at datetime", next_t['datetime'].values)
                 continue
             if len(next_t) < 3:
-                print(f"Skipping sequence starting at index {i} due to insufficient next points.")
+                print(f"Skipping sequence starting at index {i} due to insufficient next points.", "at datetime", next_t['datetime'].values)
                 continue
 
             # Check time continuity
-            # time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
-            # if not all(d == 10 for d in time_diffs):
-            #     print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
-            #     continue
+            time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
+            if not all(d == 10 for d in time_diffs):
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.", "at datetime", seq['datetime'].values)
+                continue
 
             # if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
             #     print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.")
@@ -94,14 +94,14 @@ class PrepareData:
 
             # Check for missing meteo data
             if seq[self.meteo_feats].isna().any().any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
+                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.", "at datetime", seq['datetime'].values)
                 continue
 
             # Check for missing target values
             # Check for missing target values
             target_values = next_t[["gre000z0_nyon", "gre000z0_dole"]].values
             if pd.isnull(target_values).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
+                print(f"Skipping sequence starting at index {i} due to NaN values in target data.", "at datetime", next_t['datetime'].values)
                 continue
 
             # Check if all images exist
@@ -118,19 +118,21 @@ class PrepareData:
 
             if not all_images_exist:
                 continue
- 
+           
             # Save valid sequence
-            valid_indices.append(i)
+            valid_indices.extend(range(i, i + self.seq_length))  
             valid_seqs.append({
-                "indices": list(range(len(valid_indices) - self.seq_length, len(valid_indices))),
+                "indices": list(range(i, i + self.seq_length)), 
                 "datetimes": seq['datetime'].tolist(),
                 "target": next_t[["gre000z0_nyon", "gre000z0_dole"]].values
             })
-
-        # Update self.data only after collecting all valid sequences
-        self.data = self.data.loc[valid_indices].reset_index(drop=True)
+      
+        valid_indices = sorted(list(set(valid_indices)))
+        self.data = df.loc[valid_indices].reset_index(drop=True)
+        
+        index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(valid_indices)}
         for seq in valid_seqs:
-            seq["indices"] = [self.data.index[i] for i in seq["indices"]]
+            seq["indices"] = [index_map[idx] for idx in seq["indices"]]
 
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
@@ -508,7 +510,8 @@ class PrepareData:
             ["gre000z0_nyon", "gre000z0_dole"]
      
         ]
-     
+        import ipdb
+        ipdb.set_trace()
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
