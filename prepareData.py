@@ -509,8 +509,7 @@ class PrepareData:
             ["gre000z0_nyon", "gre000z0_dole"]
      
         ]
-        import ipdb
-        ipdb.set_trace()
+      
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)

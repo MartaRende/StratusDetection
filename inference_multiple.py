@@ -254,25 +254,36 @@ if stratus_days:
 
     plt.figure(figsize=(8, 4))
     plt.suptitle('Stratus vs Non-Stratus Days Metrics')
+
+    # MAE subplot
     plt.subplot(1, 3, 1)
-    plt.plot(['MAE'], [stratus_mae], marker='o', linestyle='-', color='skyblue', label='Stratus')
+    x_labels = ['Stratus', 'Non-Stratus']
+    mae_values = [stratus_mae, non_stratus_mae]
+    plt.scatter([0], [stratus_mae], color='skyblue', label='Stratus')
     if non_stratus_days:
-        plt.plot(['MAE'], [non_stratus_mae], marker='o', linestyle='-', color='lightcoral', label='Non-Stratus')
+        plt.scatter([1], [non_stratus_mae], color='lightcoral', label='Non-Stratus')
+    plt.xticks([0, 1], x_labels)
     plt.title('MAE')
     plt.ylabel('Error')
     plt.legend()
 
+    # RMSE subplot
     plt.subplot(1, 3, 2)
-    plt.plot(['RMSE'], [stratus_rmse], marker='o', linestyle='-', color='skyblue', label='Stratus')
+    rmse_values = [stratus_rmse, non_stratus_rmse]
+    plt.scatter([0], [stratus_rmse], color='skyblue', label='Stratus')
     if non_stratus_days:
-        plt.plot(['RMSE'], [non_stratus_rmse], marker='o', linestyle='-', color='lightcoral', label='Non-Stratus')
+        plt.scatter([1], [non_stratus_rmse], color='lightcoral', label='Non-Stratus')
+    plt.xticks([0, 1], x_labels)
     plt.title('RMSE')
     plt.legend()
 
+    # RelErr subplot
     plt.subplot(1, 3, 3)
-    plt.plot(['RelErr'], [stratus_rel_err], marker='o', linestyle='-', color='skyblue', label='Stratus')
+    relerr_values = [stratus_rel_err, non_stratus_rel_err]
+    plt.scatter([0], [stratus_rel_err], color='skyblue', label='Stratus')
     if non_stratus_days:
-        plt.plot(['RelErr'], [non_stratus_rel_err], marker='o', linestyle='-', color='lightcoral', label='Non-Stratus')
+        plt.scatter([1], [non_stratus_rel_err], color='lightcoral', label='Non-Stratus')
+    plt.xticks([0, 1], x_labels)
     plt.title('RelErr')
     plt.legend()
 
@@ -293,37 +304,21 @@ rmse_dole = [v['dole'] for v in metrics_collection['rmse']]
 relerr_nyon = [float(v['nyon']) for v in metrics_collection['rel_err']]
 relerr_dole = [float(v['dole']) for v in metrics_collection['rel_err']]
 
-# MAE plot
+plt.figure(figsize=(10, 6))
 plt.plot(time_steps, mae_nyon, 'o-', label='MAE Nyon')
 plt.plot(time_steps, mae_dole, 's-', label='MAE Dole')
+plt.plot(time_steps, rmse_nyon, 'o--', color='orange', label='RMSE Nyon')
+plt.plot(time_steps, rmse_dole, 's--', color='red', label='RMSE Dole')
+plt.plot(time_steps, relerr_nyon, 'o-.', color='green', label='RelErr Nyon')
+plt.plot(time_steps, relerr_dole, 's-.', color='purple', label='RelErr Dole')
 plt.legend()
-plt.title('MAE across time steps')
-plt.ylabel('MAE')
-mae_plot_path = f"{MODEL_PATH}/mae_across_times.png"
-plt.savefig(mae_plot_path)
-plt.cla()
-
-# RMSE plot
-plt.plot(time_steps, rmse_nyon, 'o-', color='orange', label='RMSE Nyon')
-plt.plot(time_steps, rmse_dole, 's-', color='red', label='RMSE Dole')
-plt.legend()
-plt.title('RMSE across time steps')
-plt.ylabel('RMSE')
-rmse_plot_path = f"{MODEL_PATH}/rmse_across_times.png"
-plt.savefig(rmse_plot_path)
-plt.cla()
-
-# Relative Error plot
-plt.plot(time_steps, relerr_nyon, 'o-', color='green', label='RelErr Nyon')
-plt.plot(time_steps, relerr_dole, 's-', color='purple', label='RelErr Dole')
-plt.legend()
-plt.title('Relative Error across time steps')
-plt.ylabel('Relative Error')
-relerr_plot_path = f"{MODEL_PATH}/relerr_across_times.png"
-plt.savefig(relerr_plot_path)
+plt.title('MAE, RMSE, and Relative Error across time steps')
+plt.ylabel('Error')
+plt.xlabel('Time Step')
+plt.grid(True)
+combined_plot_path = f"{MODEL_PATH}/metrics_across_times.png"
+plt.savefig(combined_plot_path)
 plt.close()
+print(f"Saved combined metrics plot to {combined_plot_path}")
 
-print(f"Saved MAE plot to {mae_plot_path}")
-print(f"Saved RMSE plot to {rmse_plot_path}")
-print(f"Saved Relative Error plot to {relerr_plot_path}")
 
