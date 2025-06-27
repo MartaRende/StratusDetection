@@ -611,7 +611,7 @@ class PrepareData:
 
         arr = np.array(data)
         original_ndim = arr.ndim
-
+      
         if arr.ndim == 2:
             arr = arr[:, np.newaxis, :]  # shape: (N, 1, F)
 
@@ -649,11 +649,21 @@ class PrepareData:
                 mx = stats[col_delta]["max"]
                 rng = mx - mn if mx != mn else 1e-8
                 df_out[col_delta] = ((delta - mn) / rng).fillna(0)
-
+        # Normalize all other variables in var_order except gre000z0_dole/nyon (already handled as delta)
+        other_vars = [v for v in var_order if not (v.startswith("gre000z0_dole") or v.startswith("gre000z0_nyon")) and v not in df_out.columns]
+        for var in other_vars:
+            if var in df.columns and var in stats:
+                mn = stats[var]["min"]
+                mx = stats[var]["max"]
+                rng = mx - mn if mx != mn else 1e-8
+                df_out[var] = ((df[var] - mn) / rng).fillna(0)
+     
         flat_out = df_out.values  # shape: (N, delta_features)
-        num_features = df_out.shape[1]
-        reshaped = flat_out.reshape(N, T, num_features)
-
+        # Reshape according to the number of features in df_out
+    
+    
+        reshaped = flat_out.reshape(N, T, 14)
+        
         if original_ndim == 2:
             return reshaped[:, 0, :]  # Return 2D
         return reshaped  # Return 3D
