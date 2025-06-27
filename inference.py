@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 54  # or any number you want
+MODEL_NUM = 64  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -137,12 +137,11 @@ for year, month in months:
                 y = model(x_meteo_sample, img_seq)
             y = y.squeeze(0).cpu().numpy()
             expected = y_expected[idx_test]
-            min_nyon = stats_label["gre000z0_nyon"]["min"]
-            max_nyon = stats_label["gre000z0_nyon"]["max"]
-            min_dole = stats_label["gre000z0_dole"]["min"]
-            max_dole = stats_label["gre000z0_dole"]["max"]
-            y[0] = y[0] * (max_nyon - min_nyon) + min_nyon
-            y[1] = y[1] * (max_dole - min_dole) + min_dole
+            min_delta = stats_label["delta_gre000z0"]["min"]
+            max_delta = stats_label["delta_gre000z0"]["max"]
+
+            y = y * (max_delta - min_delta) + min_delta
+            expected = expected[1] - expected[0]  # delta_gre000z0
             # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
             # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)

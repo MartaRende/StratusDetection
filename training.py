@@ -44,7 +44,7 @@ FP_WEATHER_DATA = "data/complete_data_gen.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -92,6 +92,7 @@ y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     y_train, y_validation, y_test,
     var_order=["gre000z0_nyon", "gre000z0_dole"]
 )
+
 import os
 from datetime import datetime
 # Modify your SimpleDataset class to use more efficient loading
@@ -194,7 +195,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, num_workers=8)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, num_workers=8)
 # Instantiate model, loss, optimizer, scheduler
-model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
+model = StratusModel(input_feature_size=14, output_size=1, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
@@ -233,6 +234,7 @@ for epoch in range(num_epochs):
              
                 weather_x, images_x, labels = batch
                 weather_x, images_x, labels = weather_x.to(device), images_x.to(device), labels.to(device)
+            
                 y_pred = model(weather_x, images_x)
 
             # Check for NaNs or Infs in inputs or labels

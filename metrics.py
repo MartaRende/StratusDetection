@@ -319,6 +319,7 @@ class Metrics:
                             group["expected_dole"].replace(0, np.nan)).fillna(0).mean(),
                 }
             }
+     
         return metrics 
 
     def get_global_metrics_for_days(self, days: List[str]) -> Dict[str, Dict[str, float]]:

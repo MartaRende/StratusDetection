@@ -67,7 +67,7 @@ class PrepareData:
             seq = df.iloc[i:i+self.seq_length]
             if i + self.seq_length >= len(df):
                 break
-            next_t = df.iloc[i + self.seq_length]
+            next_t = df.iloc[i + self.seq_length ]
 
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
@@ -177,46 +177,75 @@ class PrepareData:
 
 
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
-        log_vars = ["RR", "RS"]
-        angle_var = "DD"
         stats = {}
 
+        # Detect time steps (e.g., _t0, _t1) based on train_df
+        time_steps = [int(col.split('_t')[-1]) for col in train_df.columns if '_t' in col and 'gre000z0_dole' in col]
+        has_time_steps = len(time_steps) > 0
+
+        # Compute delta columns and drop original columns
+        for df in [train_df, validation_df, test_df]:
+            if has_time_steps:
+                for t in sorted(set(time_steps)):
+                    col_dole = f"gre000z0_dole_t{t}"
+                    col_nyon = f"gre000z0_nyon_t{t}"
+                    col_delta = f"delta_gre000z0_t{t}"
+                    if col_dole in df.columns and col_nyon in df.columns:
+                        df[col_delta] = df[col_dole] - df[col_nyon]
+                        df.drop([col_dole, col_nyon], axis=1, inplace=True, errors="ignore")
+            else:
+                if "gre000z0_dole" in df.columns and "gre000z0_nyon" in df.columns:
+                    df["delta_gre000z0"] = df["gre000z0_dole"] - df["gre000z0_nyon"]
+                    df.drop(["gre000z0_dole", "gre000z0_nyon"], axis=1, inplace=True, errors="ignore")
+
+        # Adjust var_order if provided
+        if var_order is not None:
+            new_var_order = [v for v in var_order if not v.startswith("gre000z0_dole") and not v.startswith("gre000z0_nyon")]
+
+            if has_time_steps:
+                for t in sorted(set(time_steps)):
+                    delta_col = f"delta_gre000z0_t{t}"
+                    if delta_col in train_df.columns and delta_col not in new_var_order:
+                        new_var_order.append(delta_col)
+            elif "delta_gre000z0" in train_df.columns:
+                if "delta_gre000z0" not in new_var_order:
+                    new_var_order.append("delta_gre000z0")
+
+            # Keep only columns actually present
+            var_order = [v for v in new_var_order if v in train_df.columns]
+
+        # Normalize
         if var_order is None:
             min_vals = train_df.min()
             max_vals = train_df.max()
             range_vals = max_vals - min_vals
-            range_vals = range_vals.replace(0, 1e-8)  # Avoid division by zero
+            range_vals = range_vals.replace(0, 1e-8)
+
             train_norm = (train_df - min_vals) / range_vals
             validation_norm = (validation_df - min_vals) / range_vals
             test_norm = (test_df - min_vals) / range_vals
+
             return train_norm.fillna(0), validation_norm.fillna(0), test_norm.fillna(0), {"min": min_vals, "max": max_vals}
+
+        # If var_order is defined, normalize based on those vars
         for var in var_order:
-            if var == angle_var:
-                continue
             values = train_df[var]
             stats[var] = {"min": values.min(), "max": values.max()}
 
         def process(df):
             df_processed = pd.DataFrame()
             for var in var_order:
-                if var == angle_var:
-                    angle_rad = np.deg2rad(pd.to_numeric(df[var], errors="coerce").fillna(0))
-                    df_processed[f"{var}_cos"] = np.cos(angle_rad)
-                    df_processed[f"{var}_sin"] = np.sin(angle_rad)
-                else:
-                    min_val = stats[var]["min"]
-                    max_val = stats[var]["max"]
-                    range_val = max_val - min_val
-                    if range_val == 0:
-                        range_val = 1e-8  # Avoid division by zero
-                    df_processed[var] = ((df[var] - min_val) / range_val).fillna(0)
+                min_val = stats[var]["min"]
+                max_val = stats[var]["max"]
+                range_val = max_val - min_val if max_val - min_val != 0 else 1e-8
+                df_processed[var] = ((df[var] - min_val) / range_val).fillna(0)
             return df_processed
 
         train_norm = process(train_df)
         validation_norm = process(validation_df)
         test_norm = process(test_df)
+     
         return train_norm.values, validation_norm.values, test_norm.values, stats
-
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
         months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
@@ -578,43 +607,56 @@ class PrepareData:
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
+
+
         arr = np.array(data)
         original_ndim = arr.ndim
-    
 
         if arr.ndim == 2:
-            arr = arr[:, np.newaxis, :]  # Add the time dimension: (N, 1, F)
+            arr = arr[:, np.newaxis, :]  # shape: (N, 1, F)
 
         N, T, F = arr.shape
+        flat = arr.reshape(N, T * F)  # shape: (N, T*F)
 
-        # Reshape to (145, 45)
-        new_N = N
-        new_F = F * self.seq_length  # 15 features per time step, seq_length = 3
-     
-        flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
-        flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
-        
+        # Ricostruisci DataFrame con var_order come colonne
+        if var_order is None:
+            raise ValueError("var_order must be provided for proper column alignment.")
         df = pd.DataFrame(flat, columns=var_order)
-        df_out = pd.DataFrame()
-        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        # df = df.drop(columns=drop_cols)
-        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-      
-        
-        for var in var_order:
-            col = df[var].astype(float).fillna(0)
-            mn = stats[var]["min"]
-            mx = stats[var]["max"]
-            rng = mx - mn if mx != mn else 1e-8
-            df_out[var] = ((col - mn) / rng).fillna(0)
 
-        flat_out = df_out.values
-        new_F = 15
-        reshaped = flat_out.reshape(N, T, new_F)
+        df_out = pd.DataFrame()
+        time_steps = sorted({int(col.split('_t')[-1]) for col in df.columns if '_t' in col and 'gre000z0_dole' in col})
+        has_time_steps = len(time_steps) > 0
+
+        if has_time_steps:
+            for t in time_steps:
+                col_dole = f"gre000z0_dole_t{t}"
+                col_nyon = f"gre000z0_nyon_t{t}"
+                col_delta = f"delta_gre000z0_t{t}"
+
+                if col_dole in df.columns and col_nyon in df.columns:
+                    delta = df[col_dole] - df[col_nyon]
+                    mn = stats[col_delta]["min"]
+                    mx = stats[col_delta]["max"]
+                    rng = mx - mn if mx != mn else 1e-8
+                    df_out[col_delta] = ((delta - mn) / rng).fillna(0)
+        else:
+            col_dole = "gre000z0_dole"
+            col_nyon = "gre000z0_nyon"
+            col_delta = "delta_gre000z0"
+            if col_dole in df.columns and col_nyon in df.columns:
+                delta = df[col_dole] - df[col_nyon]
+                mn = stats[col_delta]["min"]
+                mx = stats[col_delta]["max"]
+                rng = mx - mn if mx != mn else 1e-8
+                df_out[col_delta] = ((delta - mn) / rng).fillna(0)
+
+        flat_out = df_out.values  # shape: (N, delta_features)
+        num_features = df_out.shape[1]
+        reshaped = flat_out.reshape(N, T, num_features)
 
         if original_ndim == 2:
-            return reshaped[:, 0, :]  #
-        return reshaped
+            return reshaped[:, 0, :]  # Return 2D
+        return reshaped  # Return 3D
 
     def load_data_test(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
         filtered_df = self.filter_data(start_date, end_date, take_all_seasons)
