@@ -117,7 +117,7 @@ class PrepareData:
         self.data = self.data.loc[valid_indices].reset_index(drop=True)
 
         for seq in valid_seqs:
-            seq["indices"] = [self.data.index[i] for i in seq["indices"]]
+            seq["indices"] = [self.data.index[i] for i in seq["indices"] if i >= 0 and i < len(self.data.index)]
 
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
