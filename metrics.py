@@ -171,7 +171,7 @@ class Metrics:
 
     def get_mean_absolute_error(self) -> float:
         """Calculate MAE for delta values"""
-        return abs(self.predicted - self.expected).mean()
+        return np.abs(self.predicted - self.expected).mean()
 
     def get_root_mean_squared_error(self) -> float:
         """Calculate RMSE for delta values"""
