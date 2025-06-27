@@ -74,8 +74,8 @@ class PrepareData:
             if not all(d == 10 for d in time_diffs):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals. at hour {seq.iloc[0]['datetime']}")
                 continue
-           
-            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=10):
+        
+            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
                 print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour {seq.iloc[-1]['datetime']}")
                 continue
 
@@ -107,17 +107,15 @@ class PrepareData:
             # Save valid sequence
             valid_indices.append(i)
             valid_seqs.append({
-                "indices": list(range(len(valid_indices) - self.seq_length, len(valid_indices))),
+                "indices": list(range(i, i + self.seq_length)),  # Store actual indices from df
                 "datetimes": seq['datetime'].tolist(),
                 "target": next_t[["gre000z0_nyon", "gre000z0_dole"]].values
             })
-       
+
         # Update self.data only after collecting all valid sequences
-        self.data = self.data.loc[valid_indices].reset_index(drop=True)
+        self.data = df.loc[valid_indices].reset_index(drop=True)
 
-        for seq in valid_seqs:
-            seq["indices"] = [self.data.index[i] for i in seq["indices"]]
-
+        # No need to update indices in valid_seqs since we stored the actual df indices
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
         """Load and prepare data without loading images into memory"""
