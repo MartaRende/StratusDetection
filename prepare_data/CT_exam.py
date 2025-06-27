@@ -30,17 +30,19 @@ points_xy = np.vstack([xx.ravel(), yy.ravel()]).T
 # Transform polygon and create mask
 poly_xy = [transformer_to_proj.transform(lon, lat) for lat, lon in polygon_points]
 mask = Path(poly_xy).contains_points(points_xy).reshape(xx.shape)
-
+print(f"Mask created with {np.sum(mask)} points inside the polygon.")
 # 4. Get coordinates and time data
 lon_flat, lat_flat = transformer_to_latlon.transform(xx.ravel(), yy.ravel())
 time_var = nc.variables['datetime']
 datetimes = num2date(time_var[:], units=time_var.units)
 datetimes_str = np.array([dt.isoformat() for dt in datetimes])
+print(len(lon_flat), "points in the grid")
 
 # 5. Sample data for better performance
-sample_rate = 3  # Prendi 1 punto ogni 3
+sample_rate = 4
 sample_indices = np.arange(len(lon_flat))[::sample_rate]
 
+print(f"Sampling {len(sample_indices)} points from {len(lon_flat)} total points.")
 # 6. Prepare SU data and colormap 
 ct_var = nc.variables['SU'][:]
 
@@ -88,7 +90,7 @@ for t in range(0, ct_var.shape[0], time_step):
                     }
                 })
             except ValueError as e:
-                print(f"Warning: valore {val} non valido saltato - {str(e)}")
+                print(f"Warning:  {e} for value {val} at index {i}, skipping point.")
                 continue
 # 8. Create and configure map
 m = folium.Map(location=[np.mean(lat_flat), np.mean(lon_flat)], zoom_start=9, tiles='CartoDB positron')
