@@ -1,6 +1,8 @@
+cartopy>=0.24.1
 fastparquet>=2024.11.0
 folium>=0.20.0
 h5py>=3.13.0
+imageio>=2.37.0
 ipdb>=0.13.13
 ipykernel>=6.29.5
 matplotlib>=3.10.3

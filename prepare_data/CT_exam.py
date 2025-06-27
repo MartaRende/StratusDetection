@@ -133,7 +133,119 @@ TimestampedGeoJson(
     time_slider_drag_update=True,
     transition_time=300
 ).add_to(m)
+import matplotlib.pyplot as plt
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+from pyproj import Transformer
+from netCDF4 import Dataset, num2date
+import os
 
+# [Keep all your initial setup code until the plotting part...]
+
+# Timestamp to save
+target_time_str = "2024-11-11T10:00:00"  # ISO 8601 format
+output_dir = "single_timestamp_maps"
+os.makedirs(output_dir, exist_ok=True)
+
+# 1. Find the corresponding time index
+if target_time_str not in datetimes_str:
+    raise ValueError(f"Timestamp {target_time_str} not found in data.")
+
+t = np.where(datetimes_str == target_time_str)[0][0]
+print(f"✅ Found timestamp at index t = {t}")
+
+# 2. Extract slice and apply mask
+ct_slice = ct_var[t, :, :]
+ct_masked = np.where(mask, ct_slice, np.nan)
+
+# Transform coordinates for proper geographic plotting
+transformer_to_latlon = Transformer.from_crs("EPSG:21781", "EPSG:4326", always_xy=True)
+lon, lat = transformer_to_latlon.transform(xx, yy)
+
+# 3. Create the plot with proper geographic scaling
+fig, ax = plt.subplots(figsize=(10, 8))
+
+# Plot the data using pcolormesh with transformed coordinates
+mesh = ax.pcolormesh(lon, lat, ct_masked, 
+                    cmap="coolwarm", 
+                    vmin=min_ct, 
+                    vmax=max_ct,
+                    shading='auto')
+
+# Add colorbar
+cbar = plt.colorbar(mesh, ax=ax, shrink=0.6)
+cbar.set_label("SU (°C)")
+
+# Add polygon outline
+poly_lons = [p[1] for p in polygon_points] + [polygon_points[0][1]]
+poly_lats = [p[0] for p in polygon_points] + [polygon_points[0][0]]
+ax.plot(poly_lons, poly_lats, 
+       color='blue', linewidth=2,
+       linestyle='--', marker='o')
+# After creating your plot but before saving, add:
+
+# 1. Calculate automatic bounds from your polygon
+poly_lons = [p[1] for p in polygon_points]  # Longitude values
+poly_lats = [p[0] for p in polygon_points]  # Latitude values
+
+# 2. Calculate min/max with 10% buffer
+buffer_factor = 0.10  # 10% buffer
+lon_min, lon_max = min(poly_lons), max(poly_lons)
+lat_min, lat_max = min(poly_lats), max(poly_lats)
+
+lon_range = lon_max - lon_min
+lat_range = lat_max - lat_min
+
+# 3. Set automatic limits with buffer
+ax.set_xlim([
+    lon_min - buffer_factor * lon_range,
+    lon_max + buffer_factor * lon_range
+])
+ax.set_ylim([
+    lat_min - buffer_factor * lat_range,
+    lat_max + buffer_factor * lat_range
+])
+
+# 4. Set smart ticks (automatically spaced)
+ax.xaxis.set_major_locator(plt.AutoLocator())
+ax.yaxis.set_major_locator(plt.AutoLocator())
+
+
+# Add special point
+dole_lat = 46 + 25/60 + 29.3/3600
+dole_lon = 6 + 5/60 + 56.9/3600
+ax.plot(dole_lon, dole_lat, 'g*', markersize=10, label='Dole Point')
+geneva_lat = 46.220473615
+geneva_lon = 6.132936441
+ax.plot(geneva_lon, geneva_lat, 'ro', markersize=10, label='Geneva Point')
+nyon_lat = 46.3789
+nyon_lon = 6.2390
+ax.plot(nyon_lon, nyon_lat, 'bo', markersize=10, label='Nyon Point')
+# Configure plot
+ax.set_title(f"SU Values - {datetimes[t].strftime('%Y-%m-%d %H:%M')}")
+ax.set_xlabel("Longitude")
+ax.set_ylabel("Latitude")
+ax.grid(True, linestyle=':', alpha=0.7)
+ax.legend()
+
+# Add min/max values
+plt.figtext(0.15, 0.02, 
+           f"Min: {np.nanmin(ct_masked):.1f} °C | Max: {np.nanmax(ct_masked):.1f} °C",
+           fontsize=10, ha='center')
+
+# Set equal aspect ratio
+ax.set_aspect('equal')
+
+# 4. Save
+output_path = os.path.join(output_dir, f"su_{datetimes[t].strftime('%Y%m%d_%H%M')}.png")
+ax.set_aspect('equal', adjustable='datalim')  # Better auto-adjustment
+plt.tight_layout()
+plt.savefig(output_path, dpi=200, bbox_inches='tight')
+plt.close()
+
+print(f"✅ Map saved: {output_path}")
 # 9. Add title
 title_html = '''
     <h3 align="center" style="font-size:16px"><b>CT Values - {}</b></h3>
@@ -143,3 +255,57 @@ m.get_root().html.add_child(folium.Element(title_html))
 # 10. Save map
 m.save("ct_interactive_map_optimized.html")
 print("Optimized map saved as ct_interactive_map_optimized.html")
+import imageio
+from tqdm import tqdm
+
+output_dir = "animation_frames"
+os.makedirs(output_dir, exist_ok=True)
+gif_path = "su_animation.gif"
+frame_paths = []
+
+# Optional: recalculate min/max on masked area only
+masked_vals = ct_var[:, :, :][mask]
+valid_vals = masked_vals[np.isfinite(masked_vals)]
+vmin = np.min(valid_vals)
+vmax = np.max(valid_vals)
+
+for t in tqdm(range(ct_var.shape[0])):
+    ct_slice = ct_var[t, :, :]
+    ct_masked = np.where(mask, ct_slice, np.nan)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    mesh = ax.pcolormesh(lon, lat, ct_masked, cmap="coolwarm", vmin=vmin, vmax=vmax, shading='auto')
+    cbar = plt.colorbar(mesh, ax=ax, shrink=0.6)
+    cbar.set_label("SU (°C)")
+
+    ax.plot(poly_lons, poly_lats, color='blue', linestyle='--', marker='o', linewidth=1)
+
+    ax.set_title(f"SU - {datetimes[t].strftime('%Y-%m-%d %H:%M')}")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.grid(True, linestyle=':', alpha=0.6)
+
+    # Optional: fixed view limits
+    ax.set_xlim([
+        lon_min - buffer_factor * lon_range,
+        lon_max + buffer_factor * lon_range
+    ])
+    ax.set_ylim([
+        lat_min - buffer_factor * lat_range,
+        lat_max + buffer_factor * lat_range
+    ])
+    ax.set_aspect('equal', adjustable='datalim')
+
+    frame_file = os.path.join(output_dir, f"frame_{t:03d}.png")
+    plt.tight_layout()
+    plt.savefig(frame_file, dpi=150, bbox_inches='tight')
+    plt.close()
+    frame_paths.append(frame_file)
+
+# Create GIF
+with imageio.get_writer(gif_path, mode='I', duration=0.5) as writer:
+    for frame_path in frame_paths:
+        image = imageio.imread(frame_path)
+        writer.append_data(image)
+
+print(f"✅ Animation saved as: {gif_path}")
