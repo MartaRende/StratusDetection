@@ -68,14 +68,14 @@ class PrepareData:
             if i + self.seq_length >= len(df):
                 break
             next_t = df.iloc[i + self.seq_length]
-     
+
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in time_diffs):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals. at hour {seq.iloc[0]['datetime']}")
                 continue
            
-            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
+            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=10):
                 print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour {seq.iloc[-1]['datetime']}")
                 continue
 
@@ -103,8 +103,7 @@ class PrepareData:
 
             if not all_images_exist:
                 continue
-            # import ipdb
-            # ipdb.set_trace()
+
             # Save valid sequence
             valid_indices.append(i)
             valid_seqs.append({
@@ -112,12 +111,12 @@ class PrepareData:
                 "datetimes": seq['datetime'].tolist(),
                 "target": next_t[["gre000z0_nyon", "gre000z0_dole"]].values
             })
-
+       
         # Update self.data only after collecting all valid sequences
         self.data = self.data.loc[valid_indices].reset_index(drop=True)
 
         for seq in valid_seqs:
-            seq["indices"] = [self.data.index[i] for i in seq["indices"] if i >= 0 and i < len(self.data.index)]
+            seq["indices"] = [self.data.index[i] for i in seq["indices"]]
 
         return valid_seqs
     def load_data(self, start_date="2023-01-01", end_date="2024-12-31"):
@@ -271,7 +270,7 @@ class PrepareData:
 
             # Check if next point is exactly 60 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
                 print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour", last_seq_time)
                 continue
             # # Prepare meteorological data sequence
