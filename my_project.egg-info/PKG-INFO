@@ -2,6 +2,7 @@ Metadata-Version: 2.4
 Name: my-project
 Version: 0.1.0
 Requires-Dist: fastparquet>=2024.11.0
+Requires-Dist: folium>=0.20.0
 Requires-Dist: h5py>=3.13.0
 Requires-Dist: ipdb>=0.13.13
 Requires-Dist: ipykernel>=6.29.5
