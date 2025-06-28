@@ -65,17 +65,17 @@ class PrepareData:
 
         for i in range(len(df) - self.seq_length):
             seq = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length >= len(df):
+            if i + self.seq_length + 5 >= len(df):
                 break
-            next_t = df.iloc[i + self.seq_length]
-     
+            next_t = df.iloc[i + self.seq_length + 5]
+
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in time_diffs):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals. at hour {seq.iloc[0]['datetime']}")
                 continue
            
-            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=10):
+            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
                 print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour {seq.iloc[-1]['datetime']}")
                 continue
 
@@ -253,9 +253,9 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length >= len(df):
+            if i + self.seq_length + 5>= len(df):
                 break
-            next_point = df.iloc[i + self.seq_length]
+            next_point = df.iloc[i + self.seq_length + 5]
 
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
@@ -489,8 +489,10 @@ class PrepareData:
         x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
     
         # Prepare test data for evaluation
-        test_datetimes = self.data.loc[[indices[-1] for indices in test_sequences], 'datetime'].values
+        test_datetimes = self.data.loc[[indices[0] for indices in test_sequences], 'datetime'].values
         x_meteo_test_df['datetime'] = test_datetimes
+        test_t_datetimes = self.data.loc[[indices[-1] + 6 for indices in test_sequences if indices[-1] + 6 < len(self.data)], 'datetime'].values
+
         y_test_df['datetime'] = test_datetimes
       
     # Find the datetime sequence for each train and test sample
@@ -503,8 +505,19 @@ class PrepareData:
         x_meteo_test_features_df['datetime'] = test_datetimes
         x_meteo_train_df['datetime'] = train_datetimes
         # Compute t datetimes: the datetime corresponding to each sequence's prediction time (i.e., the time step after the sequence)
-        t_datetimes = self.data.loc[[indices[-1] + 1 for indices in train_sequences if indices[-1] + 1 < len(self.data)], 'datetime'].values
-        y_train_df['datetime'] = t_datetimes
+        # Assign the datetime corresponding to the prediction time (i.e., 1 hour after the last time step in the sequence)
+        # For each sequence, prediction is at index (indices[-1] + 6)
+        # But need to ensure (indices[-1] + 6) < len(self.data)
+        t_datetimes_train = []
+        for indices in train_sequences:
+            pred_idx = indices[-1] + 6
+            if pred_idx < len(self.data):
+                t_datetimes_train.append(self.data.loc[pred_idx, 'datetime'])
+            else:
+                t_datetimes_train.append(pd.NaT)
+        import ipdb
+        
+        y_train_df['datetime'] = t_datetimes_train
         
         # Find all rows in self.data present in test_days
         test_rows = self.data[self.data['date_str'].isin(test_days)]
@@ -515,7 +528,8 @@ class PrepareData:
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
-     
+        import ipdb
+        ipdb.set_trace()
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
@@ -572,7 +586,8 @@ class PrepareData:
 
         y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-  
+        import ipdb
+        ipdb.set_trace()
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
