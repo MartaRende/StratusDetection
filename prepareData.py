@@ -233,7 +233,8 @@ class PrepareData:
         validation_norm = process(validation_df)
         test_norm = process(test_df)
   
-
+        import ipdb
+        ipdb.set_trace()
         return train_norm.values, validation_norm.values, test_norm.values, stats
 
 
@@ -650,6 +651,7 @@ class PrepareData:
 
         if original_ndim == 2:
             return reshaped[:, 0, :]  # Back to 2D
+        
         return reshaped
 
 
