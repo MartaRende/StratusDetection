@@ -67,8 +67,8 @@ class Metrics:
 
     def _initialize_data(self, expected, predicted, data):
         """Initialize and normalize data structures"""
-        self.expected = pd.Series(expected, name="delta")
-        self.predicted = pd.Series(predicted, name="delta")
+        self.expected = pd.DataFrame(expected, columns=["nyon", "dole"])
+        self.predicted = pd.DataFrame(predicted, columns=["delta"])
         
         # Normalize the input data
         self.data = pd.json_normalize(pd.DataFrame(data["dole"])[0])
@@ -82,7 +82,6 @@ class Metrics:
         self._nyon_values = self.data["gre000z0_nyon"].to_numpy()
         self._dole_values = self.data["gre000z0_dole"].to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
-
     def get_image_for_datetime(self, dt, view=2):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
@@ -133,11 +132,15 @@ class Metrics:
         datetimes = []
         
         # Convert expected to numpy for faster access
-        exp_values = self.expected.to_numpy()
+        exp_nyon = self.expected["nyon"].to_numpy()
+        exp_dole = self.expected["dole"].to_numpy()
         
-        for delta in exp_values:
-            # Vectorized comparison - find matching nyon and dole pairs that produce this delta
-            mask = np.isclose(self._nyon_values - self._dole_values, delta, atol=1e-6)
+        for nyon, dole in zip(exp_nyon, exp_dole):
+            # Vectorized comparison
+            mask = (
+                np.isclose(self._nyon_values, nyon, atol=1e-6) & 
+                np.isclose(self._dole_values, dole, atol=1e-6)
+            )
             
             # Apply date range filter if specified
             if self.start_date and self.end_date:
@@ -149,39 +152,59 @@ class Metrics:
             
             matches = self._datetime_values[mask]
             datetimes.append(matches[0] if len(matches) > 0 else None)
-            
         return datetimes
 
     def get_correct_predictions(self, tol: Optional[float] = None) -> int:
         """
         Count predictions within tolerance of expected values.
-        
+
         Args:
             tol: Tolerance threshold (uses class default if None)
-            
+
         Returns:
             Number of correct predictions
         """
         tolerance = tol if tol is not None else self.tolerance
-        return (abs(self.predicted - self.expected) <= tolerance).sum()
+        exp = (self.expected["dole"] - self.expected["nyon"]).to_numpy().flatten()
+        if len(self.predicted) != len(self.expected):
+            self.logger.warning("Mismatch in lengths of predicted and expected values.")
+            return 0  # Return 0 correct predictions if lengths do not match
+
+        return (np.abs(self.predicted.to_numpy().flatten() - exp) <= tolerance).sum()
 
     def get_accuracy(self, tol: Optional[float] = None) -> float:
         """Calculate accuracy within given tolerance"""
-        return self.get_correct_predictions(tol) / len(self.expected)
+        tolerance = tol if tol is not None else self.tolerance
+        correct_predictions = self.get_correct_predictions(tol)
+        total_predictions = len(self.expected)
 
+        if total_predictions == 0:
+            self.logger.warning("No expected values available for accuracy calculation.")
+            return 0.0  # Return 0 accuracy if there are no expected values
+
+        return correct_predictions / total_predictions
+    def exp_converted(self) -> pd.Series:
+        """
+        Convert expected values to delta (dole - nyon) format.
+        
+        Returns:
+            Series of expected delta values
+        """
+        self.expected["delta"] = self.expected["dole"] - self.expected["nyon"]
+        return self.expected
     def get_mean_absolute_error(self) -> float:
         """Calculate MAE for delta values"""
-        return np.abs(self.predicted - self.expected).mean()
+        return np.abs(self.predicted['delta'] - self.exp_converted()['delta']).mean()
 
     def get_root_mean_squared_error(self) -> float:
         """Calculate RMSE for delta values"""
-        mse = ((self.predicted - self.expected) ** 2).mean()
+        mse = ((self.predicted['delta'] - self.exp_converted()['delta']) ** 2).mean()
         return np.sqrt(mse)
 
     def get_relative_error(self) -> List[float]:
         """Calculate relative error for delta values"""
-        abs_error = abs(self.predicted - self.expected)
-        rel_error = abs_error / self.expected.replace(0, np.nan)
+        abs_error = abs(self.predicted['delta'] - self.exp_converted()['delta'])
+        rel_error = abs_error / self.exp_converted()['delta'].replace(0, np.nan)
         return rel_error.fillna(0).tolist()
 
     def get_mean_relative_error(self) -> float:
@@ -191,9 +214,9 @@ class Metrics:
     def _create_comparison_dataframe(self) -> pd.DataFrame:
         """Create a combined dataframe with all comparison data"""
         return pd.DataFrame({
-            "datetime": self.datetime_list,
-            "expected_delta": self.expected,
-            "predicted_delta": self.predicted,
+            "datetime": np.array(self.datetime_list).flatten(),
+            "expected_delta": (self.expected["dole"] - self.expected["nyon"]).to_numpy().flatten(),
+            "predicted_delta": self.predicted.to_numpy().flatten(),
         }).dropna(subset=["datetime"])
 
     def _prepare_day_metrics(self, days) -> pd.DataFrame:
@@ -211,7 +234,6 @@ class Metrics:
         df["date_str"] = df["datetime"].dt.strftime("%Y-%m-%d")
         df["hour"] = df["datetime"].dt.strftime("%H:%M")
         df["month"] = df["datetime"].dt.strftime("%Y-%m")
-        
         # Filter for requested days
         return df[df["date_str"].isin(days)]
 
@@ -349,7 +371,6 @@ class Metrics:
 
             # Ensure datetimes are unique (keep first occurrence)
             day_df = day_df.drop_duplicates(subset=["datetime"])
-
             month = day_df["month"].iloc[0]
             month_dir = os.path.join(self.save_path, month)
             os.makedirs(month_dir, exist_ok=True)

@@ -269,7 +269,6 @@ class PrepareData:
             return np.zeros((512, 512, 3), dtype=np.uint8)
     def prepare_data(self, df):
         df = df.sort_values('datetime').reset_index(drop=True)
-        
         # Create sequences
         x_images_seq = []
         x_meteo_seq = []
@@ -287,6 +286,7 @@ class PrepareData:
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
             if i + self.seq_length >= len(df):
+                print(f"Skipping sequence starting at index {i} due to insufficient data for full sequence length.")
                 break
             next_point = df.iloc[i + self.seq_length]
 
@@ -350,8 +350,11 @@ class PrepareData:
         x_images_seq = np.array(x_images_seq)
         y_seq = np.array(y_seq)
         # Save filtered data
+
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
+        import ipdb; ipdb.set_trace()  # Debugging point
+
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 

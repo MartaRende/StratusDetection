@@ -52,7 +52,6 @@ stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
 
 # Loop over months from September (9) to March (3) of the next year
-
 results = {}
 start_year = 2023
 end_year = 2024
@@ -71,7 +70,8 @@ for year, month in months:
         next_month = datetime(year, 4, 1)
     else:
         next_month = datetime(year, month + 1, 1)
-    end_date = (next_month - timedelta(days=1)).strftime("%Y-%m-%d")
+        end_date = next_month.strftime("%Y-%m-%d")
+    # end_date = (next_month - timedelta(days=1)).strftime("%Y-%m-%d")
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
@@ -143,12 +143,12 @@ for year, month in months:
             max_delta = stats_label["delta_gre000z0"]["max"]
 
             y = y * (max_delta - min_delta) + min_delta
-            expected = expected[1] - expected[0]  # delta_gre000z0
+     
+            # delta_gre000z0
             # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
             # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
             y_predicted.append(y)
             final_expected.append(expected)
-         
         all_predicted.append(y_predicted)
         all_expected.append(final_expected)
 
@@ -175,7 +175,7 @@ all_expected =  [item for sublist in all_expected for item in sublist]
 all_predicted =  [item for sublist in all_predicted for item in sublist]
 
 global_metrics = Metrics(
-    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
+    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2025-01-01", stats_for_month=False
 )
 global_metrics.save_metrics_report(
     stratus_days=stratus_days, non_stratus_days=non_stratus_days
