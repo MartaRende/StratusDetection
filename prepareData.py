@@ -103,7 +103,6 @@ class PrepareData:
 
             if not all_images_exist:
                 continue
-
             # Save valid sequence
             valid_indices.append(i)
             valid_seqs.append({
@@ -182,7 +181,7 @@ class PrepareData:
         # Detect time steps (e.g., _t0, _t1) based on train_df
         time_steps = [int(col.split('_t')[-1]) for col in train_df.columns if '_t' in col and 'gre000z0_dole' in col]
         has_time_steps = len(time_steps) > 0
-
+        import ipdb; ipdb.set_trace()  # Debugging point
         # Compute delta columns and drop original columns
         for df in [train_df, validation_df, test_df]:
             if has_time_steps:
@@ -244,7 +243,7 @@ class PrepareData:
         train_norm = process(train_df)
         validation_norm = process(validation_df)
         test_norm = process(test_df)
-     
+        import ipdb; ipdb.set_trace()  
         return train_norm.values, validation_norm.values, test_norm.values, stats
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
@@ -548,7 +547,7 @@ class PrepareData:
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
-
+        import ipdb; ipdb.set_trace()  # Debugging point
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
@@ -605,7 +604,7 @@ class PrepareData:
 
         y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-  
+        import ipdb; ipdb.set_trace()  # Debug
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
     def normalize_data_test(self, data, var_order=None, stats=None):
