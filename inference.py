@@ -70,8 +70,8 @@ for year, month in months:
         next_month = datetime(year, 4, 1)
     else:
         next_month = datetime(year, month + 1, 1)
-        end_date = next_month.strftime("%Y-%m-%d")
-    # end_date = (next_month - timedelta(days=1)).strftime("%Y-%m-%d")
+        
+    end_date = (next_month - timedelta(days=1)).strftime("%Y-%m-%d")
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
@@ -151,11 +151,11 @@ for year, month in months:
             final_expected.append(expected)
         all_predicted.append(y_predicted)
         all_expected.append(final_expected)
-
+        end_date_metrics= next_month.strftime("%Y-%m-%d")
         stratus_days.append(stratus_days_for_month)
         non_stratus_days.append(non_stratus_days_for_month)
   
-        metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date)
+        metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date_metrics)
        
         metrics.plot_day_curves(stratus_days_for_month)
         # Take up to 3 random non-stratus days and plot their curves
