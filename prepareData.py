@@ -353,8 +353,7 @@ class PrepareData:
 
         self.data = df.loc[valid_indices].reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
-        import ipdb; ipdb.set_trace()  # Debugging point
-
+        im
         print(len(self.data), "valid sequences found after filtering")
         return x_meteo_seq, x_images_seq, y_seq
 
