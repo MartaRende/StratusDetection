@@ -65,9 +65,9 @@ class PrepareData:
 
         for i in range(len(df) - self.seq_length):
             seq = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length + 5 >= len(df):
+            if i + self.seq_length  >= len(df):
                 break
-            next_t = df.iloc[i + self.seq_length + 5]
+            next_t = df.iloc[i + self.seq_length ]
 
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
@@ -75,7 +75,7 @@ class PrepareData:
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals. at hour {seq.iloc[0]['datetime']}")
                 continue
            
-            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=60):
+            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=10):
                 print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour {seq.iloc[-1]['datetime']}")
                 continue
 
