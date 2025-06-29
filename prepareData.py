@@ -256,9 +256,9 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length + 5>= len(df):
+            if i + self.seq_length >= len(df):
                 break
-            next_point = df.iloc[i + self.seq_length + 5]
+            next_point = df.iloc[i + self.seq_length ]
 
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
@@ -269,7 +269,7 @@ class PrepareData:
 
             # Check if next point is exactly 60 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
                 print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour", last_seq_time)
                 continue
             # # Prepare meteorological data sequence
@@ -308,7 +308,7 @@ class PrepareData:
             if pd.isnull(target).any():
                 print(f"Skipping sequence starting at index {i} due to NaN values in target data. at hour", next_point['datetime'])
                 continue
-                
+        
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
             x_images_seq.append(np.array(img_sequence))
