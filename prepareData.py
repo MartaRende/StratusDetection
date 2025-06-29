@@ -197,6 +197,9 @@ class PrepareData:
           
             values = train_df[var]
             stats[var] = {"min": values.min(), "max": values.max()}
+        
+        if len(var_order) > 3:
+            var_order = [var for var in var_order if not var.startswith('gre000z0_nyon') and not var.startswith('gre000z0_dole')]
 
         def process(df):
             df_processed = pd.DataFrame()
@@ -209,11 +212,10 @@ class PrepareData:
                     range_val = 1e-8  # Avoid division by zero
                 df_processed[var] = ((df[var] - min_val) / range_val).fillna(0)
             return df_processed
-
         train_norm = process(train_df)
         validation_norm = process(validation_df)
         test_norm = process(test_df)
-      
+  
         return train_norm.values, validation_norm.values, test_norm.values, stats
 
 
@@ -605,6 +607,8 @@ class PrepareData:
         # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
         # df = df.drop(columns=drop_cols)
         # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
+        if len(var_order) > 3:
+            var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
       
         
         for var in var_order:
@@ -613,9 +617,8 @@ class PrepareData:
             mx = stats[var]["max"]
             rng = mx - mn if mx != mn else 1e-8
             df_out[var] = ((col - mn) / rng).fillna(0)
-
         flat_out = df_out.values
-        new_F = 15
+        new_F = 13
         reshaped = flat_out.reshape(N, T, new_F)
 
         if original_ndim == 2:
