@@ -117,6 +117,7 @@ class SimpleDataset(Dataset):
                 seq_paths = [self.get_image_path(dt, view=2) for dt in seq_info]
                 view_paths.append(seq_paths)
             paths.append(view_paths if self.num_views > 1 else view_paths[0])
+ 
         return paths
 
     def get_image_path(self, dt, view=2):
@@ -169,14 +170,13 @@ class SimpleDataset(Dataset):
             return weather_data, view1_tensor, view2_tensor, labels
         else:
             img_paths = self.image_paths[idx]
-            
             images = []
             for p in img_paths:
                 img_tensor = self._load_single_image(p)
                 images.append(img_tensor)
            
             images_tensor = torch.stack(images)  # Shape: (seq_len, C, H, W)
-            
+  
             return weather_data, images_tensor, labels
 
 # Create datasets and loaders
