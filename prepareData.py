@@ -180,7 +180,7 @@ class PrepareData:
 
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
         stats = {}
-
+  
         # Detect time steps (e.g., _t0, _t1) based on train_df
         time_steps = [int(col.split('_t')[-1]) for col in train_df.columns if '_t' in col and 'gre000z0_dole' in col]
         has_time_steps = len(time_steps) > 0
@@ -226,7 +226,7 @@ class PrepareData:
             train_norm = (train_df - min_vals) / range_vals
             validation_norm = (validation_df - min_vals) / range_vals
             test_norm = (test_df - min_vals) / range_vals
-
+      
             return train_norm.fillna(0), validation_norm.fillna(0), test_norm.fillna(0), {"min": min_vals, "max": max_vals}
 
         # If var_order is defined, normalize based on those vars
@@ -246,6 +246,8 @@ class PrepareData:
         train_norm = process(train_df)
         validation_norm = process(validation_df)
         test_norm = process(test_df)
+       
+        
         return train_norm.values, validation_norm.values, test_norm.values, stats
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
