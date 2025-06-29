@@ -198,8 +198,8 @@ class PrepareData:
             values = train_df[var]
             stats[var] = {"min": values.min(), "max": values.max()}
         
-        if len(var_order) > 3:
-            var_order = [var for var in var_order if not var.startswith('gre000z0_nyon') and not var.startswith('gre000z0_dole')]
+        # if len(var_order) > 3:
+        #     var_order = [var for var in var_order if not var.startswith('gre000z0_nyon') and not var.startswith('gre000z0_dole')]
 
         def process(df):
             df_processed = pd.DataFrame()
@@ -607,8 +607,8 @@ class PrepareData:
         # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
         # df = df.drop(columns=drop_cols)
         # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-        if len(var_order) > 3:
-            var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
+        # if len(var_order) > 3:
+        #     var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
       
         
         for var in var_order:
