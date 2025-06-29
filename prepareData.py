@@ -162,7 +162,7 @@ class PrepareData:
 
             if self.num_views == 2:
                 # Load the second view image if available
-                img2 = self._load_single_image(self.get_image_path(dt, view=2))
+                img2 = self._load_single_image(self.get_image_path(dt, view=1))
                 view2_imgs.append(img2)
 
         if self.num_views == 2:
