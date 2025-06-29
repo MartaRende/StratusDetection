@@ -333,7 +333,7 @@ class PrepareData:
             if not valid_images:
                 print(f"Skipping sequence starting at index {i} due to missing images.")
                 continue
-                
+   
             # Prepare target (next time step after sequence)
             
             target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
@@ -680,6 +680,7 @@ class PrepareData:
         
         if original_ndim == 2:
             return reshaped[:, 0, :]  # Return 2D
+
         return reshaped  # Return 3D
 
     def load_data_test(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
