@@ -146,14 +146,12 @@ class PrepareData:
         targets = []
         datetime_info = []
         datetime_next = []
-       
         for seq in valid_seqs:
             meteo_data.append(self.data.loc[seq["indices"]][self.meteo_feats].values)
             targets.append(seq["target"])
             datetime_info.append(self.data.loc[seq["indices"][-1], 'datetime'])
             datetime_next.append(seq["next_t"])
-            
-        
+
         # Convert to numpy arrays
         x_meteo = np.array(meteo_data)
         y = np.array(targets)
@@ -163,8 +161,7 @@ class PrepareData:
         self.datetime_next = datetime_next
         
         print(f"Number of valid sequences: {len(valid_seqs)}")
-        import ipdb
-        ipdb.set_trace()
+
         return x_meteo, valid_seqs, y
 
     def load_images_for_sequence(self, seq_info):
@@ -509,12 +506,11 @@ class PrepareData:
                 "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
             ]
         ]
-        label_names =  [
-            f"{feat}_t{t}" for t in range(self.seq_length) for feat in [
+        label_names = [f"{feat}_t{t}" for t in range(self.seq_length+3) for feat in [
                 "gre000z0_nyon", "gre000z0_dole"
-            ]
-        ]
-        datetime_next_series = pd.Series(self.datetime_next)
+            ]]
+      
+        self.datetime_next = pd.Series(self.datetime_next)
 
         # Fix: Use the sequence index's last element to select the correct sample (not the whole sequence)
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
@@ -524,11 +520,11 @@ class PrepareData:
         x_meteo_test_features_df = pd.DataFrame(x_meteo_test, columns=column_names)[feature_columns]
         x_meteo_train_df = pd.DataFrame(x_meteo_train, columns=column_names)
         x_meteo_test_df = pd.DataFrame(x_meteo_test, columns=column_names)
-        
+    
         # Prepare train and test DataFrames for y (labels)
-        y_train = np.array([y[indices[0]] for indices in train_sequences])
-        y_test = np.array([y[indices[0]] for indices in test_sequences])
-  
+        y_train = np.array([y[indices[0]] for indices in train_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
+        y_test = np.array([y[indices[0]] for indices in test_sequences]).reshape(-1, self.seq_length * len(label_names) // self.seq_length)
+
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_test_df = pd.DataFrame(y_test, columns=label_names)
 
@@ -536,7 +532,7 @@ class PrepareData:
         
         x_images_train = np.array([x_images[indices[-1]] for indices in train_sequences])
         x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
-    
+   
         # Prepare test data for evaluation
         test_datetimes = self.data.loc[[indices[0] for indices in test_sequences], 'datetime'].values
         x_meteo_test_df['datetime'] = test_datetimes
@@ -569,8 +565,7 @@ class PrepareData:
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
-        import ipdb
-        ipdb.set_trace()
+ 
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
@@ -624,11 +619,13 @@ class PrepareData:
 
         train_datetime_seq = [x_meteo_seq.loc[list(indices), 'datetime'].tolist() for indices in train_sequences]
         val_datetime_seq = [x_meteo_seq.loc[list(indices), 'datetime'].tolist() for indices in val_sequences]
-
-        y_train_df = pd.DataFrame(y_train, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-        y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
-        import ipdb
-        ipdb.set_trace()
+        label_names = [f"{feat}_t{t}" for t in range(self.seq_length+3) for feat in [
+                "gre000z0_nyon", "gre000z0_dole"
+            ]]
+        label_names += ['datetime']
+        y_train_df = pd.DataFrame(y_train, columns=label_names)
+        y_val_df = pd.DataFrame(y_val, columns=label_names)
+     
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
 
