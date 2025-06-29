@@ -42,7 +42,7 @@ class StratusModel(nn.Module):
         # )
 
         img_total_dim = self.cnn_output_size * (2 if num_views == 2 else 1)
-        meteo_total_dim = 128
+        meteo_total_dim = 0
         mlp_input_size = img_total_dim + meteo_total_dim
 
         # MLP final
