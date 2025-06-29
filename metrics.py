@@ -93,6 +93,8 @@ class Metrics:
         self._nyon_values = self.data["gre000z0_nyon"].to_numpy()
         self._dole_values = self.data["gre000z0_dole"].to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
+        import ipdb
+        ipdb.set_trace()
     
     def get_image_for_datetime(self, dt, view=2):
         date_str = dt.strftime('%Y-%m-%d')
