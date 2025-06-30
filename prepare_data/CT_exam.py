@@ -19,7 +19,7 @@ transformer_to_proj = Transformer.from_crs("EPSG:4326", "EPSG:21781", always_xy=
 transformer_to_latlon = Transformer.from_crs("EPSG:21781", "EPSG:4326", always_xy=True)
 
 # 2. Load NetCDF data
-nc = Dataset("/home/marta/Projects/tb/data/weather/inca/2024/20241111.nc")
+nc = Dataset("/home/marta/Projects/tb/data/weather/inca/2023/20230208.nc")
 
 # 3. Prepare grid and mask
 x_vals = nc.variables['x'][:]
@@ -43,7 +43,7 @@ sample_rate = 4
 sample_indices = np.arange(len(lon_flat))[::sample_rate]
 
 print(f"Sampling {len(sample_indices)} points from {len(lon_flat)} total points.")
-# 6. Prepare SU data and colormap 
+# 6. Prepare CT data and colormap 
 ct_var = nc.variables['SU'][:]
 
 valid_ct = ct_var[np.isfinite(ct_var)]  
@@ -52,7 +52,7 @@ if len(valid_ct) == 0:
     raise ValueError("Nessun dato valido nella variabile SU")
 
 min_ct, max_ct = np.min(valid_ct), np.max(valid_ct)
-
+print(f"SU values range: {min_ct:.2f} to {max_ct:.2f}")
 colormap = cm.LinearColormap(
     ['blue', 'green', 'yellow', 'red'],
     vmin=float(min_ct), 
@@ -109,7 +109,7 @@ folium.PolyLine(
     popup="Area"
 ).add_to(m)
 # Add colormap with larger font
-colormap.caption = 'SU Values (°C)' if 'SU' in nc.variables and hasattr(nc.variables['SU'], 'units') else 'SU Values'
+colormap.caption = 'SU Values (%)' if 'SU' in nc.variables and hasattr(nc.variables['SU'], 'units') else 'SU Values'
 colormap.width = 500
 colormap.add_to(m)
 # Add the specific coordinate point (46°25'29.3"N 6°05'56.9"E)
@@ -145,7 +145,7 @@ import os
 # [Keep all your initial setup code until the plotting part...]
 
 # Timestamp to save
-target_time_str = "2024-11-11T10:00:00"  # ISO 8601 format
+target_time_str = "2023-02-08T11:20:00"  # ISO 8601 format
 output_dir = "single_timestamp_maps"
 os.makedirs(output_dir, exist_ok=True)
 
@@ -176,7 +176,7 @@ mesh = ax.pcolormesh(lon, lat, ct_masked,
 
 # Add colorbar
 cbar = plt.colorbar(mesh, ax=ax, shrink=0.6)
-cbar.set_label("SU (°C)")
+cbar.set_label("SU (%)")
 
 # Add polygon outline
 poly_lons = [p[1] for p in polygon_points] + [polygon_points[0][1]]
@@ -216,23 +216,43 @@ ax.yaxis.set_major_locator(plt.AutoLocator())
 # Add special point
 dole_lat = 46 + 25/60 + 29.3/3600
 dole_lon = 6 + 5/60 + 56.9/3600
-ax.plot(dole_lon, dole_lat, 'g*', markersize=10, label='Dole Point')
+ax.plot(dole_lon, dole_lat, 'k*', markersize=10, label='Dole Point')
 geneva_lat = 46.220473615
 geneva_lon = 6.132936441
-ax.plot(geneva_lon, geneva_lat, 'ro', markersize=10, label='Geneva Point')
+ax.plot(geneva_lon, geneva_lat, 'yo', markersize=10, label='Geneva Point')
 nyon_lat = 46.3789
 nyon_lon = 6.2390
-ax.plot(nyon_lon, nyon_lat, 'bo', markersize=10, label='Nyon Point')
+ax.plot(nyon_lon, nyon_lat, 'go', markersize=10, label='Nyon Point')
 # Configure plot
 ax.set_title(f"SU Values - {datetimes[t].strftime('%Y-%m-%d %H:%M')}")
 ax.set_xlabel("Longitude")
 ax.set_ylabel("Latitude")
 ax.grid(True, linestyle=':', alpha=0.7)
 ax.legend()
+timestamp_img_path = os.path.join("/home/marta/Projects/tb/data/images/mch/1159/2/2023/02/08", "1159_2_2023-02-08_1120.jpeg")
+print(f"Checking for timestamp image at: {timestamp_img_path}")
+import matplotlib.image as mpimg
+
+if os.path.exists(timestamp_img_path):
+    print(f"✅ Timestamp image found: {timestamp_img_path}")
+    img = mpimg.imread(timestamp_img_path)
+
+    # Imposta spazio per l'immagine sotto il grafico
+    fig.subplots_adjust(bottom=0.3)  # Lascia spazio sotto l'axes principale
+
+    # Aggiungi un nuovo axes piccolo in basso, fuori dal grafico principale
+    img_ax = fig.add_axes([0.3, -0.37, 0.3, 0.35])  # [left, bottom, width, height]
+    img_ax.imshow(img)
+    img_ax.set_title(f"Image: {datetimes[t].strftime('%Y-%m-%d %H:%M')}", fontsize=12)
+    img_ax.axis('off')
+    
+    print("✅ Image label added below plot.")
+else:
+    print(f"⚠️ Timestamp image not found: {timestamp_img_path}. Skipping image label.")
 
 # Add min/max values
 plt.figtext(0.15, 0.02, 
-           f"Min: {np.nanmin(ct_masked):.1f} °C | Max: {np.nanmax(ct_masked):.1f} °C",
+           f"Min: {np.nanmin(ct_masked):.1f} % | Max: {np.nanmax(ct_masked):.1f} %",
            fontsize=10, ha='center')
 
 # Set equal aspect ratio
@@ -248,64 +268,10 @@ plt.close()
 print(f"✅ Map saved: {output_path}")
 # 9. Add title
 title_html = '''
-    <h3 align="center" style="font-size:16px"><b>CT Values - {}</b></h3>
+    <h3 align="center" style="font-size:16px"><b>SU Values - {}</b></h3>
 '''.format(datetimes[0].strftime('%Y-%m-%d'))
 m.get_root().html.add_child(folium.Element(title_html))
 
 # 10. Save map
 m.save("ct_interactive_map_optimized.html")
-print("Optimized map saved as ct_interactive_map_optimized.html")
-import imageio
-from tqdm import tqdm
-
-output_dir = "animation_frames"
-os.makedirs(output_dir, exist_ok=True)
-gif_path = "su_animation.gif"
-frame_paths = []
-
-# Optional: recalculate min/max on masked area only
-masked_vals = ct_var[:, :, :][mask]
-valid_vals = masked_vals[np.isfinite(masked_vals)]
-vmin = np.min(valid_vals)
-vmax = np.max(valid_vals)
-
-for t in tqdm(range(ct_var.shape[0])):
-    ct_slice = ct_var[t, :, :]
-    ct_masked = np.where(mask, ct_slice, np.nan)
-
-    fig, ax = plt.subplots(figsize=(10, 8))
-    mesh = ax.pcolormesh(lon, lat, ct_masked, cmap="coolwarm", vmin=vmin, vmax=vmax, shading='auto')
-    cbar = plt.colorbar(mesh, ax=ax, shrink=0.6)
-    cbar.set_label("SU (°C)")
-
-    ax.plot(poly_lons, poly_lats, color='blue', linestyle='--', marker='o', linewidth=1)
-
-    ax.set_title(f"SU - {datetimes[t].strftime('%Y-%m-%d %H:%M')}")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    ax.grid(True, linestyle=':', alpha=0.6)
-
-    # Optional: fixed view limits
-    ax.set_xlim([
-        lon_min - buffer_factor * lon_range,
-        lon_max + buffer_factor * lon_range
-    ])
-    ax.set_ylim([
-        lat_min - buffer_factor * lat_range,
-        lat_max + buffer_factor * lat_range
-    ])
-    ax.set_aspect('equal', adjustable='datalim')
-
-    frame_file = os.path.join(output_dir, f"frame_{t:03d}.png")
-    plt.tight_layout()
-    plt.savefig(frame_file, dpi=150, bbox_inches='tight')
-    plt.close()
-    frame_paths.append(frame_file)
-
-# Create GIF
-with imageio.get_writer(gif_path, mode='I', duration=0.5) as writer:
-    for frame_path in frame_paths:
-        image = imageio.imread(frame_path)
-        writer.append_data(image)
-
-print(f"✅ Animation saved as: {gif_path}")
+print("✅ Interactive map saved as 'ct_interactive_map_optimized.html'")

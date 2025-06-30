@@ -80,7 +80,7 @@ class Metrics:
         """Initialize and normalize data structures"""
         self.expected = pd.DataFrame(expected, columns=["nyon", "dole"])
         self.predicted = pd.DataFrame(predicted, columns=["nyon", "dole"])
-     
+    
         # Normalize the input data
         self.data = pd.json_normalize(pd.DataFrame(data["dole"])[0])
         
@@ -89,13 +89,43 @@ class Metrics:
         self.data["gre000z0_nyon"] = pd.to_numeric(self.data["gre000z0_nyon"])
         self.data["gre000z0_dole"] = pd.to_numeric(self.data["gre000z0_dole"])
         
-        # Pre-compute numpy arrays for faster operations
-        self._nyon_values = self.data["gre000z0_nyon"].to_numpy()
-        self._dole_values = self.data["gre000z0_dole"].to_numpy()
-        self._datetime_values = self.data["datetime"].to_numpy()
-        import ipdb
-        ipdb.set_trace()
-    
+        # Find matching indices in raw data
+        self._filtered_indices = self._find_matching_indices()
+        
+        # Filter the raw data to only include matching points
+        self._nyon_values = self.data["gre000z0_nyon"].iloc[self._filtered_indices].to_numpy()
+        self._dole_values = self.data["gre000z0_dole"].iloc[self._filtered_indices].to_numpy()
+        self._datetime_values = self.data["datetime"].iloc[self._filtered_indices].to_numpy()
+
+    def _find_matching_indices(self):
+        """Find indices in raw data that match expected values"""
+        matched_indices = []
+        exp_nyon = self.expected["nyon"].to_numpy()
+        exp_dole = self.expected["dole"].to_numpy()
+        
+        raw_nyon = self.data["gre000z0_nyon"].to_numpy()
+        raw_dole = self.data["gre000z0_dole"].to_numpy()
+        
+        for nyon, dole in zip(exp_nyon, exp_dole):
+            # Find closest match in raw data
+            distances = np.sqrt(
+                (raw_nyon - nyon)**2 + 
+                (raw_dole - dole)**2
+            )
+            min_idx = np.argmin(distances)
+            
+            if distances[min_idx] < 2.0:  # Only accept if within 2 W/m²
+                matched_indices.append(min_idx)
+            else:
+                self.logger.warning(f"No close match found for nyon={nyon}, dole={dole}")
+                matched_indices.append(None)  # Or handle missing values as needed
+        
+        # Verify we found exactly 74 matches
+        if len(matched_indices) != len(self.expected):
+            self.logger.error(f"Found {len(matched_indices)} matches but expected {len(self.expected)}")
+     
+        return [idx for idx in matched_indices if idx is not None]  # Filter out None values
+        
     def get_image_for_datetime(self, dt, view=2):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
@@ -142,33 +172,9 @@ class Metrics:
         return self._datetime_cache
         
     def _compute_datetime_list(self):
-        """Compute datetime list with vectorized operations"""
-        datetimes = []
-        
-        # Convert expected to numpy for faster access
-        exp_nyon = self.expected["nyon"].to_numpy()
-        exp_dole = self.expected["dole"].to_numpy()
-   
-        for nyon, dole in zip(exp_nyon, exp_dole):
-            # Vectorized comparison
-            mask = (
-                np.isclose(self._nyon_values, nyon, atol=1e-6) & 
-                np.isclose(self._dole_values, dole, atol=1e-6)
-            )
-            
-            # Apply date range filter if specified
-            if self.start_date and self.end_date:
-                date_mask = (
-                    (self._datetime_values >= self.start_date) & 
-                    (self._datetime_values <= self.end_date)
-                )
-                mask = mask & date_mask
-            
-            matches = self._datetime_values[mask]
-            datetimes.append(matches[0] if len(matches) > 0 else None)
-        import ipdb
-        ipdb.set_trace()
-        return datetimes
+        """Simply return the filtered datetime values"""
+       
+        return list(self._datetime_values)  # Now guaranteed to match expected/predicted
 
     def get_correct_predictions(self, tol: Optional[float] = None) -> int:
         """
@@ -461,7 +467,7 @@ class Metrics:
                 indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int)
             else:
                 indices = [0]
-
+      
             # Create figure with subplots: curves on top, images at the bottom
             fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])

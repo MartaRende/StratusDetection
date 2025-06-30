@@ -291,7 +291,8 @@ class PrepareData:
             # Ensure next_points have 10-minute intervals
             next_time_diffs = np.diff(next_points['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in next_time_diffs):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_points.")
+            
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_points.at datetime {next_points['datetime'].values[0]}.")
                 # Interpolate missing values in next_points
                 # next_points = next_points.interpolate(method='linear', limit_direction='both')
                 # import ipdb
@@ -304,7 +305,7 @@ class PrepareData:
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
             if not all(diff == 10 for diff in time_diffs):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.")
+                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals. at datetime {seq_window['datetime'].values[0]}.")
                 continue
 
             # Check if next point is exactly 60 minutes after last sequence point
@@ -313,7 +314,7 @@ class PrepareData:
             # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
             if np.isnan(meteo_sequence).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.")
+                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data.at datetime {seq_window['datetime'].values[0]}.")
                 continue
                 
             # Prepare image sequence
@@ -344,7 +345,7 @@ class PrepareData:
           
             # Use pd.isnull to handle all types safely
             if pd.isnull(target).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in target data.")
+                print(f"Skipping sequence starting at index {i} due to NaN values in target data. at datetime {seq_window['datetime'].values[0]}.")
                 continue
             
             # Add to sequences
@@ -565,7 +566,7 @@ class PrepareData:
         # Rename columns to remove '_t0' suffix
         test_data.columns = [c[:-3] if c.endswith('_t0') else c for c in test_data.columns]
         self.test_data = test_data.to_dict('records')
- 
+       
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
         # Ensure datetime and date_str columns exist
@@ -625,7 +626,7 @@ class PrepareData:
         label_names += ['datetime']
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_val_df = pd.DataFrame(y_val, columns=label_names)
-     
+       
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
 
