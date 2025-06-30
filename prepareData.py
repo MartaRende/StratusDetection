@@ -618,7 +618,7 @@ class PrepareData:
             rng = mx - mn if mx != mn else 1e-8
             df_out[var] = ((col - mn) / rng).fillna(0)
         flat_out = df_out.values
-        new_F = 13
+        new_F = 15
         reshaped = flat_out.reshape(N, T, new_F)
 
         if original_ndim == 2:
