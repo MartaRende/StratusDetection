@@ -300,7 +300,7 @@ class PrepareData:
                 continue
             # Use the three next points as the target
             target = next_points[["gre000z0_nyon", "gre000z0_dole"]].values
-
+     
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
            
