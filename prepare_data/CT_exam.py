@@ -19,7 +19,7 @@ transformer_to_proj = Transformer.from_crs("EPSG:4326", "EPSG:21781", always_xy=
 transformer_to_latlon = Transformer.from_crs("EPSG:21781", "EPSG:4326", always_xy=True)
 
 # 2. Load NetCDF data
-nc = Dataset("/home/marta/Projects/tb/data/weather/inca/2023/20230208.nc")
+nc = Dataset("/home/marta/Projects/tb/data/weather/inca/2024/20241116.nc")
 
 # 3. Prepare grid and mask
 x_vals = nc.variables['x'][:]
@@ -145,8 +145,8 @@ import os
 # [Keep all your initial setup code until the plotting part...]
 
 # Timestamp to save
-target_time_str = "2023-02-08T11:20:00"  # ISO 8601 format
-output_dir = "single_timestamp_maps"
+target_time_str = "2024-11-16T11:30:00"  # ISO 8601 format
+output_dir = "analysis/single_timestamp_maps"
 os.makedirs(output_dir, exist_ok=True)
 
 # 1. Find the corresponding time index
@@ -229,7 +229,7 @@ ax.set_xlabel("Longitude")
 ax.set_ylabel("Latitude")
 ax.grid(True, linestyle=':', alpha=0.7)
 ax.legend()
-timestamp_img_path = os.path.join("/home/marta/Projects/tb/data/images/mch/1159/2/2023/02/08", "1159_2_2023-02-08_1120.jpeg")
+timestamp_img_path = os.path.join("/home/marta/Projects/tb/data/images/mch/1159/2/2024/11/16", "1159_2_2024-11-16_1130.jpeg")
 print(f"Checking for timestamp image at: {timestamp_img_path}")
 import matplotlib.image as mpimg
 
