@@ -398,20 +398,22 @@ class PrepareData:
     def get_train_validation_days(self, train_days, split_ratio=0.2):
         train_days = list(train_days)
         # Use self.data to find stratus days
-        stratus_days,_,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
+        # stratus_days,_,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
+        stratus_days= train_days
         print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
         train_stratus_days = set(stratus_days[split_index:])
         test_stratus_days = set(stratus_days[:split_index])
-        
+      
         non_stratus_days = [d for d in train_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(train_days) * (1 - split_ratio)) - len(train_stratus_days)
 
-        train_days = set(list(train_stratus_days) + non_stratus_days[:remaining_train])
-        test_days = set(list(test_stratus_days) + non_stratus_days[remaining_train:])
+        train_days = set(list(train_stratus_days))
+        test_days = set(list(test_stratus_days))
         print(f"Train days: {len(train_days)}, Test days: {len(test_days)}")
+      
         return train_days, test_days
     
     def get_test_train_days(self, split_ratio=0.8):
@@ -426,8 +428,9 @@ class PrepareData:
         non_stratus_days = [d for d in all_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(all_days) * split_ratio) - len(train_stratus_days)
-        train_days = set(list(train_stratus_days) + non_stratus_days[:remaining_train])
-        test_days = set(list(test_stratus_days) + non_stratus_days[remaining_train:])
+        train_days = set(list(train_stratus_days) )
+        test_days = set(list(test_stratus_days))
+     
         return train_days, test_days
 
     def split_data(self, x_meteo, x_images, y):
