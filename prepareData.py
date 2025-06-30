@@ -306,10 +306,16 @@ class PrepareData:
            
             if not all(diff == 10 for diff in time_diffs):
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals. at datetime {seq_window['datetime'].values[0]}.")
+           
                 continue
 
             # Check if next point is exactly 60 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
+          
+            
+            if (next_points['datetime'].values[0] - last_seq_time) != timedelta(minutes=10):
+                print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point. at datetime {seq_window['datetime'].values[-1]}.")
+                continue
            
             # Prepare meteorological data sequence
             meteo_sequence = seq_window[meteo_features].values
@@ -347,7 +353,7 @@ class PrepareData:
             if pd.isnull(target).any():
                 print(f"Skipping sequence starting at index {i} due to NaN values in target data. at datetime {seq_window['datetime'].values[0]}.")
                 continue
-            
+        
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
             x_images_seq.append(np.array(img_sequence))
