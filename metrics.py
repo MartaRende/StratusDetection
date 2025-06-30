@@ -82,8 +82,7 @@ class Metrics:
         self._nyon_values = self.data["gre000z0_nyon"].to_numpy()
         self._dole_values = self.data["gre000z0_dole"].to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
-        import ipdb
-        ipdb.set_trace()
+      
     def get_image_for_datetime(self, dt, view=2):
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
@@ -154,8 +153,7 @@ class Metrics:
             
             matches = self._datetime_values[mask]
             datetimes.append(matches[0] if len(matches) > 0 else None)
-        import ipdb
-        ipdb.set_trace()
+  
         return datetimes
 
     def get_correct_predictions(self, tol: Optional[float] = None) -> int:
@@ -387,8 +385,7 @@ class Metrics:
                 indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int)
             else:
                 indices = [0]
-            import ipdb
-            ipdb.set_trace()
+     
             # Create figure with subplots: curves on top, images at the bottom
             fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])

@@ -143,7 +143,7 @@ for year, month in months:
             max_delta = stats_label["delta_gre000z0"]["max"]
 
             y = y * (max_delta - min_delta) + min_delta
-     
+            
             # delta_gre000z0
             # expected[0] = expected[0] * (max_nyon - min_nyon) + min_nyon
             # expected[1] = expected[1] * (max_dole - min_dole) + min_dole
