@@ -67,8 +67,7 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction_times}
 all_expected = {t: [] for t in prediction_times}
 
-months = [(2024, m) for m in range(9, 10)]
-#+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -136,7 +135,7 @@ for year, month in months:
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
             
-        for i in range(total_predictions):
+        for i in range(int(total_predictions)):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
@@ -213,7 +212,7 @@ for year, month in months:
                 x_meteo_not_norm, y_predicted, 
                 stratus_days_for_month,
                 time_interval_min=10, 
-                prediction_horizons=[10, 20, 30, 40, 50, 60]
+                prediction_horizons=[10, 60]
             )
         if random_non_stratus_days:
             metrics.plot_prediction_curves(
