@@ -196,7 +196,7 @@ class Metrics:
         return self.expected
     def get_mean_absolute_error(self) -> float:
         """Calculate MAE for delta values"""
-        return np.abs(self.predicted['delta'] - self.exp_converted()['delta']).mean()
+        return np.abs(self.predicted['delta'] / self.exp_converted()['delta']).mean()
 
     def get_root_mean_squared_error(self) -> float:
         """Calculate RMSE for delta values"""
@@ -217,7 +217,7 @@ class Metrics:
         """Create a combined dataframe with all comparison data"""
         return pd.DataFrame({
             "datetime": np.array(self.datetime_list).flatten(),
-            "expected_delta": (self.expected["dole"] - self.expected["nyon"]).to_numpy().flatten(),
+            "expected_delta": (self.expected["dole"] / self.expected["nyon"]).to_numpy().flatten(),
             "predicted_delta": self.predicted.to_numpy().flatten(),
         }).dropna(subset=["datetime"])
 

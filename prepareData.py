@@ -197,7 +197,7 @@ class PrepareData:
                         df.drop([col_dole, col_nyon], axis=1, inplace=True, errors="ignore")
             else:
                 if "gre000z0_dole" in df.columns and "gre000z0_nyon" in df.columns:
-                    df["delta_gre000z0"] = df["gre000z0_dole"] - df["gre000z0_nyon"]
+                    df["delta_gre000z0"] = df["gre000z0_dole"] / df["gre000z0_nyon"]
                     df.drop(["gre000z0_dole", "gre000z0_nyon"], axis=1, inplace=True, errors="ignore")
 
         # Adjust var_order if provided
@@ -649,7 +649,7 @@ class PrepareData:
                 col_delta = f"delta_gre000z0_t{t}"
 
                 if col_dole in df.columns and col_nyon in df.columns:
-                    delta = df[col_dole] - df[col_nyon]
+                    delta = df[col_dole] / df[col_nyon]
                     mn = stats[col_delta]["min"]
                     mx = stats[col_delta]["max"]
                     rng = mx - mn if mx != mn else 1e-8
