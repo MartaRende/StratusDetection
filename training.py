@@ -38,7 +38,7 @@ else:
     print(f"Path {FP_IMAGES} exists.")
 
 print("FP_IMAGES:", FP_IMAGES)
-FP_WEATHER_DATA = "data/complete_data.npz"
+FP_WEATHER_DATA = "data/complete_data_gen.npz"
 
 # Initialize data loader
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
@@ -203,7 +203,7 @@ losses = {"train": [], "eval": [], "test": []}
 accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
 
 # Training loop
-num_epochs = 35  # Increase as needed
+num_epochs = 100  # Increase as needed
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}")

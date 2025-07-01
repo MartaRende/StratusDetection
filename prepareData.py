@@ -398,8 +398,7 @@ class PrepareData:
     def get_train_validation_days(self, train_days, split_ratio=0.2):
         train_days = list(train_days)
         # Use self.data to find stratus days
-        # stratus_days,_,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
-        stratus_days= train_days
+        stratus_days,_,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
         print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
@@ -410,8 +409,8 @@ class PrepareData:
         random.shuffle(non_stratus_days)
         remaining_train = int(len(train_days) * (1 - split_ratio)) - len(train_stratus_days)
 
-        train_days = set(list(train_stratus_days))
-        test_days = set(list(test_stratus_days))
+        train_days = set(list(train_stratus_days)+ non_stratus_days[:remaining_train])
+        test_days = set(list(test_stratus_days)+ non_stratus_days[remaining_train:])
         print(f"Train days: {len(train_days)}, Test days: {len(test_days)}")
       
         return train_days, test_days
@@ -422,15 +421,24 @@ class PrepareData:
         print("Stratus days found:", len(stratus_days))
         random.shuffle(stratus_days)
         split_index = int(split_ratio * len(stratus_days))
+
+        specific_test_days = ["2023-03-03", "2024-12-26", "2023-02-13", "2024-10-25",  "2024-11-03","2024-11-08", "2023-01-27"
+                              , "2023-01-25", "2023-02-09","2024-10-30", "2024-11-09", "2024-10-19", "2024-11-16", "2024-12-01"]  # Example specific test days
+
         train_stratus_days = set(stratus_days[:split_index])
         test_stratus_days = set(stratus_days[split_index:])
-       
+           
         non_stratus_days = [d for d in all_days if d not in stratus_days]
         random.shuffle(non_stratus_days)
         remaining_train = int(len(all_days) * split_ratio) - len(train_stratus_days)
-        train_days = set(list(train_stratus_days) )
-        test_days = set(list(test_stratus_days))
-     
+        train_days = set(list(train_stratus_days) + non_stratus_days[:remaining_train])
+        test_days = set(list(test_stratus_days) + non_stratus_days[remaining_train:])
+
+        # Override test_days if a specific list is provided
+        if specific_test_days is not None:
+            test_days = set(specific_test_days)
+            train_days = set([d for d in all_days if d not in test_days])
+        print(f"Train days: {train_days}, Test days: {test_days}", "length:", len(train_days), len(test_days))
         return train_days, test_days
 
     def split_data(self, x_meteo, x_images, y):
