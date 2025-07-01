@@ -193,7 +193,7 @@ class PrepareData:
                     col_nyon = f"gre000z0_nyon_t{t}"
                     col_delta = f"delta_gre000z0_t{t}"
                     if col_dole in df.columns and col_nyon in df.columns:
-                        df[col_delta] = df[col_dole] - df[col_nyon]
+                        df[col_delta] = df[col_dole] / df[col_nyon]
                         df.drop([col_dole, col_nyon], axis=1, inplace=True, errors="ignore")
             else:
                 if "gre000z0_dole" in df.columns and "gre000z0_nyon" in df.columns:
@@ -246,9 +246,7 @@ class PrepareData:
         train_norm = process(train_df)
         validation_norm = process(validation_df)
         test_norm = process(test_df)
-        import ipdb
-        ipdb.set_trace()
-        
+    
         return train_norm.values, validation_norm.values, test_norm.values, stats
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
