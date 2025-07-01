@@ -830,6 +830,8 @@ class Metrics:
         df['date_str'] = df['datetime'].dt.strftime('%Y-%m-%d')
         df = df.sort_values('datetime').reset_index(drop=True)
         missing_days = set(days) - set(df['date_str'].unique())
+       
+        # Filter complete data for the specified days
         
         if missing_days:
             print(f"Warning: No data found for days: {missing_days}")
