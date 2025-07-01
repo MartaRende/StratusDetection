@@ -663,7 +663,7 @@ class PrepareData:
 
         flat_out = df_out.values
         reshaped = flat_out.reshape(N, T, F)
-
+     
         if original_ndim == 2:
             return reshaped[:, 0, :]  # Back to 2D
         return reshaped

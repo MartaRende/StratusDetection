@@ -818,52 +818,72 @@ class Metrics:
         """
         # Get the datetime values that were already matched with expected/predicted values
         datetimes = self.datetime_list
-        import ipdb
-        ipdb.set_trace()
+   
 
         # Create base DataFrame with datetime and expected values
         df = pd.DataFrame({
         'datetime': self.datetime_list,
-        'expected_nyon': [x[0] for x in expected_values[-1]],
-        'expected_dole': [x[1] for x in expected_values[-1]],
+        'expected_nyon': [x[0] for x in expected_values[:, -1, :]],
+        'expected_dole': [x[1] for x in expected_values[:, -1, :]],
     })
-    
-        # Filter for specific days
         df['date_str'] = df['datetime'].dt.strftime('%Y-%m-%d')
+        missing_days = set(days) - set(df['date_str'].unique())
+        
+        if missing_days:
+            print(f"Warning: No data found for days: {missing_days}")
+        
         df = df[df['date_str'].isin(days)]
         
-        # Convert datetime to hour:minute format for plotting
-        df['hour'] = df['datetime'].dt.strftime('%H:%M')
+        if df.empty:
+            print("Warning: No data remaining after filtering for specified days")
+            return df
         
-        # Add month column for saving plots
+        # Convert datetime to hour:minute format
+        df['hour'] = df['datetime'].dt.strftime('%H:%M')
         df['month'] = df['datetime'].dt.strftime('%Y-%m')
         
+        # Get indices of filtered datetimes in original data
+        original_indices = [i for i, dt in enumerate(self.datetime_list) if dt in df['datetime'].values]
+      
         # Add predictions for each time step
-        for i, t in enumerate(time_steps):
-            # Get the predictions for this time step (every 2 values corresponds to one time step)
-            nyon_preds = [pred[i*2] for pred in predicted_values]
-            dole_preds = [pred[i*2+1] for pred in predicted_values]
+        for t in time_steps:
+     
             
-            df[f'predicted_nyon_t{t}'] = nyon_preds
-            df[f'predicted_dole_t{t}'] = dole_preds
+            # Get predictions and expected values for this time step
+            preds = predicted_values[t]
+            expected = expected_values[:, -1, 0:2]
             
-            # Calculate future datetimes for this prediction horizon
-            # Assuming each time step is 10 minutes (adjust if different)
-            import ipdb
-            ipdb.set_trace()
-            df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10*i)
+            # Verify lengths match
+            if len(preds) != len(self.datetime_list) or len(expected) != len(self.datetime_list):
+                print(f"Warning: Length mismatch for time step {t}")
+                continue
+
+            
+            # Filter to only include data for our selected days
+            filtered_preds = [preds[i] for i in original_indices]
+            filtered_expected = [expected[i] for i in original_indices]
+            
+            # Add to dataframe
+     
+            df[f'predicted_nyon_{t}'] = [x[0] for x in filtered_preds]
+            df[f'predicted_dole_{t}'] = [x[1] for x in filtered_preds]
+            
+            # Calculate future datetimes
+            step_num = int(t.split('_')[1])
+            df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10*(step_num+1))
             df[f'hour_{t}'] = df[f'datetime_{t}'].dt.strftime('%H:%M')
-        
+
         return df
 
     def plot_prediction_curves(self, 
-                            expected_values: List[List[float]],
-                            predicted_values: List[List[float]],
-                            days: List[str],
-                            time_interval_min: int = 10,
-                            prediction_horizons: List[int] = [10, 20, 30, 40, 50, 60]) -> None:
+                         expected_values: List[List[float]],
+                         predicted_values: List[List[float]],
+                         days: List[str],
+                         time_interval_min: int = 10,
+                         prediction_horizons: List[int] = [10, 20, 30, 40, 50, 60]) -> None:
         """
-        Plot prediction curves for multiple horizons from each observation point for specific days.
+        Plot prediction curves for multiple horizons from each observation point for specific days,
+        with images displayed at the bottom as in plot_day_curves.
         
         Args:
             expected_values: List of expected values
@@ -874,82 +894,130 @@ class Metrics:
         """
         # Create dataframe filtered for specific days
         day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
-        
         if day_df.empty:
             self.logger.warning(f"No data found for days: {days}")
             return
 
-        fig, ax = plt.subplots(figsize=(15, 8))
-        
-        # Convert prediction horizons to time steps
-        time_steps = [h // time_interval_min for h in prediction_horizons]
-        
-        # Plot actual observations
-        ax.plot(day_df["hour"], day_df["expected_nyon"], 
-                'o', color='blue', markersize=8, label='Actual Nyon')
-        ax.plot(day_df["hour"], day_df["expected_dole"], 
-                'o', color='red', markersize=8, label='Actual Dole')
-        
-        # For each observation point, plot prediction curves
-        for _, row in day_df.iterrows():
-            current_time = row["hour"]
-            current_nyon = row["expected_nyon"]
-            current_dole = row["expected_dole"]
-            
-            # Plot prediction curves for each horizon
-            for j, t in enumerate(time_steps):
-                # Get prediction and future time
-                pred_nyon = row[f"predicted_nyon_t{t}"]
-                pred_dole = row[f"predicted_dole_t{t}"]
-                future_time = row[f"hour_t{t}"]
-                
-                # Use different line styles for each horizon
-                linestyle = ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))][j % 6]
-                
-                # Plot from current point to prediction
-                ax.plot([current_time, future_time], [current_nyon, pred_nyon],
-                        linestyle=linestyle, color='blue', alpha=0.7,
-                        label=f'Nyon +{prediction_horizons[j]}min' if _ == 0 else "")
-                ax.plot([current_time, future_time], [current_dole, pred_dole],
-                        linestyle=linestyle, color='red', alpha=0.7,
-                        label=f'Dole +{prediction_horizons[j]}min' if _ == 0 else "")
+        # Plot each day separately
+        for day in days:
+            df_day = day_df[day_df["date_str"] == day]
+            if df_day.empty:
+                self.logger.warning(f"No data found for day: {day}")
+                continue
 
-        # Formatting
-        ax.set_title(f"Prediction Curves - {days[0]}", fontsize=14)
-        ax.set_ylabel("Radiation (W/m²)", fontsize=12)
-        ax.set_xlabel("Time", fontsize=12)
-        
-        # Set x-axis ticks every 30 minutes
-        times = pd.to_datetime(day_df["hour"], format="%H:%M").dt.time
-        ax.set_xticks([
-            t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 30 == 0
-        ])
-        ax.set_xticklabels([
-            t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 30 == 0
-        ], rotation=45)
-        
-        # Create custom legend entries
-        from matplotlib.lines import Line2D
-        legend_elements = [
-            Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Nyon'),
-            Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Actual Dole'),
-            *[Line2D([0], [0], color='gray', linestyle=linestyle, 
-            label=f'+{h}min') for h, linestyle in zip(prediction_horizons, 
-                                                    ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))])
-        ]]
-        
-        ax.legend(handles=legend_elements, loc='upper right')
-        ax.grid(True)
-        
-        # Save plot in month directory
-        month = day_df["month"].iloc[0]
-        month_dir = os.path.join(self.save_path, month)
-        os.makedirs(month_dir, exist_ok=True)
-        
-        plt.tight_layout()
-        plt.savefig(
-            os.path.join(month_dir, f"prediction_curves_{days[0]}.png"),
-            dpi=self.plot_config.dpi,
-            bbox_inches='tight'
-        )
-        plt.close()
+            # Prepare for images
+            day_datetimes = df_day["datetime"].tolist()
+            num_images = min(6, len(day_datetimes))
+            if num_images > 1:
+                indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int)
+            else:
+                indices = [0]
+
+            # Create figure with subplots: curves on top, images at the bottom
+            fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
+            gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
+
+            # Top subplot for curves
+            ax = fig.add_subplot(gs[0])
+            
+            # Convert prediction horizons to time steps
+            time_steps = [f"t_{h // time_interval_min - 1}" for h in prediction_horizons]
+            
+            # Plot actual observations - only once per point
+            ax.plot(df_day["hour"], df_day["expected_nyon"], 
+                    '-o', color='blue', markersize=8, label='Actual Nyon')
+            ax.plot(df_day["hour"], df_day["expected_dole"], 
+                    '-o', color='red', markersize=8, label='Actual Dole')
+            
+            # For each observation point, plot prediction curves
+            for i, row in df_day.iterrows():
+                current_time = row["hour"]
+                current_nyon = row["expected_nyon"]
+                current_dole = row["expected_dole"]
+                
+                # Draw a vertical line connecting the actual point to the predicted points for each horizon
+                for j, t in enumerate(time_steps):
+                    pred_nyon = row.get(f"predicted_nyon_{t}", None)
+                    pred_dole = row.get(f"predicted_dole_{t}", None)
+                    future_time = row.get(f"hour_{t}", None)
+                    if pred_nyon is None or pred_dole is None or future_time is None:
+                        continue
+                    linestyle = ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))][j % 6]
+                    nyon_label = f'Nyon +{prediction_horizons[j]}min' if i == 0 else ""
+                    dole_label = f'Dole +{prediction_horizons[j]}min' if i == 0 else ""
+                    
+                    # Draw a line from the actual point to the predicted point
+                    ax.plot([current_time, future_time], [current_nyon, pred_nyon],
+                            linestyle=linestyle, color='blue', alpha=0.7,
+                            label=nyon_label)
+                    ax.plot([current_time, future_time], [current_dole, pred_dole],
+                            linestyle=linestyle, color='red', alpha=0.7,
+                            label=dole_label)
+
+            ax.set_title(f"Prediction Curves - {day}", fontsize=14)
+            ax.set_ylabel("Radiation (W/m²)", fontsize=12)
+            ax.set_xlabel("Time", fontsize=12)
+            
+            # Set x-axis ticks every 10 minutes (timestamp)
+            # Use the actual datetime for x-axis ticks
+            times = df_day["datetime"]
+            tick_indices = [i for i, dt in enumerate(times)]
+            tick_labels = [dt.strftime("%H:%M") for dt in times]
+            ax.set_xticks(tick_labels)
+            ax.set_xticklabels(tick_labels, rotation=45)
+            
+            # Create custom legend entries
+            from matplotlib.lines import Line2D
+            legend_elements = [
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Nyon'),
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Actual Dole'),
+                *[Line2D([0], [0], color='gray', linestyle=linestyle, 
+                label=f'+{h}min') for h, linestyle in zip(prediction_horizons, 
+                                                        ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))])
+            ]]
+            ax.legend(handles=legend_elements, loc='upper right')
+            ax.grid(True)
+
+            # Bottom subplot for images using get_image_for_datetime
+            ax2 = fig.add_subplot(gs[1])
+            ax2.axis('off')
+
+            # Display images horizontally at the bottom
+            if num_images > 0:
+                img_width = 1.0 / num_images
+                for i, idx in enumerate(indices):
+                    dt = day_datetimes[idx]
+                    img = self.get_image_for_datetime(dt)
+                    # Check if the image is completely black (all zeros)
+                    if isinstance(img, list) or img is None or len(np.shape(img)) == 0:
+                        continue
+                    if np.all(img == 0):
+                        self.logger.warning(f"Image for {dt} is completely black.")
+                    else:
+                        # Optional: normalize for visibility if dynamic range is too low
+                        if img.max() - img.min() < 1e-3:
+                            print(f"Warning: Image for {dt} has very low dynamic range.")
+                            img = (img - img.min()) / (img.max() - img.min() + 1e-6)
+                    # Ensure RGB format if needed
+                    if img.ndim == 2:
+                        print(f"Converting grayscale image for {dt} to RGB.")
+                        img = np.stack([img] * 3, axis=-1)
+                    left = i * img_width
+                    ax_img = fig.add_axes([left, -0.1, img_width, 0.25])
+                    ax_img.imshow(img)
+                    ax_img.set_title(dt.strftime("%H:%M"), fontsize=8)
+                    ax_img.axis('off')
+
+            # Save plot
+            month = df_day["month"].iloc[0]
+            month_dir = os.path.join(self.save_path, month)
+            os.makedirs(month_dir, exist_ok=True)
+            
+            plt.tight_layout()
+            plt.savefig(
+                os.path.join(month_dir, f"prediction_curves_{day}.png"),
+                dpi=self.plot_config.dpi,
+                bbox_inches='tight'
+            )
+            print(f"Saved prediction curves plot for {day} to {month_dir}")
+            plt.close()

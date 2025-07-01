@@ -15,7 +15,7 @@ import json
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 72 # or any number you want
+MODEL_NUM = 81 # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -67,8 +67,7 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction_times}
 all_expected = {t: [] for t in prediction_times}
 
-months = [(2024, m) for m in range(12, 13)]
-#+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)]+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -206,13 +205,23 @@ for year, month in months:
             # # Compute metrics for this month
             # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
             # # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
-    
-        metrics.plot_prediction_curves(
-            x_meteo_not_norm   , y_predicted, 
-            stratus_days_for_month,
-            time_interval_min=10, 
-            prediction_horizons=[10, 20, 30, 40, 50, 60]
-        )
+
+        if stratus_days_for_month:
+            # Plot prediction curves for stratus days
+            metrics.plot_prediction_curves(
+                x_meteo_not_norm, y_predicted, 
+                stratus_days_for_month,
+                time_interval_min=10, 
+                prediction_horizons=[10, 20, 30, 40, 50, 60]
+            )
+        if random_non_stratus_days:
+            metrics.plot_prediction_curves(
+                x_meteo_not_norm, y_predicted, 
+                non_stratus_days_for_month,
+                time_interval_min=10, 
+                prediction_horizons=[10, 60]
+            )
+        
 
 
 for t in prediction_times:
@@ -223,9 +232,9 @@ for t in prediction_times:
         start_date="2023-01-01", end_date="2024-12-31", time_key=t,stats_for_month=False
     )
 
-    global_metrics.save_metrics_report(
-        stratus_days=stratus_days, non_stratus_days=non_stratus_days
-    )
+    # global_metrics.save_metrics_report(
+    #     stratus_days=stratus_days, non_stratus_days=non_stratus_days
+    # )
     
 # Add this after your existing code, inside the same script
 
@@ -390,7 +399,7 @@ stratus_nonstratus_plot_path = os.path.join(MODEL_PATH, "stratus_vs_nonstratus_m
 plt.savefig(stratus_nonstratus_plot_path, dpi=300, bbox_inches='tight')
 plt.close()
 
-print(f"Saved stratus vs non-stratus metrics plot to {stratus_nonstratus_plot_path}")
-stratus_mae, stratus_rmse, stratus_rel_err = stratus_days_metrics
-non_stratus_mae, non_stratus_rmse, non_stratus_rel_err = non_stratus_metrics
+# print(f"Saved stratus vs non-stratus metrics plot to {stratus_nonstratus_plot_path}")
+# stratus_mae, stratus_rmse, stratus_rel_err = stratus_days_metrics
+# non_stratus_mae, non_stratus_rmse, non_stratus_rel_err = non_stratus_metrics
 
