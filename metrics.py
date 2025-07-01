@@ -797,3 +797,159 @@ class Metrics:
                     else [sublist])]
         days = [str(d) for d in days] if days else []
         return days
+
+    def create_prediction_dataframe(self, 
+                              expected_values: List[List[float]], 
+                              predicted_values: List[List[float]], 
+                              days: List[str],
+                              time_steps: List[int] = ["t_0", "t_1", "t_2", "t_3", "t_4", "t_5"]) -> pd.DataFrame:
+        """
+        Create a structured DataFrame containing expected values and predictions at multiple time steps,
+        filtered for specific days.
+        
+        Args:
+            expected_values: List of expected values for each time point [[nyon, dole], ...]
+            predicted_values: List of predicted values for each time point [[nyon_t0, dole_t0, nyon_t1, dole_t1, ...], ...]
+            days: List of dates in format 'YYYY-MM-DD' to filter by
+            time_steps: List of prediction time steps (1=10min, 2=20min, etc.)
+        
+        Returns:
+            pd.DataFrame: Structured DataFrame with expected and predicted values for all time steps
+        """
+        # Get the datetime values that were already matched with expected/predicted values
+        datetimes = self.datetime_list
+        import ipdb
+        ipdb.set_trace()
+
+        # Create base DataFrame with datetime and expected values
+        df = pd.DataFrame({
+        'datetime': self.datetime_list,
+        'expected_nyon': [x[0] for x in expected_values[-1]],
+        'expected_dole': [x[1] for x in expected_values[-1]],
+    })
+    
+        # Filter for specific days
+        df['date_str'] = df['datetime'].dt.strftime('%Y-%m-%d')
+        df = df[df['date_str'].isin(days)]
+        
+        # Convert datetime to hour:minute format for plotting
+        df['hour'] = df['datetime'].dt.strftime('%H:%M')
+        
+        # Add month column for saving plots
+        df['month'] = df['datetime'].dt.strftime('%Y-%m')
+        
+        # Add predictions for each time step
+        for i, t in enumerate(time_steps):
+            # Get the predictions for this time step (every 2 values corresponds to one time step)
+            nyon_preds = [pred[i*2] for pred in predicted_values]
+            dole_preds = [pred[i*2+1] for pred in predicted_values]
+            
+            df[f'predicted_nyon_t{t}'] = nyon_preds
+            df[f'predicted_dole_t{t}'] = dole_preds
+            
+            # Calculate future datetimes for this prediction horizon
+            # Assuming each time step is 10 minutes (adjust if different)
+            import ipdb
+            ipdb.set_trace()
+            df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10*i)
+            df[f'hour_{t}'] = df[f'datetime_{t}'].dt.strftime('%H:%M')
+        
+        return df
+
+    def plot_prediction_curves(self, 
+                            expected_values: List[List[float]],
+                            predicted_values: List[List[float]],
+                            days: List[str],
+                            time_interval_min: int = 10,
+                            prediction_horizons: List[int] = [10, 20, 30, 40, 50, 60]) -> None:
+        """
+        Plot prediction curves for multiple horizons from each observation point for specific days.
+        
+        Args:
+            expected_values: List of expected values
+            predicted_values: List of predicted values
+            days: List of dates in format 'YYYY-MM-DD' to plot
+            time_interval_min: Time interval between observations in minutes
+            prediction_horizons: List of prediction horizons in minutes
+        """
+        # Create dataframe filtered for specific days
+        day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
+        
+        if day_df.empty:
+            self.logger.warning(f"No data found for days: {days}")
+            return
+
+        fig, ax = plt.subplots(figsize=(15, 8))
+        
+        # Convert prediction horizons to time steps
+        time_steps = [h // time_interval_min for h in prediction_horizons]
+        
+        # Plot actual observations
+        ax.plot(day_df["hour"], day_df["expected_nyon"], 
+                'o', color='blue', markersize=8, label='Actual Nyon')
+        ax.plot(day_df["hour"], day_df["expected_dole"], 
+                'o', color='red', markersize=8, label='Actual Dole')
+        
+        # For each observation point, plot prediction curves
+        for _, row in day_df.iterrows():
+            current_time = row["hour"]
+            current_nyon = row["expected_nyon"]
+            current_dole = row["expected_dole"]
+            
+            # Plot prediction curves for each horizon
+            for j, t in enumerate(time_steps):
+                # Get prediction and future time
+                pred_nyon = row[f"predicted_nyon_t{t}"]
+                pred_dole = row[f"predicted_dole_t{t}"]
+                future_time = row[f"hour_t{t}"]
+                
+                # Use different line styles for each horizon
+                linestyle = ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))][j % 6]
+                
+                # Plot from current point to prediction
+                ax.plot([current_time, future_time], [current_nyon, pred_nyon],
+                        linestyle=linestyle, color='blue', alpha=0.7,
+                        label=f'Nyon +{prediction_horizons[j]}min' if _ == 0 else "")
+                ax.plot([current_time, future_time], [current_dole, pred_dole],
+                        linestyle=linestyle, color='red', alpha=0.7,
+                        label=f'Dole +{prediction_horizons[j]}min' if _ == 0 else "")
+
+        # Formatting
+        ax.set_title(f"Prediction Curves - {days[0]}", fontsize=14)
+        ax.set_ylabel("Radiation (W/m²)", fontsize=12)
+        ax.set_xlabel("Time", fontsize=12)
+        
+        # Set x-axis ticks every 30 minutes
+        times = pd.to_datetime(day_df["hour"], format="%H:%M").dt.time
+        ax.set_xticks([
+            t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 30 == 0
+        ])
+        ax.set_xticklabels([
+            t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 30 == 0
+        ], rotation=45)
+        
+        # Create custom legend entries
+        from matplotlib.lines import Line2D
+        legend_elements = [
+            Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Nyon'),
+            Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Actual Dole'),
+            *[Line2D([0], [0], color='gray', linestyle=linestyle, 
+            label=f'+{h}min') for h, linestyle in zip(prediction_horizons, 
+                                                    ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))])
+        ]]
+        
+        ax.legend(handles=legend_elements, loc='upper right')
+        ax.grid(True)
+        
+        # Save plot in month directory
+        month = day_df["month"].iloc[0]
+        month_dir = os.path.join(self.save_path, month)
+        os.makedirs(month_dir, exist_ok=True)
+        
+        plt.tight_layout()
+        plt.savefig(
+            os.path.join(month_dir, f"prediction_curves_{days[0]}.png"),
+            dpi=self.plot_config.dpi,
+            bbox_inches='tight'
+        )
+        plt.close()

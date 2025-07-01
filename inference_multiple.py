@@ -85,7 +85,7 @@ for year, month in months:
     with torch.no_grad():
         prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len)   
         x_meteo, x_images, y_expected = prepare_data.load_data_test(start_date=start_date, end_date=end_date)
-        
+        x_meteo_not_norm = x_meteo
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
@@ -184,9 +184,9 @@ for year, month in months:
             print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
         else:
             print("No non-stratus days to select for plotting.")
-            
-        
-        # Append to global results
+        metrics = Metrics(final_expected[prediction_times[0]], y_predicted[prediction_times[0]], data, save_path=MODEL_PATH,
+                            fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=0)
+
         for t in prediction_times:
 
             all_predicted[t].extend(y_predicted[t])
@@ -196,16 +196,24 @@ for year, month in months:
             metrics = Metrics(final_expected[t], y_predicted[t], data, save_path=MODEL_PATH,
                             fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=t)
             
-            # Plot curves for stratus days
-            metrics.plot_day_curves(stratus_days_for_month)
+            # # Plot curves for stratus days
+            # metrics.plot_day_curves(stratus_days_for_month)
             
-            # Plot curves for random non-stratus days
+            # # Plot curves for random non-stratus days
            
-            metrics.plot_day_curves(random_non_stratus_days)
+            # metrics.plot_day_curves(random_non_stratus_days)
         
-            # Compute metrics for this month
-            metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-            metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+            # # Compute metrics for this month
+            # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+            # # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+    
+        metrics.plot_prediction_curves(
+            x_meteo_not_norm   , y_predicted, 
+            stratus_days_for_month,
+            time_interval_min=10, 
+            prediction_horizons=[10, 20, 30, 40, 50, 60]
+        )
+
 
 for t in prediction_times:
     

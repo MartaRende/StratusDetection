@@ -360,8 +360,7 @@ class PrepareData:
             y_seq.append(target)
             valid_indices.append(i)
            
-            import ipdb
-            ipdb.set_trace()
+        
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)
