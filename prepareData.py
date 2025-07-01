@@ -416,29 +416,38 @@ class PrepareData:
         return train_days, test_days
     
     def get_test_train_days(self, split_ratio=0.8):
-        stratus_days, _, self.stats_stratus_days = self.find_stratus_days()
-        all_days = self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist()
-        print("Stratus days found:", len(stratus_days))
+        # Find stratus and non-stratus days
+        stratus_days, non_stratus_days, self.stats_stratus_days = self.find_stratus_days()
+        all_days = sorted(self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist())
+
+        # Specific test days to always include
+        specific_test_days = [
+            "2023-03-03", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", "2024-11-08", "2023-01-27",
+            "2023-01-25", "2023-02-09", "2024-10-30", "2024-11-09", "2024-10-19", "2024-11-16", "2024-12-01"
+        ]
+        # Only keep specific test days that are in all_days
+        specific_test_days = [d for d in specific_test_days if d in all_days]
+
+        # Split stratus days
+        stratus_days = [d for d in stratus_days if d not in specific_test_days]
         random.shuffle(stratus_days)
-        split_index = int(split_ratio * len(stratus_days))
+        n_stratus_test = int(len(stratus_days) * (1 - split_ratio))
+        stratus_test_days = set(stratus_days[:n_stratus_test])
+        stratus_train_days = set(stratus_days[n_stratus_test:])
 
-        specific_test_days = ["2023-03-03", "2024-12-26", "2023-02-13", "2024-10-25",  "2024-11-03","2024-11-08", "2023-01-27"
-                              , "2023-01-25", "2023-02-09","2024-10-30", "2024-11-09", "2024-10-19", "2024-11-16", "2024-12-01"]  # Example specific test days
-
-        train_stratus_days = set(stratus_days[:split_index])
-        test_stratus_days = set(stratus_days[split_index:])
-           
-        non_stratus_days = [d for d in all_days if d not in stratus_days]
+        # Split non-stratus days
+        non_stratus_days = [d for d in non_stratus_days if d not in specific_test_days]
         random.shuffle(non_stratus_days)
-        remaining_train = int(len(all_days) * split_ratio) - len(train_stratus_days)
-        train_days = set(list(train_stratus_days) + non_stratus_days[:remaining_train])
-        test_days = set(list(test_stratus_days) + non_stratus_days[remaining_train:])
+        n_non_stratus_test = int(len(non_stratus_days) * (1 - split_ratio))
+        non_stratus_test_days = set(non_stratus_days[:n_non_stratus_test])
+        non_stratus_train_days = set(non_stratus_days[n_non_stratus_test:])
 
-        # Override test_days if a specific list is provided
-        if specific_test_days is not None:
-            test_days = set(specific_test_days)
-            train_days = set([d for d in all_days if d not in test_days])
-        print(f"Train days: {train_days}, Test days: {test_days}", "length:", len(train_days), len(test_days))
+        # Add specific test days
+        test_days = set(specific_test_days) | stratus_test_days | non_stratus_test_days
+        train_days = set([d for d in all_days if d not in test_days])
+
+        print(f"Train days: {len(train_days)}, Test days: {len(test_days)}")
+
         return train_days, test_days
 
     def split_data(self, x_meteo, x_images, y):
