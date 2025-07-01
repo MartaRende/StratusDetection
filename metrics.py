@@ -879,14 +879,14 @@ class Metrics:
         return df
 
     def plot_prediction_curves(self, 
-                         expected_values: List[List[float]],
-                         predicted_values: List[List[float]],
-                         days: List[str],
-                         time_interval_min: int = 10,
-                         prediction_horizons: List[int] = [10, 20, 30, 40, 50, 60]) -> None:
+                            expected_values: List[List[float]],
+                            predicted_values: List[List[float]],
+                            days: List[str],
+                            time_interval_min: int = 10,
+                            prediction_horizons: List[int] = [10, 20, 30, 40, 50, 60]) -> None:
         """
         Plot prediction curves for multiple horizons from each observation point for specific days,
-        with all datetime points shown on x-axis regardless of data availability.
+        with robust handling of cases where predicted datetimes don't have corresponding actual values.
         """
         # Create dataframe filtered for specific days
         day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
@@ -902,9 +902,20 @@ class Metrics:
                 self.logger.warning(f"No data found for day: {day}")
                 continue
 
-            # Get ALL datetime points for this day
+            # Get ALL datetime points for this day (actual and predicted)
             all_day_datetimes = sorted([pd.to_datetime(dt) for dt in self.datetime_list 
                                     if pd.to_datetime(dt).strftime('%Y-%m-%d') == day])
+            
+            # Add all predicted datetimes to the complete list
+            time_steps = [f"t_{h // time_interval_min - 1}" for h in prediction_horizons]
+            for _, row in df_day.iterrows():
+                for t in time_steps:
+                    pred_dt = row.get(f"datetime_{t}")
+                    if pred_dt and not pd.isnull(pred_dt):
+                        all_day_datetimes.append(pd.to_datetime(pred_dt))
+            
+            # Remove duplicates and sort
+            all_day_datetimes = sorted(list(set(all_day_datetimes)))
             all_day_hours = [dt.strftime('%H:%M') for dt in all_day_datetimes]
             
             # Create mapping from hour string to x-position
@@ -913,6 +924,12 @@ class Metrics:
             # Convert hour strings to x-positions in dataframe
             df_day["x_pos"] = df_day["hour"].map(hour_to_pos)
             
+            # Create a dictionary of actual values by time for quick lookup
+            actual_values = {
+                row["hour"]: (row["expected_nyon"], row["expected_dole"])
+                for _, row in df_day.iterrows()
+            }
+
             # Prepare for images
             day_datetimes = df_day["datetime"].tolist()
             num_images = min(6, len(day_datetimes))
@@ -925,9 +942,6 @@ class Metrics:
             fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
             ax = fig.add_subplot(gs[0])
-
-            # Convert prediction horizons to time steps
-            time_steps = [f"t_{h // time_interval_min - 1}" for h in prediction_horizons]
 
             # Plot actual observations using x_pos
             ax.plot(df_day["x_pos"], df_day["expected_nyon"], 
@@ -946,33 +960,43 @@ class Metrics:
                     pred_nyon = row.get(f"predicted_nyon_{t}", None)
                     pred_dole = row.get(f"predicted_dole_{t}", None)
                     future_time = row.get(f"hour_{t}", None)
+                    future_dt = row.get(f"datetime_{t}", None)
                     
-                    if pred_nyon is None or pred_dole is None or future_time is None:
+                    if None in (pred_nyon, pred_dole, future_time, future_dt):
                         continue
 
                     # Get x-position for future time
                     future_xpos = hour_to_pos.get(future_time, None)
                     if future_xpos is None:
-                        # If future time not in original list, add it
-                        all_day_hours.append(future_time)
-                        # Re-sort and update mapping
-                        all_day_hours = sorted(set(all_day_hours), key=lambda x: pd.to_datetime(x, format="%H:%M"))
-                        hour_to_pos = {hour: idx for idx, hour in enumerate(all_day_hours)}
-                        future_xpos = hour_to_pos[future_time]
-                        # Update x-ticks
-                        ax.set_xticks(range(len(all_day_hours)))
-                        ax.set_xticklabels(all_day_hours, rotation=45)
+                        continue  # should not happen as we've added all predicted times
+
+                    # Check if we have actual values at the future time
+                    future_actual = actual_values.get(future_time, (None, None))
+                    has_actual = future_actual[0] is not None and future_actual[1] is not None
 
                     linestyle = ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))][j % 6]
                     nyon_label = f'Nyon +{prediction_horizons[j]}min' if i == 0 else ""
                     dole_label = f'Dole +{prediction_horizons[j]}min' if i == 0 else ""
 
-                    ax.plot([current_xpos, future_xpos], [current_nyon, pred_nyon],
-                            linestyle=linestyle, color='blue', alpha=0.7,
-                            label=nyon_label)
-                    ax.plot([current_xpos, future_xpos], [current_dole, pred_dole],
-                            linestyle=linestyle, color='red', alpha=0.7,
-                            label=dole_label)
+                    if has_actual:
+                        # Plot line from current to future point
+                        ax.plot([current_xpos, future_xpos], [current_nyon, pred_nyon],
+                                linestyle=linestyle, color='blue', alpha=0.7)
+                        ax.plot([current_xpos, future_xpos], [current_dole, pred_dole],
+                                linestyle=linestyle, color='red', alpha=0.7)
+                    else:
+                        # Plot only the predicted point as a marker
+                        ax.plot(future_xpos, pred_nyon, marker='x', color='blue', alpha=0.7)
+                        ax.plot(future_xpos, pred_dole, marker='x', color='red', alpha=0.7)
+
+                    # Add labels only for first iteration to avoid duplicate legends
+                    if i == 0:
+                        if has_actual:
+                            ax.plot([], [], linestyle=linestyle, color='gray',
+                                    label=f'+{prediction_horizons[j]}min')
+                        else:
+                            ax.plot([], [], marker='x', color='gray', linestyle='None',
+                                    label=f'+{prediction_horizons[j]}min (pred only)')
 
             # Set x-ticks and labels
             ax.set_xticks(range(len(all_day_hours)))
@@ -983,18 +1007,20 @@ class Metrics:
             ax.set_ylabel("Radiation (W/m²)", fontsize=12)
             ax.set_xlabel("Time", fontsize=12)
             
-            # Legend and grid
+            # Improved legend
             legend_elements = [
                 Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Nyon'),
                 Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Actual Dole'),
                 *[Line2D([0], [0], color='gray', linestyle=linestyle, 
-                label=f'+{h}min') for h, linestyle in zip(prediction_horizons, 
-                                                        ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))])
-            ]]
+                        label=f'+{h}min') for h, linestyle in zip(prediction_horizons, 
+                        ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))])],
+                Line2D([0], [0], marker='x', color='gray', linestyle='None',
+                    label='Prediction only', markersize=10)
+            ]
             ax.legend(handles=legend_elements, loc='upper right')
             ax.grid(True)
 
-            # Bottom subplot for images
+            # Bottom subplot for images (unchanged)
             ax2 = fig.add_subplot(gs[1])
             ax2.axis('off')
             

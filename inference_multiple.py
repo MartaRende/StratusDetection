@@ -67,7 +67,7 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction_times}
 all_expected = {t: [] for t in prediction_times}
 
-months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(10, 11)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
