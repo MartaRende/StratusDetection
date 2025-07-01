@@ -844,7 +844,8 @@ class Metrics:
         
         # Get indices of filtered datetimes in original data
         original_indices = [i for i, dt in enumerate(self.datetime_list) if dt in df['datetime'].values]
-      
+        import ipdb 
+        ipdb.set_trace()
         # Add predictions for each time step
         for t in time_steps:
      
@@ -872,6 +873,7 @@ class Metrics:
             step_num = int(t.split('_')[1])
             df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10*(step_num+1))
             df[f'hour_{t}'] = df[f'datetime_{t}'].dt.strftime('%H:%M')
+            
 
         return df
 
@@ -894,6 +896,8 @@ class Metrics:
         """
         # Create dataframe filtered for specific days
         day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
+        import ipdb 
+        ipdb.set_trace()
         if day_df.empty:
             self.logger.warning(f"No data found for days: {days}")
             return
@@ -935,6 +939,7 @@ class Metrics:
                 current_nyon = row["expected_nyon"]
                 current_dole = row["expected_dole"]
                 
+                
                 # Draw a vertical line connecting the actual point to the predicted points for each horizon
                 for j, t in enumerate(time_steps):
                     pred_nyon = row.get(f"predicted_nyon_{t}", None)
@@ -945,7 +950,8 @@ class Metrics:
                     linestyle = ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))][j % 6]
                     nyon_label = f'Nyon +{prediction_horizons[j]}min' if i == 0 else ""
                     dole_label = f'Dole +{prediction_horizons[j]}min' if i == 0 else ""
-                    
+                    import ipdb
+                    ipdb.set_trace()
                     # Draw a line from the actual point to the predicted point
                     ax.plot([current_time, future_time], [current_nyon, pred_nyon],
                             linestyle=linestyle, color='blue', alpha=0.7,
