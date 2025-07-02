@@ -22,6 +22,7 @@ print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 num_views = 1
 seq_len = 3  # Number of timesteps
+prediction_time = 6  # Number of 10-minute intervals to predict ahead (default is 6 for 60 minutes)
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -88,7 +89,7 @@ weather_train, weather_validation, weather_test, stats_input = prepare_data.norm
    )
 
 label_names =[
-    f"{feat}_t{t}" for t in range(seq_len+3) for feat in  
+    f"{feat}_t{t}" for t in range(prediction_time) for feat in
     ["gre000z0_nyon", "gre000z0_dole"]
 
 ]
@@ -98,10 +99,9 @@ y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     y_train, y_validation, y_test,
     var_order= label_names
 )
-import os
-from datetime import datetime
+
 # Modify your SimpleDataset class to use more efficient loading
-class SimpleDataset(Dataset):
+class PrepareDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False):
         self.weather = torch.tensor(weather, dtype=torch.float32)  
         self.labels = torch.tensor(labels, dtype=torch.float32)
@@ -118,30 +118,18 @@ class SimpleDataset(Dataset):
         """Precompute all image paths to avoid repeated disk access during training."""
         paths = []
         for seq_info in self.seq_infos:
-            view_paths = []
-            for view in range(1, self.num_views + 1):
-                seq_paths = [self.get_image_path(dt, 2) for dt in seq_info]
-                view_paths.append(seq_paths)
-            paths.append(view_paths if self.num_views > 1 else view_paths[0])
+            if self.num_views == 1:
+                # Only get view=2 for single view
+                seq_paths = [prepare_data.get_image_path(dt, 2) for dt in seq_info]
+                paths.append(seq_paths)
+            else:
+            # Get both view=1 and view=2
+                view1_paths = [prepare_data.get_image_path(dt, 1) for dt in seq_info]
+                view2_paths = [prepare_data.get_image_path(dt, 2) for dt in seq_info]
+                paths.append((view1_paths, view2_paths))
         return paths
 
-    def get_image_path(self, dt, view=2):
-        """Generate the image path based on the datetime and view."""
-        if isinstance(dt, np.datetime64):
-            dt = pd.Timestamp(dt)
-            
-        date_str = dt.strftime('%Y-%m-%d')
-        time_str = dt.strftime('%H%M')
-        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
-        
-        return os.path.join(
-            self.image_base_folder,
-            str(view),
-            dt.strftime('%Y'),
-            dt.strftime('%m'),
-            dt.strftime('%d'),
-            img_filename
-        )
+   
     
     def __len__(self):
         return len(self.weather)
@@ -189,9 +177,9 @@ class SimpleDataset(Dataset):
 
 
 
-train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
-validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
-test_dataset = SimpleDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
+train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
+validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
+test_dataset = PrepareDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
 print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))

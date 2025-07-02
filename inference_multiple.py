@@ -1,4 +1,4 @@
-from prepareData import PrepareData
+from preparedatainference import PrepareData
 import torch
 import netCDF4
 import glob
@@ -15,12 +15,13 @@ import json
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 81 # or any number you want
+MODEL_NUM = 72 # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
 num_views = 1
 seq_len = 3  # Number of time steps in the sequence
+prediction_times =6
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -33,8 +34,8 @@ if len(sys.argv) > 1:
             num_views = 2
     if len(sys.argv) > 3:
         seq_len = int(sys.argv[3])
-MODEL_PATH = f"models/model_{MODEL_NUM}"
-module_path = f"models.model_{MODEL_NUM}.model"
+MODEL_PATH = f"models_backup/model_{MODEL_NUM}"
+module_path = f"models_backup.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
@@ -56,7 +57,7 @@ stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
 
 # Define prediction times from t_0 to t_5
-prediction_times = [f"t_{i}" for i in range(6)]
+prediction= [f"t_{i}" for i in range(prediction_times)]
 
 # Loop over months from September (9) to March (3) of the next year
 results = {}
@@ -64,8 +65,8 @@ start_year = 2023
 end_year = 2024
 stratus_days = []
 non_stratus_days = []
-all_predicted = {t: [] for t in prediction_times}
-all_expected = {t: [] for t in prediction_times}
+all_predicted = {t: [] for t in prediction}
+all_expected = {t: [] for t in prediction}
 
 months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
@@ -82,7 +83,7 @@ for year, month in months:
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
-        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len)   
+        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len,prediction_time=prediction_times)   
         x_meteo, x_images, y_expected = prepare_data.load_data_test(start_date=start_date, end_date=end_date)
         x_meteo_not_norm = x_meteo
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
@@ -122,8 +123,8 @@ for year, month in months:
         total_predictions = len(x_meteo)
         print(f"Total predictions: {total_predictions}")
         
-        y_predicted = {t: [] for t in prediction_times}
-        final_expected = {t: [] for t in prediction_times}
+        y_predicted = {t: [] for t in prediction}
+        final_expected = {t: [] for t in prediction}
 
         x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
         x_images_tensor1 = None
@@ -183,29 +184,16 @@ for year, month in months:
             print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
         else:
             print("No non-stratus days to select for plotting.")
-        metrics = Metrics(final_expected[prediction_times[0]], y_predicted[prediction_times[0]], data, save_path=MODEL_PATH,
+        metrics = Metrics(final_expected[prediction[0]], y_predicted[prediction[0]], data, save_path=MODEL_PATH,
                             fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=0)
 
-        for t in prediction_times:
+        for t in prediction:
 
             all_predicted[t].extend(y_predicted[t])
             all_expected[t].extend(final_expected[t])
 
        
-            metrics = Metrics(final_expected[t], y_predicted[t], data, save_path=MODEL_PATH,
-                            fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=t)
-            
-            # # Plot curves for stratus days
-            # metrics.plot_day_curves(stratus_days_for_month)
-            
-            # # Plot curves for random non-stratus days
            
-            # metrics.plot_day_curves(random_non_stratus_days)
-        
-            # # Compute metrics for this month
-            # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-            # # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
-
         if stratus_days_for_month:
             # Plot prediction curves for stratus days
             metrics.plot_prediction_curves(
@@ -224,7 +212,7 @@ for year, month in months:
         
 
 
-for t in prediction_times:
+for t in prediction:
     
 # Create global metrics instance
     global_metrics = Metrics(
@@ -232,13 +220,13 @@ for t in prediction_times:
         start_date="2023-01-01", end_date="2024-12-31", time_key=t,stats_for_month=False
     )
 
-    # global_metrics.save_metrics_report(
-    #     stratus_days=stratus_days, non_stratus_days=non_stratus_days
-    # )
+    global_metrics.save_metrics_report(
+        stratus_days=stratus_days, non_stratus_days=non_stratus_days
+    )
     
 # Add this after your existing code, inside the same script
 
-time_steps = prediction_times
+time_steps = prediction
 metrics_collection = {
     'mae': [],
     'rmse': [],
