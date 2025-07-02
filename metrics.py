@@ -785,7 +785,7 @@ class Metrics:
         return days
     
 
-    def get_big_delta_differences(self, days, threshold: float = 0) -> dict:
+    def get_big_delta_differences(self, days, threshold: float = 80) -> dict:
         """
         Find significant changes in the delta (nyon-dole) for expected and predicted values.
 
@@ -835,7 +835,7 @@ class Metrics:
                 s_neg = 0.0
         return pos_cp, neg_cp
 
-    def find_datetime_most_near(self, days, threshold: float = 50, drift: float = 5):
+    def find_datetime_most_near(self, days, threshold: float = 00, drift: float = 5):
         diffs = self.get_big_delta_differences(days, threshold)
         exp_df = diffs["expected"].copy().reset_index(drop=True)
         pred_df = diffs["predicted"].copy().reset_index(drop=True)
@@ -869,4 +869,92 @@ class Metrics:
         import ipdb 
         ipdb.set_trace()
 
-        return result.sort_values("delta_diff", key=abs)
+        return result
+    
+    def detect_time_late(self, days: List[str], delta_tolerance: float = 30, time_window: str = '1H') -> List[dict]:
+        """
+        Trova le corrispondenze temporali precise tra cambiamenti expected e predicted,
+        considerando sia la similarità dei delta che la coerenza temporale.
+
+        Args:
+            days: Lista di giorni da analizzare
+            delta_tolerance: Massima differenza accettabile tra delta per considerare una corrispondenza
+            time_window: Finestra temporale massima per accoppiare i cambiamenti
+
+        Returns:
+            Lista di dizionari con i risultati dettagliati
+        """
+        # Ottieni i dati con tutte le informazioni necessarie
+        df = self.find_datetime_most_near(days)
+        
+        # Filtra solo i cambiamenti significativi
+        significant_changes = df[
+            (abs(df["delta_nyon_dole_diff"]) > 0) & 
+            (abs(df["predicted_predicted_delta_nyon_dole_diff"]) > 0)
+        ].copy()
+        
+        # Converti la time_window in Timedelta
+        max_time_diff = pd.Timedelta(time_window)
+        
+        results = []
+        
+        # Itera su tutti i cambiamenti expected significativi
+        for _, exp_row in significant_changes.iterrows():
+            exp_time = exp_row["datetime"]
+            exp_delta_diff = exp_row["delta_nyon_dole_diff"]
+            exp_dir = exp_row["delta_direction_exp"]
+            
+            # Trova il predicted più vicino temporalmente e con delta simile
+            mask = (
+                (abs(significant_changes["predicted_datetime"] - exp_time) <= max_time_diff) &
+                (abs(significant_changes["predicted_predicted_delta_nyon_dole_diff"] - exp_delta_diff) <= delta_tolerance) &
+                (significant_changes["delta_direction_pred"] == exp_dir)
+            )
+            
+            matches = significant_changes[mask]
+            
+            if not matches.empty:
+                # Prendi la migliore corrispondenza (differenza temporale minima)
+                # Ordina prima per distanza temporale minima rispetto all'expected_datetime,
+                # poi per similarità del delta (differenza assoluta tra delta_diff)
+                matches = matches.copy()
+                matches["timedelta"] = (matches["predicted_datetime"] - exp_time).abs()
+                matches["delta_sim"] = (matches["predicted_predicted_delta_nyon_dole_diff"] - exp_delta_diff).abs()
+                # Ordina prima per distanza temporale, poi per similarità del delta
+                matches = matches.sort_values(["timedelta", "delta_sim"])
+                best_match = matches.iloc[0]
+
+                pred_time = best_match["predicted_datetime"]
+                time_delta = (pred_time - exp_time).total_seconds()
+                
+                # Determina se è in ritardo o in anticipo
+                if abs(time_delta) < 300:  # 5 minuti di tolleranza
+                    timing = "on_time"
+                elif time_delta > 0:
+                    timing = "late"
+                else:
+                    timing = "early"
+                
+                results.append({
+                    "expected_datetime": exp_time,
+                    "predicted_datetime": pred_time,
+                    "expected_delta_diff": exp_delta_diff,
+                    "predicted_delta_diff": best_match["predicted_predicted_delta_nyon_dole_diff"],
+                    "expected_direction": exp_dir,
+                    "predicted_direction": best_match["delta_direction_pred"],
+                    "timing": timing,
+                    "timedelta_sec": time_delta,
+                    "delta_similarity": 1 - (abs(exp_delta_diff - best_match["predicted_predicted_delta_nyon_dole_diff"]) / 
+                                            (abs(exp_delta_diff) + 1e-6))  # Evita divisione per zero
+                })
+      
+        # Compute mean of timedelta_sec if results are available
+        if results:
+            mean_timedelta_sec = np.mean([r["timedelta_sec"] for r in results])
+            self.logger.info(f"Mean timedelta_sec: {mean_timedelta_sec:.2f} seconds")
+        else:
+            mean_timedelta_sec = None
+        # Ordina i risultati per datetime
+        import ipdb
+        ipdb.set_trace()
+        return sorted(results, key=lambda x: x["expected_datetime"]), mean_timedelta_sec
