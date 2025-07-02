@@ -197,7 +197,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, num_worke
 model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=3)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=3, min_lr=1e-5)
 
 losses = {"train": [], "eval": [], "test": []}
 accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
@@ -287,7 +287,10 @@ def saveResults():
             continue
         plt.plot(losses[key], label=f"{key.capitalize()} loss")
     plt.yscale("log")
-    plt.title("Loss (all epochs, log scale)")
+    plt.title("Loss (all epochs)")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.grid(True)
     plt.legend()
     plt.savefig(currPath + "/loss_log_all.png")
     plt.clf()
@@ -299,8 +302,11 @@ def saveResults():
             continue
         plt.plot(range(min(15, len(losses[key]))), losses[key][:15], label=f"{key.capitalize()} loss")
     plt.yscale("log")
-    plt.title("Loss (first 15 epochs, log scale)")
+    plt.title("Loss (first 15 epochs)")
     plt.legend()
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.grid(True)
     plt.savefig(currPath + "/loss_log_first15.png")
     plt.clf()
 
@@ -312,7 +318,10 @@ def saveResults():
         if len(losses[key]) > 15:
             plt.plot(range(15, len(losses[key])), losses[key][15:], label=f"{key.capitalize()} loss")
 
-    plt.title("Loss (epoch 15 to end, log scale)")
+    plt.title("Loss (epoch 15 to end)")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.grid(True)
     plt.legend()
     plt.savefig(currPath + "/loss_log_after15.png")
     plt.clf()
