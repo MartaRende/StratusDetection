@@ -190,11 +190,13 @@ df['date'] = df['expected_datetime'].dt.date
 
 # Group by 'date' and aggregate statistics
 grouped = df.groupby('date').agg({
-    'global_mean':mean_timedelta_sec,
     'timing': lambda x: x.value_counts().to_dict(),
     'timedelta_sec': ['mean', 'std', 'min', 'max', 'count'],
     'delta_similarity': ['mean', 'std', 'min', 'max'],
 })
+
+# Add mean value of 'timedelta_sec' as a separate column for clarity
+grouped['timedelta_sec_mean'] = mean_timedelta_sec
 
 print("Summary by day:")
 grouped.to_csv(os.path.join(MODEL_PATH, "grouped_summary_by_day.csv"))
