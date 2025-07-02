@@ -13,7 +13,7 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 67  # or any number you want
+MODEL_NUM = 71  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -31,8 +31,8 @@ if len(sys.argv) > 1:
             num_views = 2
     if len(sys.argv) > 3:
         seq_len = int(sys.argv[3])
-MODEL_PATH = f"models/model_{MODEL_NUM}"
-module_path = f"models.model_{MODEL_NUM}.model"
+MODEL_PATH = f"models_backup/model_{MODEL_NUM}"
+module_path = f"models_backup.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
@@ -162,12 +162,12 @@ for year, month in months:
         if num_days_to_plot > 0:
             random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
             print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
-            metrics.plot_day_curves(random_non_stratus_days)
+            metrics.plot_day_curves(non_stratus_days_for_month)
         else:
             print("No non-stratus days to select for plotting.")
         metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
         metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
-
+        #metrics.find_datetime_most_near(stratus_days_for_month)
 
 # Flatten all_expected into a 1D array
 all_expected =  [item for sublist in all_expected for item in sublist]

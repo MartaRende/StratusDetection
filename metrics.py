@@ -270,7 +270,7 @@ class Metrics:
         df["date_str"] = df["datetime"].dt.strftime("%Y-%m-%d")
         df["hour"] = df["datetime"].dt.strftime("%H:%M")
         df["month"] = df["datetime"].dt.strftime("%Y-%m")
-        
+  
         # Filter for requested days
         return df[df["date_str"].isin(days)]
 
@@ -454,7 +454,7 @@ class Metrics:
                 indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int)
             else:
                 indices = [0]
-
+   
             # Create figure with subplots: curves on top, images at the bottom
             fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
@@ -783,3 +783,81 @@ class Metrics:
                     else [sublist])]
         days = [str(d) for d in days] if days else []
         return days
+    
+    def get_big_delta_differences(self, days, threshold: float = 100) -> pd.DataFrame:
+        """
+        Get dates with significant differences between Nyon and Dole values, filtered by days.
+
+        Args:
+            days: List of days in format 'YYYY-MM-DD'
+            threshold: Minimum absolute difference to consider significant
+
+        Returns:
+            DataFrame with significant differences
+        """
+        df = self.get_delta_btw_nyon_dole()
+        # Add date_str for filtering
+        df["date_str"] = df["datetime"].dt.strftime("%Y-%m-%d")
+        # Normalize days input
+        days = self._normalize_days_input(days)
+        # Filter by days
+        df = df[df["date_str"].isin(days)]
+        # Compute deltas if not present
+        if "delta_nyon_dole" not in df.columns:
+            df["delta_nyon_dole"] = df["expected_nyon"] - df["expected_dole"]
+        if "predicted_delta_nyon_dole" not in df.columns:
+            df["predicted_delta_nyon_dole"] = df["predicted_nyon"] - df["predicted_dole"]
+            print(df["predicted_delta_nyon_dole"])
+        # Sort by date and time to ensure correct order
+        df = df.sort_values(["date_str", "datetime"]).reset_index(drop=True)
+        # Compute the difference only within the same day for expected and predicted
+        df["delta_nyon_dole_diff"] = df.groupby("date_str")["delta_nyon_dole"].diff()
+        df["predicted_delta_nyon_dole_diff"] = df.groupby("date_str")["predicted_delta_nyon_dole"].diff()
+        # Find rows where the absolute difference between consecutive values exceeds the threshold
+        significant_diff_expected = df[abs(df["delta_nyon_dole_diff"]) > threshold]
+        significant_diff_predicted = df[abs(df["predicted_delta_nyon_dole_diff"]) > threshold]
+        # Optionally, you can return both or merge as needed
+        import ipdb 
+        ipdb.set_trace()
+        return {
+            "expected": significant_diff_expected[["datetime", "expected_nyon", "expected_dole", "delta_nyon_dole", "delta_nyon_dole_diff"]].dropna(),
+            "predicted": significant_diff_predicted[["datetime", "predicted_nyon", "predicted_dole", "predicted_delta_nyon_dole", "predicted_delta_nyon_dole_diff"]].dropna()
+        }
+
+
+    def find_datetime_most_near(self, days ):
+        """
+        Trova i predicted datetime più vicini agli expected datetime.
+        
+        Args:
+            expected_df (pd.DataFrame): DataFrame con colonna 'datetime' degli expected.
+            predicted_df (pd.DataFrame): DataFrame con colonna 'datetime' dei predicted.
+        
+        Returns:
+            pd.DataFrame: DataFrame con le coppie matchate e la differenza temporale in secondi.
+        """
+        diffs = self.get_big_delta_differences(days)
+        expected_df = diffs["expected"].copy()
+        predicted_df = diffs["predicted"].copy()
+        # Estrai gli array numpy dei timestamp (convertiti in Unix epoch per velocità)
+        expected_times = expected_df['datetime'].values.astype(np.int64) // 10**9  # in secondi
+        predicted_times = predicted_df['datetime'].values.astype(np.int64) // 10**9
+       
+        # Trova gli indici dei predicted più vicini agli expected
+        nearest_indices = np.abs(predicted_times[:, None] - expected_times).argmin(axis=0)
+        
+        # Costruisci il DataFrame risultante
+        result = expected_df.copy()
+        result['predicted_datetime'] = predicted_df['datetime'].iloc[nearest_indices].values
+        result['time_difference_sec'] = (
+            result['predicted_datetime'] - result['datetime']
+        ).abs().dt.total_seconds()
+        
+        # Aggiungi colonne aggiuntive da predicted_df (opzionale)
+        for col in predicted_df.columns:
+            if col != 'datetime':
+                result[f'predicted_{col}'] = predicted_df[col].iloc[nearest_indices].values
+        import ipdb
+        ipdb.set_trace()
+        return result.sort_values('time_difference_sec')
+    
