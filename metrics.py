@@ -845,7 +845,7 @@ class Metrics:
         self,
         days: List[str],
         delta_tolerance: float = 70,
-        time_window: str = '1H',
+        time_window: str = '30min',
         alpha: float = 0.8
     ) -> Tuple[List[dict], Optional[float]]:
         """
