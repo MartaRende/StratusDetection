@@ -62,8 +62,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2024, m) for m in range(10, 13)] 
-#+  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -191,6 +190,7 @@ df['date'] = df['expected_datetime'].dt.date
 
 # Group by 'date' and aggregate statistics
 grouped = df.groupby('date').agg({
+    'global_mean':mean_timedelta_sec,
     'timing': lambda x: x.value_counts().to_dict(),
     'timedelta_sec': ['mean', 'std', 'min', 'max', 'count'],
     'delta_similarity': ['mean', 'std', 'min', 'max'],
