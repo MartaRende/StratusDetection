@@ -46,6 +46,7 @@ class Metrics:
                  start_date: Optional[str] = None,
                  end_date: Optional[str] = None,
                  num_views: int = 1,
+                 prediction_minutes: int = 10,
                  stats_for_month: bool = True,
                  tolerance: float = 20.0,
                  plot_config: Optional[PlotConfig] = None,
@@ -54,7 +55,7 @@ class Metrics:
         Initialize the Metrics calculator.
         
         Args:
-            expected: Ground truth values with columns ["nyon", "dole"]
+            expected: Ground truth values with columns ["geneva", "dole"]
             predicted: Predicted values with same structure as expected
             data: Raw data dictionary containing 'dole' key with datetime info
             save_path: Base directory to save results
@@ -389,7 +390,7 @@ class Metrics:
                 color=self.plot_config.colors["nyon"],
                 markersize=self.plot_config.marker_size,
                 linewidth=self.plot_config.line_width,
-                label='Nyon')
+                label='Geneva')
                 
         ax.plot(days_list, dole_values, 
                 marker='x', linestyle='--', 
@@ -462,7 +463,7 @@ class Metrics:
             # Top subplot for curves
             ax1 = fig.add_subplot(gs[0])
 
-            for var in ["nyon", "dole"]:
+            for var in ["geneva", "dole"]:
                 ax1.plot(day_df["hour"], day_df[f"expected_{var}"],
                         'o-', color=self.plot_config.colors[var],
                         markersize=self.plot_config.marker_size,
@@ -475,7 +476,7 @@ class Metrics:
                         linewidth=self.plot_config.line_width,
                         label=f'Predicted {var.capitalize()}')
 
-            ax1.set_title(f"Day Curves - {day}", fontsize=self.plot_config.fontsize["title"])
+            ax1.set_title(f"Day Curves - {day} - Prediction in {self.prediction_minutes} minutes", fontsize=self.plot_config.fontsize["title"])
             ax1.set_ylabel("Radiation (W/m²)", fontsize=self.plot_config.fontsize["labels"])
             ax1.set_xlabel("Hours", fontsize=self.plot_config.fontsize["labels"])
             ax1.legend()
@@ -529,38 +530,7 @@ class Metrics:
             )
             plt.close()
 
-            # Original difference plot (unchanged)
-            fig, ax = plt.subplots(figsize=self.plot_config.figsize)
-            for var in ["nyon", "dole"]:
-                ax.plot(day_df["hour"],
-                        (day_df[f"expected_{var}"] - day_df[f"predicted_{var}"]),
-                        'o-', color=self.plot_config.colors[var],
-                        markersize=self.plot_config.marker_size,
-                        linewidth=self.plot_config.line_width,
-                        label=f'{var.capitalize()} Difference')
-
-            ax.set_title(f"Day Curves - {day} (Difference)",
-                        fontsize=self.plot_config.fontsize["title"])
-            ax.set_xlabel("Hour", fontsize=self.plot_config.fontsize["labels"])
-            ax.set_ylabel("Difference", fontsize=self.plot_config.fontsize["labels"])
-            ax.legend()
-            ax.grid(True)
-
-            # Set x-axis ticks every 10 minutes for the difference plot
-            ax.set_xticks([
-                t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 10 == 0
-            ])
-            ax.set_xticklabels([
-                t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 10 == 0
-            ], rotation=45)
-
-            plt.tight_layout()
-            plt.savefig(
-                os.path.join(month_dir, f"day_curve_diff_{day}.png"),
-                dpi=self.plot_config.dpi,
-                bbox_inches='tight'
-            )
-            plt.close()
+          
     def plot_delta_absolute_error(self, days: List[str], prefix: str = "stratus_days", subdirectory = None) -> None:
         """
         Plot absolute error of delta (nyon-dole) for the given days, saving in the corresponding month directory.
@@ -871,64 +841,69 @@ class Metrics:
 
         return result
     
-    def detect_time_late(self, days: List[str], delta_tolerance: float = 30, time_window: str = '1H') -> List[dict]:
+    def detect_time_late(
+        self,
+        days: List[str],
+        delta_tolerance: float = 70,
+        time_window: str = '1H',
+        alpha: float = 0.8
+    ) -> Tuple[List[dict], Optional[float]]:
         """
-        Trova le corrispondenze temporali precise tra cambiamenti expected e predicted,
-        considerando sia la similarità dei delta che la coerenza temporale.
+        Find precise temporal matches between expected and predicted,
+        using a hybrid scoring system between time distance and delta similarity.
 
         Args:
-            days: Lista di giorni da analizzare
-            delta_tolerance: Massima differenza accettabile tra delta per considerare una corrispondenza
-            time_window: Finestra temporale massima per accoppiare i cambiamenti
+            days: List of days to analyze
+            delta_tolerance: Maximum acceptable difference between deltas to consider a match
+            time_window: Maximum time window to pair changes (e.g., '1H', '30min')
+            alpha: Weight between 0 and 1 for balancing time and delta (0 = only delta, 1 = only time)
 
         Returns:
-            Lista di dizionari con i risultati dettagliati
+            List of dictionaries with detailed results, and the mean delay (in seconds)
         """
-        # Ottieni i dati con tutte le informazioni necessarie
+        # Get data with matched datetimes
         df = self.find_datetime_most_near(days)
         
-        # Filtra solo i cambiamenti significativi
+        # Filter significant changes
         significant_changes = df[
-            (abs(df["delta_nyon_dole_diff"]) > 0) & 
+            (abs(df["delta_nyon_dole_diff"]) > 0) &
             (abs(df["predicted_predicted_delta_nyon_dole_diff"]) > 0)
         ].copy()
         
-        # Converti la time_window in Timedelta
         max_time_diff = pd.Timedelta(time_window)
-        
         results = []
-        
-        # Itera su tutti i cambiamenti expected significativi
+
         for _, exp_row in significant_changes.iterrows():
             exp_time = exp_row["datetime"]
             exp_delta_diff = exp_row["delta_nyon_dole_diff"]
             exp_dir = exp_row["delta_direction_exp"]
             
-            # Trova il predicted più vicino temporalmente e con delta simile
+            # Candidate matches within time_window, consistent direction, similar delta
             mask = (
+                (significant_changes["predicted_datetime"] >= exp_time) &
                 (abs(significant_changes["predicted_datetime"] - exp_time) <= max_time_diff) &
                 (abs(significant_changes["predicted_predicted_delta_nyon_dole_diff"] - exp_delta_diff) <= delta_tolerance) &
                 (significant_changes["delta_direction_pred"] == exp_dir)
             )
-            
             matches = significant_changes[mask]
             
             if not matches.empty:
-                # Prendi la migliore corrispondenza (differenza temporale minima)
-                # Ordina prima per distanza temporale minima rispetto all'expected_datetime,
-                # poi per similarità del delta (differenza assoluta tra delta_diff)
                 matches = matches.copy()
                 matches["timedelta"] = (matches["predicted_datetime"] - exp_time).abs()
                 matches["delta_sim"] = (matches["predicted_predicted_delta_nyon_dole_diff"] - exp_delta_diff).abs()
-                # Ordina prima per distanza temporale, poi per similarità del delta
-                matches = matches.sort_values(["timedelta", "delta_sim"])
-                best_match = matches.iloc[0]
+
+                # Normalization + score
+                matches["timedelta_norm"] = matches["timedelta"] / (matches["timedelta"].max() + pd.Timedelta("1s"))
+                matches["delta_sim_norm"] = matches["delta_sim"] / (matches["delta_sim"].max() + 1e-6)
+                matches["score"] = alpha * matches["timedelta_norm"] + (1 - alpha) * matches["delta_sim_norm"]
+
+                best_match = matches.sort_values("score").iloc[0]
 
                 pred_time = best_match["predicted_datetime"]
                 time_delta = (pred_time - exp_time).total_seconds()
-                
-                # Determina se è in ritardo o in anticipo
-                if abs(time_delta) < 300:  # 5 minuti di tolleranza
+
+                # Timing classification
+                if abs(time_delta) < 300:  # 5 minutes
                     timing = "on_time"
                 elif time_delta > 0:
                     timing = "late"
@@ -944,18 +919,21 @@ class Metrics:
                     "predicted_direction": best_match["delta_direction_pred"],
                     "timing": timing,
                     "timedelta_sec": time_delta,
-                    "delta_similarity": 1 - (abs(exp_delta_diff - best_match["predicted_predicted_delta_nyon_dole_diff"]) / 
-                                            (abs(exp_delta_diff) + 1e-6))  # Evita divisione per zero
+                    "delta_similarity": 1 - (
+                        abs(exp_delta_diff - best_match["predicted_predicted_delta_nyon_dole_diff"]) / 
+                        (abs(exp_delta_diff) + 1e-6)
+                    )
                 })
-      
-        # Compute mean of timedelta_sec if results are available
-        results = [r for r in results if r["timedelta_sec"] > 0]
-        if results:
-            mean_timedelta_sec = np.mean([r["timedelta_sec"] for r in results])
-            self.logger.info(f"Mean timedelta_sec: {mean_timedelta_sec:.2f} seconds")
-        else:
-            mean_timedelta_sec = None
-        # Ordina i risultati per datetime
+
+        # Filter only non-negative delays
+        results = [r for r in results if r["timedelta_sec"] >= 0]
+
+        # Mean delay
+        mean_timedelta_sec = (
+            np.mean([r["timedelta_sec"] for r in results]) if results else None
+        )
+
+        self.logger.info(f"Mean timedelta_sec: {mean_timedelta_sec:.2f} seconds" if mean_timedelta_sec else "No valid results found.")
         import ipdb
         ipdb.set_trace()
         return sorted(results, key=lambda x: x["expected_datetime"]), mean_timedelta_sec

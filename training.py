@@ -1,5 +1,4 @@
 from multiprocessing.pool import ThreadPool
-import os
 import sys
 import numpy as np
 import pandas as pd
@@ -7,9 +6,9 @@ import torch
 import matplotlib.pyplot as plt
 from model import StratusModel
 from prepareData import PrepareData
-from metrics import Metrics
 from torch.utils.data import Dataset
 from PIL import Image
+import os
 
 from prepare_data.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 # Set device
@@ -22,6 +21,7 @@ print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 num_views = 1
 seq_len = 3  # Number of timesteps
+prediction_minutes = 10  # Prediction time in minutes
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -41,10 +41,10 @@ print("FP_IMAGES:", FP_IMAGES)
 FP_WEATHER_DATA = "data/complete_data_gen.npz"
 
 # Initialize data loader
-prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
+prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len, prediction_minutes=prediction_minutes)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-28")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources (your code suggests potential multiple)
@@ -92,10 +92,9 @@ y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     y_train, y_validation, y_test,
     var_order=["gre000z0_nyon", "gre000z0_dole"]
 )
-import os
-from datetime import datetime
+
 # Modify your SimpleDataset class to use more efficient loading
-class SimpleDataset(Dataset):
+class PrepareDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False):
         self.weather = torch.tensor(weather, dtype=torch.float32)  
         self.labels = torch.tensor(labels, dtype=torch.float32)
@@ -112,31 +111,16 @@ class SimpleDataset(Dataset):
         """Precompute all image paths to avoid repeated disk access during training."""
         paths = []
         for seq_info in self.seq_infos:
-            view_paths = []
-            for view in range(1, self.num_views + 1):
-                seq_paths = [self.get_image_path(dt, view=2) for dt in seq_info]
-                view_paths.append(seq_paths)
-            paths.append(view_paths if self.num_views > 1 else view_paths[0])
- 
+            if self.num_views == 2:
+                # For two views, get both view 1 and view 2 paths
+                view1_paths = [prepare_data.get_image_path(dt, view=1) for dt in seq_info]
+                view2_paths = [prepare_data.get_image_path(dt, view=2) for dt in seq_info]
+                paths.append((view1_paths, view2_paths))
+            else:
+                # For one view, only get view 2 paths
+                view2_paths = [prepare_data.get_image_path(dt, view=2) for dt in seq_info]
+                paths.append(view2_paths)
         return paths
-
-    def get_image_path(self, dt, view=2):
-        """Generate the image path based on the datetime and view."""
-        if isinstance(dt, np.datetime64):
-            dt = pd.Timestamp(dt)
-            
-        date_str = dt.strftime('%Y-%m-%d')
-        time_str = dt.strftime('%H%M')
-        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
-        
-        return os.path.join(
-            self.image_base_folder,
-            str(view),
-            dt.strftime('%Y'),
-            dt.strftime('%m'),
-            dt.strftime('%d'),
-            img_filename
-        )
     
     def __len__(self):
         return len(self.weather)
@@ -179,13 +163,10 @@ class SimpleDataset(Dataset):
   
             return weather_data, images_tensor, labels
 
-# Create datasets and loaders
 
-
-
-train_dataset = SimpleDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
-validation_dataset = SimpleDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
-test_dataset = SimpleDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
+train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
+validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
+test_dataset = PrepareDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
 print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))

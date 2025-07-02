@@ -1,4 +1,4 @@
-from prepareData import PrepareData
+from preparedatainference import PrepareData
 import torch
 import netCDF4
 import glob
@@ -13,12 +13,13 @@ import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 71  # or any number you want
+MODEL_NUM = 2  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
 num_views = 1
 seq_len = 3  # Number of time steps in the sequence
+prediction_minutes = 10  # Minutes for prediction
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -31,8 +32,8 @@ if len(sys.argv) > 1:
             num_views = 2
     if len(sys.argv) > 3:
         seq_len = int(sys.argv[3])
-MODEL_PATH = f"models_backup/model_{MODEL_NUM}"
-module_path = f"models_backup.model_{MODEL_NUM}.model"
+MODEL_PATH = f"models/model_{MODEL_NUM}"
+module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
@@ -60,7 +61,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2024, m) for m in range(11, 12)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -75,7 +76,7 @@ for year, month in months:
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
-        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len)   
+        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len,prediction_minutes=prediction_minutes)   
         x_meteo, x_images, y_expected = prepare_data.load_data_test(start_date=start_date, end_date=end_date)
         
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
@@ -105,11 +106,6 @@ for year, month in months:
             var_order=var_order,
             stats=stats_input,
         )
-        # y_expected = prepare_data.normalize_data_test(
-        #     y_expected,
-        #     var_order=["gre000z0_nyon_t0", "gre000z0_dole_t0"],
-        #     stats=stats_label,
-        # )
 
         total_predictions = len(x_meteo)
         print(f"Total predictions: {total_predictions}")
@@ -154,7 +150,7 @@ for year, month in months:
         stratus_days.append(stratus_days_for_month)
         non_stratus_days.append(non_stratus_days_for_month)
   
-        metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date)
+        metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date,prediction_minutes=prediction_minutes)
        
         metrics.plot_day_curves(stratus_days_for_month)
         # Take up to 3 random non-stratus days and plot their curves
@@ -167,14 +163,14 @@ for year, month in months:
             print("No non-stratus days to select for plotting.")
         metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
         metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
-        df = metrics.detect_time_late(stratus_days_for_month)
+        #df = metrics.detect_time_late(stratus_days_for_month)
 
 # Flatten all_expected into a 1D array
 all_expected =  [item for sublist in all_expected for item in sublist]
 all_predicted =  [item for sublist in all_predicted for item in sublist]
 
 global_metrics = Metrics(
-    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", stats_for_month=False
+    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", prediction_minutes=prediction_minutes, stats_for_month=False
 )
 global_metrics.save_metrics_report(
     stratus_days=stratus_days, non_stratus_days=non_stratus_days

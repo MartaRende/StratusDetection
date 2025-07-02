@@ -2,15 +2,13 @@ import os
 import numpy as np
 import pandas as pd
 from PIL import Image
-from datetime import datetime, timedelta
+from datetime import timedelta
 import random
 from itertools import groupby
 from operator import itemgetter
-from concurrent.futures import ThreadPoolExecutor
-import functools
 
 class PrepareData:
-    def __init__(self, fp_images, fp_weather, num_views=1, seq_length=3, num_workers=4):
+    def __init__(self, fp_images, fp_weather, num_views=1, seq_length=3, prediction_minutes=10):
         self.image_base_folder = fp_images
         self.fp_weather = fp_weather
         if fp_weather.endswith('.npz'):
@@ -20,12 +18,12 @@ class PrepareData:
         self.num_views = num_views
         self.stats_stratus_days = None
         self.seq_length = seq_length
-        self.num_workers = num_workers
         self.meteo_feats = ["gre000z0_nyon", "gre000z0_dole",
              "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
         ]
-    
+        self.desired_prediction = prediction_minutes  # minutes for prediction
+
     def _load_weather_data(self):
         npz_file = np.load(self.fp_weather, allow_pickle=True)
         data_all = {k: npz_file[k] for k in npz_file.files}
@@ -55,8 +53,7 @@ class PrepareData:
     def image_exists(self, dt, view=2):
         """Check if image exists without loading it"""
         return os.path.exists(self.get_image_path(dt, view))
-
-
+    
     def get_valid_sequences(self):
         """Identify valid sequences without modifying self.data during iteration"""
         df = self.data.sort_values("datetime").reset_index(drop=True)
@@ -65,9 +62,13 @@ class PrepareData:
 
         for i in range(len(df) - self.seq_length):
             seq = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length  >= len(df):
-                break
-            next_t = df.iloc[i + self.seq_length ]
+            # Compute the next point using self.desired_prediction (in minutes)
+            next_time = seq.iloc[-1]['datetime'] + timedelta(minutes=self.desired_prediction)
+            next_t_row = df[df['datetime'] == next_time]
+            if next_t_row.empty:
+                print(f"Skipping sequence starting at index {i} due to missing next_t at {next_time}.")
+                continue
+            next_t = next_t_row.iloc[0]
 
             # Check time continuity
             time_diffs = np.diff(seq['datetime'].values) / np.timedelta64(1, 'm')
@@ -75,8 +76,8 @@ class PrepareData:
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals. at hour {seq.iloc[0]['datetime']}")
                 continue
            
-            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=10):
-                print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour {seq.iloc[-1]['datetime']}")
+            if (next_t['datetime'] - seq.iloc[-1]['datetime']) != timedelta(minutes=self.desired_prediction):
+                print(f"Skipping sequence starting at index {i} due to non-{self.desired_prediction}-minute gap to next point.at hour {seq.iloc[-1]['datetime']}")
                 continue
 
             # Check for missing meteo data
@@ -150,34 +151,6 @@ class PrepareData:
 
         return x_meteo, valid_seqs, y
 
-    def load_images_for_sequence(self, seq_info):
-        """Load images for a specific sequence when needed"""
-        view1_imgs = []
-        view2_imgs = []
-
-        for dt in seq_info:
-            # Load the first view image
-            img = self._load_single_image(self.get_image_path(dt))
-            view1_imgs.append(img)
-
-            if self.num_views == 2:
-                # Load the second view image if available
-                img2 = self._load_single_image(self.get_image_path(dt, view=1))
-                view2_imgs.append(img2)
-
-        if self.num_views == 2:
-            return np.array(view1_imgs), np.array(view2_imgs)  # Separate arrays for each view
-        else:
-            return np.array(view1_imgs)  # Single array for one view
-    def _load_single_image(self, path):
-        """Helper function to load a single image"""
-        if os.path.exists(path):
-            img = Image.open(path).convert("RGB")
-           # img = img.crop((0, 0, 512, 200))  # Crop to 512x200
-            return np.array(img)
-        else:
-            return np.zeros((512, 512, 3), dtype=np.uint8)
-
 
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
         log_vars = ["RR", "RS"]
@@ -227,107 +200,7 @@ class PrepareData:
                (self.data['datetime'].dt.month.isin(months_to_take))
         self.data = self.data[mask].copy()
         return self.data
-    def get_image_for_datetime(self, dt, view=2):
-        """Get the image for a specific datetime without loading it into memory"""
-        if isinstance(dt, np.datetime64):
-            dt = pd.Timestamp(dt)
-        image_path = self.get_image_path(dt, view)
-        if os.path.exists(image_path):
-            img = Image.open(image_path).convert("RGB")
-           # img = img.crop((0, 0, 512, 200))  # Crop to 512x200
-            return np.array(img)
-        else:
-            print(f"Image not found for datetime {dt} at view {view}. Returning empty image.")
-            return np.zeros((512, 512, 3), dtype=np.uint8)
-    def prepare_data(self, df):
-        df = df.sort_values('datetime').reset_index(drop=True)
-        
-        # Create sequences
-        x_images_seq = []
-        x_meteo_seq = []
-        y_seq = []
-        valid_indices = []
-        
-        # Define the meteorological features to use
-        meteo_features = ["gre000z0_nyon", "gre000z0_dole",
-             "RR", "TD", "WG", "TT",
-            "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
-        ]
-        
-        # Iterate through possible sequence starting points
-        for i in range(len(df) - self.seq_length):
-            # Get the sequence window
-            seq_window = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length  >= len(df):
-                break
-            next_point = df.iloc[i + self.seq_length ]
-
-            # Check for continuity (10-minute intervals)
-            time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
-           
-            if not all(diff == 10 for diff in time_diffs):
-                print(f"Skipping sequence starting at index {i} due to non-10-minute intervals.", "at hour", seq_window.iloc[0]['datetime'])
-                continue
-
-            # Check if next point is exactly 60 minutes after last sequence point
-            last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
-                print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour", last_seq_time)
-                continue
-            # # Prepare meteorological data sequence
-            meteo_sequence = seq_window[meteo_features].values
-            if np.isnan(meteo_sequence).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in meteorological data. at hour", seq_window.iloc[0]['datetime'])
-                continue
-                
-            # Prepare image sequence
-            img_sequence = []
-            valid_images = True
-            for _, row in seq_window.iterrows():
-                img = self.get_image_for_datetime(row['datetime'])
-                if np.all(img == 0):  # Missing image
-                    print(f"Skipping sequence starting at index {i} due to missing image for datetime {row['datetime']}. at hour", row['datetime'])
-                    valid_images = False
-                    break
-                if self.num_views > 1:
-                    img2 = self.get_image_for_datetime(row['datetime'], view=1)
-                    if np.all(img2 == 0):
-                        print(f"Skipping sequence starting at index {i} due to missing second view image for datetime {row['datetime']}.")
-                        valid_images = False
-                        break
-                    img_sequence.append([img, img2])
-                else:
-                    img_sequence.append(img)
-            
-            if not valid_images:
-                print(f"Skipping sequence starting at index {i} due to missing images.")
-                continue
-                
-            # Prepare target (next time step after sequence)
-            
-            target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
-            # Use pd.isnull to handle all types safely
-            if pd.isnull(target).any():
-                print(f"Skipping sequence starting at index {i} due to NaN values in target data. at hour", next_point['datetime'])
-                continue
-        
-            # Add to sequences
-            x_meteo_seq.append(meteo_sequence)
-            x_images_seq.append(np.array(img_sequence))
-            y_seq.append(target)
-            valid_indices.append(i)
-           
-        # Convert to numpy arrays
-        x_meteo_seq = np.array(x_meteo_seq)
-        x_images_seq = np.array(x_images_seq)
-        y_seq = np.array(y_seq)
-        # Save filtered data
-        self.data = df.loc[valid_indices].reset_index(drop=True)
-        self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
-        print(len(self.data), "valid sequences found after filtering")
-        return x_meteo_seq, x_images_seq, y_seq
-
-
+       
     
 
     def find_stratus_days(self, df=None, median_gap=None, mad_gap=None):
@@ -621,49 +494,4 @@ class PrepareData:
         y_val_df = pd.DataFrame(y_val, columns=["gre000z0_nyon", "gre000z0_dole", "datetime"])
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_val_df, x_images_val, y_val_df, train_datetime_seq, val_datetime_seq
 
-    def normalize_data_test(self, data, var_order=None, stats=None):
-        arr = np.array(data)
-        original_ndim = arr.ndim
-    
-
-        if arr.ndim == 2:
-            arr = arr[:, np.newaxis, :]  # Add the time dimension: (N, 1, F)
-
-        N, T, F = arr.shape
-
-        # Reshape to (145, 45)
-        new_N = N
-        new_F = F * self.seq_length  # 15 features per time step, seq_length = 3
-     
-        flat = arr.reshape(-1, F)  # Flatten to (N*T, F)
-        flat = flat.reshape(new_N, new_F)  # Reshape to (145, 45)
-        
-        df = pd.DataFrame(flat, columns=var_order)
-        df_out = pd.DataFrame()
-        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        # df = df.drop(columns=drop_cols)
-        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-        # if len(var_order) > 3:
-        #     var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-      
-        
-        for var in var_order:
-            col = df[var].astype(float).fillna(0)
-            mn = stats[var]["min"]
-            mx = stats[var]["max"]
-            rng = mx - mn if mx != mn else 1e-8
-            df_out[var] = ((col - mn) / rng).fillna(0)
-        flat_out = df_out.values
-        new_F = 15
-        reshaped = flat_out.reshape(N, T, new_F)
-
-        if original_ndim == 2:
-            return reshaped[:, 0, :]  #
-        return reshaped
-
-    def load_data_test(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
-        filtered_df = self.filter_data(start_date, end_date, take_all_seasons)
-        print(f"Filtered data shape: {filtered_df.shape}")
-        x_meteo, x_images, y = self.prepare_data(filtered_df)
-        return x_meteo, x_images, y
-    
+   
