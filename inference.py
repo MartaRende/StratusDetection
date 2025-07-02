@@ -60,7 +60,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(11, 12)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -179,4 +179,5 @@ global_metrics = Metrics(
 global_metrics.save_metrics_report(
     stratus_days=stratus_days, non_stratus_days=non_stratus_days
 )
+res, mean_timedelta_sec = global_metrics.detect_time_late(stratus_days)
 

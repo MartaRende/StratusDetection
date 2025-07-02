@@ -949,6 +949,7 @@ class Metrics:
                 })
       
         # Compute mean of timedelta_sec if results are available
+        results = [r for r in results if r["timedelta_sec"] > 0]
         if results:
             mean_timedelta_sec = np.mean([r["timedelta_sec"] for r in results])
             self.logger.info(f"Mean timedelta_sec: {mean_timedelta_sec:.2f} seconds")
