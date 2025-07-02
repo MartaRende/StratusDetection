@@ -8,6 +8,9 @@ import logging
 from dataclasses import dataclass
 from collections import defaultdict
 from PIL import Image
+from sklearn.cluster import KMeans
+from scipy import stats
+
 @dataclass
 class PlotConfig:
     """Centralized configuration for plotting parameters"""
@@ -837,16 +840,56 @@ class Metrics:
                 result.at[idxs_global[i], "cusum_pos_cp"] = True
             for i in neg_cp: 
                 result.at[idxs_global[i], "cusum_neg_cp"] = True
-      
-
         return result
-    
+    def grid_search_detect_time_late(self, days, max_delay=5*3600):
+        import itertools
+
+        # Parameters to test
+        time_windows = ['30min', '1H', '2H', '4H', '6H']
+        alphas = [0.2, 0.5, 0.8, 1.0]
+        delta_tolerances = [20, 40, 70, 100]
+
+        best_params = None
+        best_score = -1
+        best_results = []
+
+        for time_window, alpha, delta_tol in itertools.product(time_windows, alphas, delta_tolerances):
+            print(f"🔍 Testing: time_window={time_window}, alpha={alpha}, delta_tol={delta_tol}")
+
+            results, _ = self.detect_time_late(
+                days=days,
+                time_window=time_window,
+                alpha=alpha,
+                delta_tolerance=delta_tol
+            )
+
+            # Filter valid results
+            valid_results = [
+                r for r in results
+                if 0 <= r["timedelta_sec"] < max_delay and r["delta_similarity"] > 0.7
+            ]
+
+            print(f"   → Valid matches: {len(valid_results)}")
+
+            if len(valid_results) > best_score:
+                best_score = len(valid_results)
+                best_params = (time_window, alpha, delta_tol)
+                best_results = valid_results
+
+        print(f"\n✅ Best parameters found:")
+        print(f"   time_window = {best_params[0]}")
+        print(f"   alpha = {best_params[1]}")
+        print(f"   delta_tolerance = {best_params[2]}")
+        print(f"   → Valid matches = {best_score}")
+
+        return best_params, best_results
+
     def detect_time_late(
         self,
         days: List[str],
-        delta_tolerance: float = 70,
-        time_window: str = '10min',
-        alpha: float = 0.8
+        delta_tolerance: float = 20,
+        time_window: str = '12H',
+        alpha: float = 0.9
     ) -> Tuple[List[dict], Optional[float]]:
         """
         Find precise temporal matches between expected and predicted,
@@ -905,7 +948,7 @@ class Metrics:
                 # Timing classification
                 if abs(time_delta) < 300:  # 5 minutes
                     timing = "on_time"
-                elif time_delta > 0:
+                elif time_delta > 300:
                     timing = "late"
                 else:
                     timing = "early"
@@ -936,3 +979,50 @@ class Metrics:
         self.logger.info(f"Mean timedelta_sec: {mean_timedelta_sec:.2f} seconds" if mean_timedelta_sec else "No valid results found.")
      
         return sorted(results, key=lambda x: x["expected_datetime"]), mean_timedelta_sec
+
+    def analyze_all_delays(self, results, max_delay_hours=24):
+        delays_sec = np.array([r["timedelta_sec"] for r in results])
+        delays_min = delays_sec / 60
+        
+        # 1. Plot full distribution
+        plt.figure(figsize=(12, 6))
+        plt.hist(delays_min, bins=50, range=(0, max_delay_hours * 60), edgecolor='black')
+        plt.xlabel("Delay (minutes)")
+        plt.ylabel("Frequency")
+        plt.axvline(10, color='red', linestyle='--', label='10 min')
+        plt.axvline(60, color='green', linestyle='--', label='1 hour')
+        plt.legend()
+        plt.title("Full delay distribution")
+        plt.savefig("delay_distribution_full.png", dpi=300)
+        
+        # 2. Identify delay clusters (K-Means)
+        if results:
+            import pandas as pd
+            df = pd.DataFrame(results)
+            df["day"] = df["expected_datetime"].dt.date
+            delays_by_day = df.groupby("day")["timedelta_sec"].count().sort_values(ascending=False)
+
+            print("\n► Days with most delays:")
+            print(delays_by_day.head(10))
+
+            # Plot delays per day
+            plt.figure(figsize=(12, 4))
+            delays_by_day.plot(kind="bar", color="skyblue", edgecolor="black")
+            plt.ylabel("Number of delays")
+            plt.title("Number of delays per day")
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            plt.savefig("delays_by_day.png", dpi=300)
+
+        if len(delays_min) > 1:
+            kmeans = KMeans(n_clusters=2, random_state=42)
+            clusters = kmeans.fit_predict(delays_min.reshape(-1, 1))
+            cluster_centers_min = kmeans.cluster_centers_.flatten()
+            
+            print(f"\n► Main delay clusters: {cluster_centers_min.round(1)} minutes")
+        
+        # 3. Test for delays > 1 hour (Wilcoxon)
+        large_delays = delays_min[delays_min > 60]
+        if len(large_delays) > 10:  # Minimum 10 observations for the test
+            _, p_value = stats.wilcoxon(large_delays - 60)  # Test if > 60 min
+            print(f"\n► Delays > 1 hour: p-value = {p_value:.3f} → {'SIGNIFICANT' if p_value < 0.05 else 'RANDOM'}")

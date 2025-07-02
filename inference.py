@@ -62,7 +62,8 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(11, 12)] 
+#+  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -153,18 +154,18 @@ for year, month in months:
   
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date,prediction_minutes=prediction_minutes)
        
-        metrics.plot_day_curves(stratus_days_for_month)
-        # Take up to 3 random non-stratus days and plot their curves
-        num_days_to_plot = min(3, len(non_stratus_days_for_month))
-        if num_days_to_plot > 0:
-            random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
-            print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
-            metrics.plot_day_curves(non_stratus_days_for_month)
-        else:
-            print("No non-stratus days to select for plotting.")
-        metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-        metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
-        #df = metrics.detect_time_late(stratus_days_for_month)
+        # metrics.plot_day_curves(stratus_days_for_month)
+        # # Take up to 3 random non-stratus days and plot their curves
+        # num_days_to_plot = min(3, len(non_stratus_days_for_month))
+        # if num_days_to_plot > 0:
+        #     random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
+        #     print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
+        #     metrics.plot_day_curves(non_stratus_days_for_month)
+        # else:
+        #     print("No non-stratus days to select for plotting.")
+        # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+        # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+        # #df = metrics.detect_time_late(stratus_days_for_month)
 
 # Flatten all_expected into a 1D array
 all_expected =  [item for sublist in all_expected for item in sublist]
@@ -176,11 +177,14 @@ global_metrics = Metrics(
 global_metrics.save_metrics_report(
     stratus_days=stratus_days, non_stratus_days=non_stratus_days
 )
-res, mean_timedelta_sec = global_metrics.detect_time_late(stratus_days)
-# Group results by day and print summary statistics
+# Step 1: Trova i parametri ottimali
+params, results = metrics.grid_search_detect_time_late(stratus_days)
 
+# Se vuoi, puoi anche salvarli o visualizzarli:
+metrics.analyze_all_delays(results)
+# Group results by day and print summary statistics
 # Convert res (list of dicts) to DataFrame
-df = pd.DataFrame(res)
+df = pd.DataFrame(results)
 
 # Ensure 'expected_datetime' is datetime
 df['expected_datetime'] = pd.to_datetime(df['expected_datetime'])
@@ -196,7 +200,7 @@ grouped = df.groupby('date').agg({
 })
 
 # Add mean value of 'timedelta_sec' as a separate column for clarity
-grouped['timedelta_sec_mean'] = mean_timedelta_sec
+# grouped['timedelta_sec_mean'] = mean_timedelta_sec
 
 print("Summary by day:")
 grouped.to_csv(os.path.join(MODEL_PATH, "grouped_summary_by_day.csv"))
