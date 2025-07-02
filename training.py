@@ -127,14 +127,30 @@ class PrepareDataset(Dataset):
     def _load_single_image(self, path):
         try:
             with Image.open(path) as img:
-                # img = img.crop((0, 0, 512, 200))  
-                img_array = np.array(img) 
-                img_tensor = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1)  # Convert to (C, H, W)
+                img = img.convert("RGB")  # Forza 3 canali
+                img_array = np.array(img)
+
+                if self.data_augmentation:
+                    try:
+                        img_array = random_brightness(img_array)
+                        img_array = random_contrast(img_array)
+                        img_array = random_color_jitter(img_array)
+                        img_array = random_blur(img_array)
+                    except Exception as e:
+                        print(f"Data augmentation error on {path}: {e}")
+                        return torch.zeros((3, 512, 512), dtype=torch.float32)
+
+                # Check shape
+                if img_array.ndim != 3 or img_array.shape[2] != 3:
+                    print(f"Invalid image shape after augmentation at {path}: {img_array.shape}")
+                    return torch.zeros((3, 512, 512), dtype=torch.float32)
+
+                img_tensor = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1)
                 return img_tensor
-        except:
-            print(f"Warning: Could not load image at {path}. Returning blank tensor.")
-            return torch.zeros((3, 512, 512), dtype=torch.float32)  # Return a blank tensor for missing images
-        
+        except Exception as e:
+            print(f"Error loading image at {path}: {e}")
+            return torch.zeros((3, 512, 512), dtype=torch.float32)
+
     def __getitem__(self, idx):
         weather_data = self.weather[idx]
         labels = self.labels[idx]
@@ -164,7 +180,7 @@ class PrepareDataset(Dataset):
             return weather_data, images_tensor, labels
 
 
-train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
+train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=True)
 validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
 test_dataset = PrepareDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
 print("train_dataset size:", len(train_dataset))

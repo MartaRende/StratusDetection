@@ -39,8 +39,6 @@ def random_blur(img, max_radius=1.5):
 if __name__ == "__main__":
     # Example usage
     img = Image.open("/home/marta/Projects/tb/data/images/mch/1159/2/2023/01/01/1159_2_2023-01-01_1010.jpeg")  # Load an image
-    img = random_flip(img)
-    img = random_rotate(img)
     img = random_brightness(img)
     img = random_contrast(img)
     img = random_color_jitter(img)

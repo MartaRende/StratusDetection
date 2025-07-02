@@ -10,6 +10,7 @@ from metrics import *
 import importlib
 from datetime import datetime, timedelta
 import random
+import pandas as pd
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
@@ -61,7 +62,8 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(10, 13)] 
+#+  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -176,4 +178,23 @@ global_metrics.save_metrics_report(
     stratus_days=stratus_days, non_stratus_days=non_stratus_days
 )
 res, mean_timedelta_sec = global_metrics.detect_time_late(stratus_days)
+# Group results by day and print summary statistics
 
+# Convert res (list of dicts) to DataFrame
+df = pd.DataFrame(res)
+
+# Ensure 'expected_datetime' is datetime
+df['expected_datetime'] = pd.to_datetime(df['expected_datetime'])
+
+# Add 'date' column for grouping
+df['date'] = df['expected_datetime'].dt.date
+
+# Group by 'date' and aggregate statistics
+grouped = df.groupby('date').agg({
+    'timing': lambda x: x.value_counts().to_dict(),
+    'timedelta_sec': ['mean', 'std', 'min', 'max', 'count'],
+    'delta_similarity': ['mean', 'std', 'min', 'max'],
+})
+
+print("Summary by day:")
+grouped.to_csv(os.path.join(MODEL_PATH, "grouped_summary_by_day.csv"))
