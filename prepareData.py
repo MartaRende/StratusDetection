@@ -258,9 +258,9 @@ class PrepareData:
         for i in range(len(df) - self.seq_length):
             # Get the sequence window
             seq_window = df.iloc[i:i+self.seq_length]
-            if i + self.seq_length + 5 >= len(df):
+            if i + self.seq_length  >= len(df):
                 break
-            next_point = df.iloc[i + self.seq_length + 5]
+            next_point = df.iloc[i + self.seq_length]
 
             # Check for continuity (10-minute intervals)
             time_diffs = np.diff(seq_window['datetime'].values) / np.timedelta64(1, 'm')
@@ -271,7 +271,7 @@ class PrepareData:
 
             # Check if next point is exactly 60 minutes after last sequence point
             last_seq_time = seq_window.iloc[-1]['datetime']
-            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=60):
+            if (next_point['datetime'] - last_seq_time) != timedelta(minutes=10):
                 print(f"Skipping sequence starting at index {i} due to non-60-minute gap to next point.at hour", last_seq_time)
                 continue
             # # Prepare meteorological data sequence
@@ -419,35 +419,51 @@ class PrepareData:
         # Find stratus and non-stratus days
         stratus_days, non_stratus_days, self.stats_stratus_days = self.find_stratus_days()
         all_days = sorted(self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist())
-
-        # Specific test days to always include
+        
+        # Specific test days to always include (including some stratus days)
         specific_test_days = [
-            "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", "2024-11-08", "2023-01-27",
-            "2023-01-25", "2023-02-09", "2024-10-30", "2024-11-09", "2024-10-19", "2024-11-16", "2023-03-02"
+            "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
+            "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
+            "2024-11-09", "2024-10-19", "2024-11-16", "2023-03-02"
         ]
         # Only keep specific test days that are in all_days
         specific_test_days = [d for d in specific_test_days if d in all_days]
-
-        # Split stratus days
-        stratus_days = [d for d in stratus_days if d not in specific_test_days]
-        random.shuffle(stratus_days)
-        n_stratus_test = int(len(stratus_days) * (1 - split_ratio))
-        stratus_test_days = set(stratus_days[:n_stratus_test])
-        stratus_train_days = set(stratus_days[n_stratus_test:])
-
-        # Split non-stratus days
-        non_stratus_days = [d for d in non_stratus_days if d not in specific_test_days]
-        random.shuffle(non_stratus_days)
-        n_non_stratus_test = int(len(non_stratus_days) * (1 - split_ratio))
-        non_stratus_test_days = set(non_stratus_days[:n_non_stratus_test])
-        non_stratus_train_days = set(non_stratus_days[n_non_stratus_test:])
-
-        # Add specific test days
-        test_days = set(specific_test_days) | stratus_test_days | non_stratus_test_days
+        
+        # Calculate required test size (20% of all days)
+        total_days = len(all_days)
+        required_test_size = int(total_days * (1 - split_ratio))
+        
+        # Start with specific test days
+        test_days = set(specific_test_days)
+        
+        # Calculate how many more days we need for test set
+        remaining_test_needed = max(0, required_test_size - len(test_days))
+        
+        # Get non-stratus days not in specific test days
+        available_non_stratus = [d for d in non_stratus_days if d not in specific_test_days]
+        random.shuffle(available_non_stratus)
+        
+        # Add required number of non-stratus days to reach 20%
+        if remaining_test_needed > 0:
+            additional_test_days = available_non_stratus[:remaining_test_needed]
+            test_days.update(additional_test_days)
+        
+        # All remaining days go to train set
         train_days = set([d for d in all_days if d not in test_days])
-
-        print(f"Train days: {len(train_days)}, Test days: {len(test_days)}")
-
+        
+        # Verify no stratus days in test except specific ones
+        test_stratus_days = [d for d in test_days if d in stratus_days]
+        non_specific_test_stratus = [d for d in test_stratus_days if d not in specific_test_days]
+        
+        if non_specific_test_stratus:
+            print(f"Warning: Found {len(non_specific_test_stratus)} stratus days in test set not in specific list")
+        
+        print(f"Total days: {total_days}")
+        print(f"Train days: {len(train_days)} ({len(train_days)/total_days:.1%})")
+        print(f"Test days: {len(test_days)} ({len(test_days)/total_days:.1%})")
+        print(f" - Specific test days: {len(specific_test_days)}")
+        print(f" - Additional non-stratus test days: {len(test_days) - len(specific_test_days)}")
+        
         return train_days, test_days
 
     def split_data(self, x_meteo, x_images, y):

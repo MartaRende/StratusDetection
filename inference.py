@@ -60,7 +60,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(11, 12)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -124,7 +124,7 @@ for year, month in months:
             x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
-        for i in range(total_predictions):
+        for i in range(int(total_predictions/4)):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
@@ -156,18 +156,18 @@ for year, month in months:
   
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date)
        
-        metrics.plot_day_curves(stratus_days_for_month)
-        # Take up to 3 random non-stratus days and plot their curves
-        num_days_to_plot = min(3, len(non_stratus_days_for_month))
-        if num_days_to_plot > 0:
-            random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
-            print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
-            metrics.plot_day_curves(non_stratus_days_for_month)
-        else:
-            print("No non-stratus days to select for plotting.")
-        metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-        metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
-        #metrics.find_datetime_most_near(stratus_days_for_month)
+        # metrics.plot_day_curves(stratus_days_for_month)
+        # # Take up to 3 random non-stratus days and plot their curves
+        # num_days_to_plot = min(3, len(non_stratus_days_for_month))
+        # if num_days_to_plot > 0:
+        #     random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
+        #     print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
+        #     metrics.plot_day_curves(non_stratus_days_for_month)
+        # else:
+        #     print("No non-stratus days to select for plotting.")
+        # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+        # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+        metrics.find_datetime_most_near(stratus_days_for_month)
 
 # Flatten all_expected into a 1D array
 all_expected =  [item for sublist in all_expected for item in sublist]
