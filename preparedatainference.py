@@ -12,7 +12,6 @@ import functools
 
 class PrepareData:
     def __init__(self, fp_images, fp_weather, num_views=1, seq_length=3, prediction_time=10):
-        
         self.image_base_folder = fp_images
         self.fp_weather = fp_weather
         if fp_weather.endswith('.npz'):
@@ -22,7 +21,6 @@ class PrepareData:
         self.num_views = num_views
         self.stats_stratus_days = None
         self.seq_length = seq_length
-        self.prediction_time = prediction_time  # Time in minutes for prediction
         self.meteo_feats = ["gre000z0_nyon", "gre000z0_dole",
              "RR", "TD", "WG", "TT",
             "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"
