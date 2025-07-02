@@ -73,6 +73,7 @@ class Metrics:
         self.image_base_folder = fp_images if fp_images else ""
         self.num_views = num_views
         self.test = 0
+        self.prediction_minutes = prediction_minutes
 
     def _initialize_data(self, expected, predicted, data):
         """Initialize and normalize data structures"""
