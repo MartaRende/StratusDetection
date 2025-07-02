@@ -22,7 +22,7 @@ class PlotConfig:
     
     def __post_init__(self):
         self.fontsize = self.fontsize or {'title': 14, 'labels': 12, 'ticks': 10}
-        self.colors = self.colors or {'nyon': '#1f77b4', 'dole': '#ff7f0e'}
+        self.colors = self.colors or {'geneva': '#1f77b4', 'dole': '#ff7f0e'}
 
 class Metrics:
     """
@@ -56,7 +56,7 @@ class Metrics:
         Initialize the Metrics calculator.
         
         Args:
-            expected: Ground truth values with columns ["nyon", "dole"]
+            expected: Ground truth values with columns ["geneva", "dole"]
             predicted: Predicted values with same structure as expected
             data: Raw data dictionary containing 'dole' key with datetime info
             save_path: Base directory to save results
@@ -79,38 +79,38 @@ class Metrics:
 
     def _initialize_data(self, expected, predicted, data):
         """Initialize and normalize data structures"""
-        self.expected = pd.DataFrame(expected, columns=["nyon", "dole"])
-        self.predicted = pd.DataFrame(predicted, columns=["nyon", "dole"])
+        self.expected = pd.DataFrame(expected, columns=["geneva", "dole"])
+        self.predicted = pd.DataFrame(predicted, columns=["geneva", "dole"])
     
         # Normalize the input data
         self.data = pd.json_normalize(pd.DataFrame(data["dole"])[0])
         
         # Convert to appropriate dtypes
         self.data["datetime"] = pd.to_datetime(self.data["datetime"])
-        self.data["gre000z0_nyon"] = pd.to_numeric(self.data["gre000z0_nyon"])
+        self.data["gre000z0_geneva"] = pd.to_numeric(self.data["gre000z0_nyon"])
         self.data["gre000z0_dole"] = pd.to_numeric(self.data["gre000z0_dole"])
         
         # Find matching indices in raw data
         self._filtered_indices = self._find_matching_indices()
         
         # Filter the raw data to only include matching points
-        self._nyon_values = self.data["gre000z0_nyon"].iloc[self._filtered_indices].to_numpy()
+        self._geneva_values = self.data["gre000z0_geneva"].iloc[self._filtered_indices].to_numpy()
         self._dole_values = self.data["gre000z0_dole"].iloc[self._filtered_indices].to_numpy()
         self._datetime_values = self.data["datetime"].iloc[self._filtered_indices].to_numpy()
 
     def _find_matching_indices(self):
         """Find indices in raw data that match expected values"""
         matched_indices = []
-        exp_nyon = self.expected["nyon"].to_numpy()
+        exp_geneva = self.expected["geneva"].to_numpy()
         exp_dole = self.expected["dole"].to_numpy()
         
-        raw_nyon = self.data["gre000z0_nyon"].to_numpy()
+        raw_geneva = self.data["gre000z0_geneva"].to_numpy()
         raw_dole = self.data["gre000z0_dole"].to_numpy()
         
-        for nyon, dole in zip(exp_nyon, exp_dole):
+        for geneva, dole in zip(exp_geneva, exp_dole):
             # Find closest match in raw data
             distances = np.sqrt(
-                (raw_nyon - nyon)**2 + 
+                (raw_geneva - geneva)**2 + 
                 (raw_dole - dole)**2
             )
             min_idx = np.argmin(distances)
@@ -118,7 +118,7 @@ class Metrics:
             if distances[min_idx] < 2.0:  # Only accept if within 2 W/m²
                 matched_indices.append(min_idx)
             else:
-                self.logger.warning(f"No close match found for nyon={nyon}, dole={dole}")
+                self.logger.warning(f"No close match found for geneva={geneva}, dole={dole}")
                 matched_indices.append(None)  # Or handle missing values as needed
         
         # Verify we found exactly 74 matches
@@ -218,26 +218,26 @@ class Metrics:
         return {k: np.mean(v) for k, v in rel_error.items()}
 
    
-    def get_delta_btw_nyon_dole(self) -> pd.DataFrame:
+    def get_delta_btw_geneva_dole(self) -> pd.DataFrame:
         """
-        Calculate the difference between Nyon and Dole values.
+        Calculate the difference between geneva and Dole values.
         
         Returns:
             DataFrame with datetime, expected, predicted values and their differences
         """
         df = self._create_comparison_dataframe()
-        df["expected_delta_nyon_dole"] = df["expected_nyon"] - df["expected_dole"]
-        df["predicted_delta_nyon_dole"] = df["predicted_nyon"] - df["predicted_dole"]
+        df["expected_delta_geneva_dole"] = df["expected_geneva"] - df["expected_dole"]
+        df["predicted_delta_geneva_dole"] = df["predicted_geneva"] - df["predicted_dole"]
         return df.dropna(subset=["datetime"])
     def get_delta_stats(self) -> Dict[str, float]:
         """
-        Compute MAE, RMSE, and mean relative error for delta_dole_nyon.
+        Compute MAE, RMSE, and mean relative error for delta_dole_geneva.
         Returns:
             Dictionary with keys: 'mae', 'rmse', 'mean_relative_error'
         """
-        df = self.get_delta_btw_nyon_dole()
-        expected_delta = df["expected_delta_nyon_dole"]
-        predicted_delta = df["predicted_delta_nyon_dole"]
+        df = self.get_delta_btw_geneva_dole()
+        expected_delta = df["expected_delta_geneva_dole"]
+        predicted_delta = df["predicted_delta_geneva_dole"]
         abs_error = (predicted_delta - expected_delta).abs()
         mae = abs_error.mean()
         rmse = np.sqrt(((predicted_delta - expected_delta) ** 2).mean())
@@ -255,9 +255,9 @@ class Metrics:
         """Create a combined dataframe with all comparison data"""
         return pd.DataFrame({
             "datetime": self.datetime_list,
-            "expected_nyon": self.expected["nyon"],
+            "expected_geneva": self.expected["geneva"],
             "expected_dole": self.expected["dole"],
-            "predicted_nyon": self.predicted["nyon"],
+            "predicted_geneva": self.predicted["geneva"],
             "predicted_dole": self.predicted["dole"],
         }).dropna(subset=["datetime"])
 
@@ -319,16 +319,16 @@ class Metrics:
         for day, group in day_df.groupby("date_str"):
             metrics[day] = {
                 "mae": {
-                    "nyon": (group["predicted_nyon"] - group["expected_nyon"]).abs().mean(),
+                    "geneva": (group["predicted_geneva"] - group["expected_geneva"]).abs().mean(),
                     "dole": (group["predicted_dole"] - group["expected_dole"]).abs().mean(),
                 },
                 "rmse": {
-                    "nyon": np.sqrt(((group["predicted_nyon"] - group["expected_nyon"]) ** 2).mean()),
+                    "geneva": np.sqrt(((group["predicted_geneva"] - group["expected_geneva"]) ** 2).mean()),
                     "dole": np.sqrt(((group["predicted_dole"] - group["expected_dole"]) ** 2).mean()),
                 },
                 "relative_error": {
-                    "nyon": ((group["predicted_nyon"] - group["expected_nyon"]).abs() / 
-                            group["expected_nyon"].replace(0, np.nan)).fillna(0).mean(),
+                    "geneva": ((group["predicted_geneva"] - group["expected_geneva"]).abs() / 
+                            group["expected_geneva"].replace(0, np.nan)).fillna(0).mean(),
                     "dole": ((group["predicted_dole"] - group["expected_dole"]).abs() / 
                             group["expected_dole"].replace(0, np.nan)).fillna(0).mean(),
                 }
@@ -351,15 +351,15 @@ class Metrics:
 
         # Initialize aggregators
         global_metrics = {
-            "mae": {"nyon": [], "dole": []},
-            "rmse": {"nyon": [], "dole": []},
-            "relative_error": {"nyon": [], "dole": []}
+            "mae": {"geneva": [], "dole": []},
+            "rmse": {"geneva": [], "dole": []},
+            "relative_error": {"geneva": [], "dole": []}
         }
 
         # Collect all values
         for metrics in day_metrics.values():
             for metric_type in global_metrics:
-                for var in ["nyon", "dole"]:
+                for var in ["geneva", "dole"]:
                     global_metrics[metric_type][var].append(metrics[metric_type][var])
 
         # Calculate means
@@ -392,18 +392,18 @@ class Metrics:
 
         # Prepare data
         days_list = sorted(day_metrics.keys())
-        nyon_values = [day_metrics[day][metric_type]["nyon"] for day in days_list]
+        geneva_values = [day_metrics[day][metric_type]["geneva"] for day in days_list]
         dole_values = [day_metrics[day][metric_type]["dole"] for day in days_list]
 
         # Create plot
         fig, ax = plt.subplots(figsize=self.plot_config.figsize)
         
-        ax.plot(days_list, nyon_values, 
+        ax.plot(days_list, geneva_values, 
                 marker='o', linestyle='-', 
-                color=self.plot_config.colors["nyon"],
+                color=self.plot_config.colors["geneva"],
                 markersize=self.plot_config.marker_size,
                 linewidth=self.plot_config.line_width,
-                label='Nyon')
+                label='geneva')
                 
         ax.plot(days_list, dole_values, 
                 marker='x', linestyle='--', 
@@ -476,7 +476,7 @@ class Metrics:
             # Top subplot for curves
             ax1 = fig.add_subplot(gs[0])
 
-            for var in ["nyon", "dole"]:
+            for var in ["geneva", "dole"]:
                 ax1.plot(day_df["hour"], day_df[f"expected_{var}"],
                         'o-', color=self.plot_config.colors[var],
                         markersize=self.plot_config.marker_size,
@@ -545,7 +545,7 @@ class Metrics:
 
             # Original difference plot (unchanged)
             fig, ax = plt.subplots(figsize=self.plot_config.figsize)
-            for var in ["nyon", "dole"]:
+            for var in ["geneva", "dole"]:
                 ax.plot(day_df["hour"],
                         (day_df[f"expected_{var}"] - day_df[f"predicted_{var}"]),
                         'o-', color=self.plot_config.colors[var],
@@ -577,7 +577,7 @@ class Metrics:
             plt.close()
     def plot_delta_absolute_error(self, days: List[str], prefix: str = "stratus_days", subdirectory = None) -> None:
         """
-        Plot absolute error of delta (nyon-dole) for the given days, saving in the corresponding month directory.
+        Plot absolute error of delta (geneva-dole) for the given days, saving in the corresponding month directory.
 
         Args:
             days: List of days in format 'YYYY-MM-DD'
@@ -589,9 +589,9 @@ class Metrics:
             self.logger.warning("No data found for the provided days.")
             return
 
-        # Compute absolute error of delta (nyon-dole)
-        delta_abs_error = ((df["predicted_nyon"] - df["predicted_dole"]) -
-                           (df["expected_nyon"] - df["expected_dole"])).abs()
+        # Compute absolute error of delta (geneva-dole)
+        delta_abs_error = ((df["predicted_geneva"] - df["predicted_dole"]) -
+                           (df["expected_geneva"] - df["expected_dole"])).abs()
 
         # Group by month for saving in month directory
         if "month" not in df.columns:
@@ -612,14 +612,14 @@ class Metrics:
                     'o-', color='red',
                     markersize=self.plot_config.marker_size,
                     linewidth=self.plot_config.line_width,
-                    label='Absolute Error (Nyon - Dole)')
+                    label='Absolute Error (geneva - Dole)')
 
             # Tick ogni N punti
             step = max(1, len(x_vals) // 10)
             ax.set_xticks(x_vals[::step])
             ax.set_xticklabels(dates_labels[::step], rotation=45)
 
-            ax.set_title(f"Absolute Error of Delta (Nyon-Dole) - {month}",
+            ax.set_title(f"Absolute Error of Delta (geneva-Dole) - {month}",
                          fontsize=self.plot_config.fontsize["title"])
             ax.set_xlabel("Date", fontsize=self.plot_config.fontsize["labels"])
             ax.set_ylabel("Absolute Error", fontsize=self.plot_config.fontsize["labels"])
@@ -639,7 +639,7 @@ class Metrics:
 
     def get_delta_metrics_for_days(self, days: List[str]) -> Dict[str, Dict[str, float]]:
         """
-        Compute delta metrics (nyon-dole differences) for specific days.
+        Compute delta metrics (geneva-dole differences) for specific days.
         
         Args:
             days: List of days in format 'YYYY-MM-DD'
@@ -660,8 +660,8 @@ class Metrics:
         }
 
         for day, group in day_df.groupby("date_str"):
-            expected_delta = group["expected_nyon"] - group["expected_dole"]
-            predicted_delta = group["predicted_nyon"] - group["predicted_dole"]
+            expected_delta = group["expected_geneva"] - group["expected_dole"]
+            predicted_delta = group["predicted_geneva"] - group["predicted_dole"]
             
             abs_error = (predicted_delta - expected_delta).abs()
             mae = abs_error.mean()
@@ -702,7 +702,7 @@ class Metrics:
             f"Mean Absolute Error: {self.get_mean_absolute_error()}",
             f"Root Mean Squared Error: {self.get_root_mean_squared_error()}",
             f"Mean Relative Error: {self.get_mean_relative_error()}",
-            f"\n=== Global Delta Nyon-Dole Stats ===",
+            f"\n=== Global Delta geneva-Dole Stats ===",
             f"{self.get_delta_stats()}",  # Uses the cached version
         ]
 
@@ -716,7 +716,7 @@ class Metrics:
                 f"Global RMSE: {stratus_metrics.get('rmse', {})}",
                 f"Global Relative Error: {stratus_metrics.get('relative_error', {})}",
                 f"Global MAE: {stratus_metrics.get('mae', {})}",
-                f"Delta Nyon-Dole Stats: {stratus_delta}",
+                f"Delta geneva-Dole Stats: {stratus_delta}",
             ])
 
         if non_stratus_days:
@@ -729,7 +729,7 @@ class Metrics:
                 f"Global RMSE: {non_stratus_metrics.get('rmse', {})}",
                 f"Global Relative Error: {non_stratus_metrics.get('relative_error', {})}",
                 f"Global MAE: {non_stratus_metrics.get('mae', {})}",
-                f"Delta Nyon-Dole Stats: {non_stratus_delta}",
+                f"Delta geneva-Dole Stats: {non_stratus_delta}",
             ])
 
         if self.save_path:
@@ -773,9 +773,9 @@ class Metrics:
                 f.write(f"Global Relative Error: {metrics.get('relative_error', {})}\n")
                 f.write(f"Global MAE: {metrics.get('mae', {})}\n")
                 if delta_metrics and "global" in delta_metrics and delta_metrics["global"]:
-                    f.write(f"Delta Nyon-Dole Stats: {delta_metrics['global']}\n")
+                    f.write(f"Delta geneva-Dole Stats: {delta_metrics['global']}\n")
                 else:
-                    f.write("Delta Nyon-Dole Stats: No data available\n")
+                    f.write("Delta geneva-Dole Stats: No data available\n")
             self.logger.info(f"Saved {label} metrics for {month} to {report_path}")
 
             # Plot metrics in the month directory
@@ -809,8 +809,8 @@ class Metrics:
         filtered for specific days.
         
         Args:
-            expected_values: List of expected values for each time point [[nyon, dole], ...]
-            predicted_values: List of predicted values for each time point [[nyon_t0, dole_t0, nyon_t1, dole_t1, ...], ...]
+            expected_values: List of expected values for each time point [[geneva, dole], ...]
+            predicted_values: List of predicted values for each time point [[geneva_t0, dole_t0, geneva_t1, dole_t1, ...], ...]
             days: List of dates in format 'YYYY-MM-DD' to filter by
             time_steps: List of prediction time steps (1=10min, 2=20min, etc.)
         
@@ -824,7 +824,7 @@ class Metrics:
         # Create base DataFrame with datetime and expected values
         df = pd.DataFrame({
         'datetime': self.datetime_list,
-        'expected_nyon': [x[0] for x in expected_values[:, -1, :]],
+        'expected_geneva': [x[0] for x in expected_values[:, -1, :]],
         'expected_dole': [x[1] for x in expected_values[:, -1, :]],
     })
         df['date_str'] = df['datetime'].dt.strftime('%Y-%m-%d')
@@ -869,7 +869,7 @@ class Metrics:
             
             # Add to dataframe
      
-            df[f'predicted_nyon_{t}'] = [x[0] for x in filtered_preds]
+            df[f'predicted_geneva_{t}'] = [x[0] for x in filtered_preds]
             df[f'predicted_dole_{t}'] = [x[1] for x in filtered_preds]
             
             # Calculate future datetimes
@@ -928,7 +928,7 @@ class Metrics:
             
             # Create a dictionary of actual values by time for quick lookup
             actual_values = {
-                row["hour"]: (row["expected_nyon"], row["expected_dole"])
+                row["hour"]: (row["expected_geneva"], row["expected_dole"])
                 for _, row in df_day.iterrows()
             }
 
@@ -946,8 +946,8 @@ class Metrics:
             ax = fig.add_subplot(gs[0])
 
             # Plot actual observations using x_pos
-            ax.plot(df_day["x_pos"], df_day["expected_nyon"], 
-                    '-o', color='blue', markersize=8, label='Actual Nyon')
+            ax.plot(df_day["x_pos"], df_day["expected_geneva"], 
+                    '-o', color='blue', markersize=8, label='Actual Geneva')
             ax.plot(df_day["x_pos"], df_day["expected_dole"], 
                     '-o', color='red', markersize=8, label='Actual Dole')
 
@@ -955,16 +955,16 @@ class Metrics:
             for i, row in df_day.iterrows():
                 current_time = row["hour"]
                 current_xpos = row["x_pos"]
-                current_nyon = row["expected_nyon"]
+                current_geneva = row["expected_geneva"]
                 current_dole = row["expected_dole"]
                 
                 for j, t in enumerate(time_steps):
-                    pred_nyon = row.get(f"predicted_nyon_{t}", None)
+                    pred_geneva = row.get(f"predicted_geneva_{t}", None)
                     pred_dole = row.get(f"predicted_dole_{t}", None)
                     future_time = row.get(f"hour_{t}", None)
                     future_dt = row.get(f"datetime_{t}", None)
                     
-                    if None in (pred_nyon, pred_dole, future_time, future_dt):
+                    if None in (pred_geneva, pred_dole, future_time, future_dt):
                         continue
 
                     # Get x-position for future time
@@ -977,18 +977,18 @@ class Metrics:
                     has_actual = future_actual[0] is not None and future_actual[1] is not None
 
                     linestyle = ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))][j % 6]
-                    nyon_label = f'Nyon +{prediction_horizons[j]}min' if i == 0 else ""
+                    geneva_label = f'geneva +{prediction_horizons[j]}min' if i == 0 else ""
                     dole_label = f'Dole +{prediction_horizons[j]}min' if i == 0 else ""
 
                     if has_actual:
                         # Plot line from current to future point
-                        ax.plot([current_xpos, future_xpos], [current_nyon, pred_nyon],
+                        ax.plot([current_xpos, future_xpos], [current_geneva, pred_geneva],
                                 linestyle=linestyle, color='blue', alpha=0.7)
                         ax.plot([current_xpos, future_xpos], [current_dole, pred_dole],
                                 linestyle=linestyle, color='red', alpha=0.7)
                     else:
                         # Plot only the predicted point as a marker
-                        ax.plot(future_xpos, pred_nyon, marker='x', color='blue', alpha=0.7)
+                        ax.plot(future_xpos, pred_geneva, marker='x', color='blue', alpha=0.7)
                         ax.plot(future_xpos, pred_dole, marker='x', color='red', alpha=0.7)
 
                     # Add labels only for first iteration to avoid duplicate legends
@@ -1011,7 +1011,7 @@ class Metrics:
             
             # Improved legend
             legend_elements = [
-                Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Nyon'),
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Geneve'),
                 Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Actual Dole'),
                 *[Line2D([0], [0], color='gray', linestyle=linestyle, 
                         label=f'+{h}min') for h, linestyle in zip(prediction_horizons, 
