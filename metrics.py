@@ -784,8 +784,7 @@ class Metrics:
         df["predicted_delta_geneva_dole_diff"] = df.groupby("date_str")["predicted_delta_geneva_dole"].diff()
         sig_exp = df[abs(df["delta_geneva_dole_diff"]) > threshold]
         sig_pred = df[abs(df["predicted_delta_geneva_dole_diff"]) > threshold]
-        import ipdb
-        ipdb.set_trace()
+   
         return {
             "expected": sig_exp.dropna(subset=["delta_geneva_dole_diff"])[
                 ["datetime", "delta_geneva_dole", "delta_geneva_dole_diff"]],
@@ -838,8 +837,7 @@ class Metrics:
                 result.at[idxs_global[i], "cusum_pos_cp"] = True
             for i in neg_cp: 
                 result.at[idxs_global[i], "cusum_neg_cp"] = True
-        import ipdb 
-        ipdb.set_trace()
+      
 
         return result
     
@@ -936,6 +934,5 @@ class Metrics:
         )
 
         self.logger.info(f"Mean timedelta_sec: {mean_timedelta_sec:.2f} seconds" if mean_timedelta_sec else "No valid results found.")
-        import ipdb
-        ipdb.set_trace()
+     
         return sorted(results, key=lambda x: x["expected_datetime"]), mean_timedelta_sec
