@@ -14,7 +14,7 @@ import pandas as pd
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 2  # or any number you want
+MODEL_NUM = 6  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -62,7 +62,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-#months = [(2023, m) for m in range(3, 4)]
+months = [(2024, m) for m in range(11, 12)]
 months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
@@ -122,7 +122,7 @@ for year, month in months:
             x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
-        for i in range(int(total_predictions/4)):
+        for i in range(total_predictions):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
