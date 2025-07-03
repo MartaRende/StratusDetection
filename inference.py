@@ -154,17 +154,17 @@ for year, month in months:
   
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date,prediction_minutes=prediction_minutes)
        
-        metrics.plot_day_curves(stratus_days_for_month)
+        # metrics.plot_day_curves(stratus_days_for_month)
         # Take up to 3 random non-stratus days and plot their curves
         num_days_to_plot = min(3, len(non_stratus_days_for_month))
         if num_days_to_plot > 0:
             random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
             print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
-            metrics.plot_day_curves(non_stratus_days_for_month)
+            #metrics.plot_day_curves(non_stratus_days_for_month)
         else:
             print("No non-stratus days to select for plotting.")
-        metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-        metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+        # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+        # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
         #df = metrics.detect_time_late(stratus_days_for_month)
 
 # Flatten all_expected into a 1D array

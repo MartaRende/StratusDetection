@@ -763,106 +763,103 @@ class Metrics:
 
 
     def detect_slope_transitions(
-    self,
-    peaks_results: Dict[str, pd.DataFrame],
-    time_window: str = "30min",
-    min_slope: float = 80,
-    include_weak: bool = True
-    ) -> pd.DataFrame:
+        self,
+        days: List[str],
+        min_slope: float = 100,
+        min_peak_distance: str = "30min",
+        smooth_window: str = "15min",
+        plot_day: str = "2023-01-27"
+    ) -> Dict[str, Optional[pd.DataFrame]]:
         """
-        Nuovo approccio che:
-        1. Trova TUTTI i possibili match temporali
-        2. Poi filtra per significatività
-        3. Include sempre gli expected non matched
+        Identify critical transition points based on maximum slopes.
+        Also computes the derivative of the delta (predicted and expected).
         """
-        exp_peaks = peaks_results["expected_peaks"].reset_index()
-        pred_peaks = peaks_results["predicted_peaks"].reset_index()
+        import matplotlib.pyplot as plt
 
-        # Crea un DataFrame combinato con tutti i possibili abbinamenti
-        cross_join = exp_peaks.assign(key=1).merge(
-            pred_peaks.assign(key=1), on='key'
-        ).drop('key', axis=1)
+        # Load and prepare data
+        df = self.get_delta_btw_geneva_dole()
+        days = self._normalize_days_input(days)
+        df = df.sort_values("datetime").set_index("datetime")
+        df = df[df.index.strftime("%Y-%m-%d").isin(days)]
+        # Ensure index is sorted in ascending order for correct time difference calculation
+        df = df.sort_index()
 
-        # Calcola differenze temporali
-        cross_join["time_diff"] = (
-            cross_join["datetime_y"] - cross_join["datetime_x"]
-        ).dt.total_seconds()
-        
-        # Filtra per finestra temporale e ritardi positivi
-        max_diff = pd.Timedelta(time_window).total_seconds()
-        candidates = cross_join[
-            (abs(cross_join["time_diff"]) <= max_diff) &
-            (cross_join["time_diff"] >= 0)
-        ].copy()
+        # Add delta columns
+        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
+        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
 
-        # Calcola score di matching (semplificato)
-        candidates["time_score"] = 1 - (abs(candidates["time_diff"]) / max_diff)
-        candidates["slope_score"] = 1 - abs(
-            candidates["slope_combined_x"] - candidates["slope_combined_y"]
-        ) / (candidates[["slope_combined_x", "slope_combined_y"]].max(axis=1))
-        candidates["combined_score"] = 0.6 * candidates["time_score"] + 0.4 * candidates["slope_score"]
+        # Compute derivatives with smoothing
+        for series in ["expected_geneva", "expected_dole", "predicted_geneva", "predicted_dole",
+                       "expected_delta", "predicted_delta"]:
+            df[f"{series}_slope"] = (
+                df[series]
+                .rolling(smooth_window, center=True)
+                .mean()
+                .diff()
+                .abs()
+            )
 
-        # Trova il miglior match per ogni expected
-        best_matches = candidates.sort_values("combined_score", ascending=False)\
-            .groupby("datetime_x").first().reset_index()
+        # Filter the specific day for plotting
+        plot_data = df[df.index.date == pd.to_datetime(plot_day).date()]
 
-        # Filtra per significatività
-        if not include_weak:
-            best_matches = best_matches[best_matches["combined_score"] >= 0.5]
+        # Calculate min_samples
+        time_diff = (df.index[1] - df.index[0]).total_seconds()
+        min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() / time_diff))
 
-        # Costruisci il risultato finale
-        results = []
-        matched_pred_times = set()
-        
-        for _, row in best_matches.iterrows():
-            results.append({
-                "expected_time": row["datetime_x"],
-                "predicted_time": row["datetime_y"],
-                "expected_slope": row["slope_combined_x"],
-                "predicted_slope": row["slope_combined_y"],
-                "time_difference_sec": row["time_diff"],
-                "time_difference_h": row["time_diff"] / 3600,
-                "combined_score": row["combined_score"],
-                "match_status": "matched",
-                "match_quality": "strong" if row["slope_combined_x"] > min_slope else "weak"
-            })
-            matched_pred_times.add(row["datetime_y"])
+        results = {}
+        for prefix in ["expected", "predicted"]:
+            # Use the derivative of the delta as the main slope
+            slopes = df[f"{prefix}_delta_slope"].values
 
-        # Aggiungi expected non matched
-        unmatched_exp = exp_peaks[~exp_peaks["datetime"].isin(best_matches["datetime_x"])]
-        for _, row in unmatched_exp.iterrows():
-            results.append({
-                "expected_time": row["datetime"],
-                "predicted_time": pd.NaT,
-                "expected_slope": row["slope_combined"],
-                "predicted_slope": None,
-                "time_difference_sec": None,
-                "time_difference_h": None,
-                "combined_score": None,
-                "match_status": "unmatched",
-                "match_quality": "strong" if row["slope_combined"] > min_slope else "weak"
-            })
+            try:
+                peaks, _ = find_peaks(slopes, height=min_slope, distance=min_samples)
+            except ValueError as e:
+                self.logger.warning(f"Error in find_peaks: {e}. Using distance=1 as fallback.")
+                peaks, _ = find_peaks(slopes, height=min_slope, distance=1)
 
-        # Aggiungi predicted non matched (opzionale)
-        unmatched_pred = pred_peaks[~pred_peaks["datetime"].isin(matched_pred_times)]
-        for _, row in unmatched_pred.iterrows():
-            results.append({
-                "expected_time": pd.NaT,
-                "predicted_time": row["datetime"],
-                "expected_slope": None,
-                "predicted_slope": row["slope_combined"],
-                "time_difference_sec": None,
-                "time_difference_h": None,
-                "combined_score": None,
-                "match_status": "pred_only",
-                "match_quality": "strong" if row["slope_combined"] > min_slope else "weak"
-            })
-  
+            peaks_df = df.iloc[peaks].copy()
+            peaks_df["slope_combined"] = slopes[peaks]
 
-        return pd.DataFrame(results).sort_values(
-            ["match_status", "expected_time"],
-            ascending=[True, True]
-        )
+            results[f"{prefix}_peaks"] = peaks_df.sort_values("slope_combined", ascending=False)
+
+            # Plot
+            if not plot_data.empty:
+                plt.figure(figsize=(15, 10))
+
+                # 1. Plot deltas
+                plt.subplot(3, 1, 1)
+                plt.plot(plot_data.index, plot_data[f"{prefix}_delta"], label=f"{prefix} Delta", color='blue')
+                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
+                    plt.axvline(peak.name, color='r', linestyle='--', alpha=0.5)
+                plt.title(f"{prefix.capitalize()} Delta (Geneva - Dole) - {plot_day}")
+                plt.legend()
+                plt.grid()
+
+                # 2. Plot derivatives of delta
+                plt.subplot(3, 1, 2)
+                plt.plot(plot_data.index, plot_data[f"{prefix}_delta_slope"], label=f"Derivative of {prefix} Delta", color='green')
+                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
+                    plt.scatter(peak.name, peak["slope_combined"], color='r', s=100)
+                plt.title(f"Derivative of {prefix} Delta (Slope) - {plot_day}")
+                plt.legend()
+                plt.grid()
+
+                # 3. Plot original components
+                plt.subplot(3, 1, 3)
+                plt.plot(plot_data.index, plot_data[f"{prefix}_geneva"], label=f"{prefix} Geneva")
+                plt.plot(plot_data.index, plot_data[f"{prefix}_dole"], label=f"{prefix} Dole")
+                plt.title(f"{prefix.capitalize()} Original Values - {plot_day}")
+                plt.legend()
+                plt.grid()
+
+                plt.tight_layout()
+                plt.savefig(
+                    os.path.join(self.save_path, f"{prefix}_slope_transitions_{plot_day}.png"),
+                    dpi=self.plot_config.dpi, bbox_inches='tight'
+                )
+                plt.close()
+        print("Results:", results)
+        return results
     def match_strongest_peaks(
         self,
         peaks_results: Dict[str, pd.DataFrame],
