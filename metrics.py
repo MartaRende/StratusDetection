@@ -885,12 +885,14 @@ class Metrics:
                             predicted_values: List[List[float]],
                             days: List[str],
                             time_interval_min: int = 10,
-                            prediction_horizons: List[int] = [10, 20, 30, 40, 50, 60]) -> None:
+                            prediction_horizons: List[int] = [10,  60]) -> None:
         """
         Plot prediction curves for multiple horizons from each observation point for specific days,
         with robust handling of cases where predicted datetimes don't have corresponding actual values.
         """
         # Create dataframe filtered for specific days
+        import ipdb 
+        ipdb.set_trace()
         day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
         
         if day_df.empty:
@@ -1053,9 +1055,180 @@ class Metrics:
             
             plt.tight_layout()
             plt.savefig(
-                os.path.join(month_dir, f"prediction_curves_{day}.png"),
+                os.path.join(month_dir, f"prediction_curves_{day}_test.png"),
                 dpi=self.plot_config.dpi,
                 bbox_inches='tight'
             )
             print(f"Saved prediction curves plot for {day} to {month_dir}")
+            plt.close()
+
+
+    def calculate_historical_errors(self, validation_expected: List[List[float]], 
+                                 validation_predicted: List[List[float]]) -> Dict[str, Dict[str, float]]:
+        """
+        Calculate MAE errors on validation set to use for inverse error weighting.
+        
+        Args:
+            validation_expected: List of expected values [[geneva, dole], ...]
+            validation_predicted: List of predicted values [[geneva, dole], ...]
+            
+        Returns:
+            Dictionary of MAE errors for each time step
+            Format: {t_step: {'geneva': mae, 'dole': mae}}
+        """
+        val_metrics = {}
+        
+        # Convert to numpy for vectorized operations
+        val_expected = np.array(validation_expected)
+        val_predicted = np.array(validation_predicted)
+        
+        # Calculate absolute errors
+        abs_errors = np.abs(val_predicted - val_expected)
+        
+        # Compute MAE for each variable
+        val_metrics = {
+            'geneva': np.mean(abs_errors[:, 0]),
+            'dole': np.mean(abs_errors[:, 1])
+        }
+        
+        return val_metrics
+
+    def inverse_error_weighting(self, predictions: Dict[str, List[List[float]]], 
+                         historical_errors: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, List[Tuple[float, float]]], List[str]]:
+        """
+        Organize all predictions by t_step with inverse error weights.
+        
+        Args:
+            predictions: Dictionary of predictions for each time step
+                        Format: {t_step: [[geneva, dole], ...]}
+            historical_errors: MAE errors for each time step
+                            Format: {t_step: {'geneva': mae, 'dole': mae}}
+        
+        Returns:
+            Tuple:
+                - Dictionary: {t_step: [(geneva_val, dole_val), ...]} (all predictions)
+                - List of prediction time strings (e.g., "+10min", "+20min", ...)
+        """
+        epsilon = 1e-6
+        combined = {}
+        time_mapping = {}
+
+        # Initialize structure and create time mapping
+        for t_step in predictions.keys():
+            try:
+                minutes = (int(t_step.split('_')[1]) + 1) * 10
+                time_mapping[t_step] = f"+{minutes}min"
+            except Exception:
+                time_mapping[t_step] = t_step
+            combined[t_step] = []
+
+        # Add weights to each prediction
+        for t_step, preds_list in predictions.items():
+            weighted_preds = []
+            for pred in preds_list:
+                geneva_weight = 1 / (historical_errors[t_step]['geneva'] + epsilon)
+                dole_weight = 1 / (historical_errors[t_step]['dole'] + epsilon)
+                
+                weighted_preds.append({
+                    'values': (pred[0], pred[1]),
+                    'weights': (geneva_weight, dole_weight)
+                })
+            combined[t_step] = weighted_preds
+
+        # Get ordered prediction times
+        prediction_times = []
+        if predictions:
+            max_t_step = max([int(k.split('_')[1]) for k in predictions.keys() if k.startswith('t_')])
+            prediction_times = [f"+{(i+1)*10}min" for i in range(max_t_step + 1)]
+
+        return combined, prediction_times
+
+    def plot_combined_predictions(self, days: List[str], 
+                               original_predictions: Dict[str, List[List[float]]],
+                               combined_predictions: Dict[str, List[float]],
+                               time_interval_min: int = 10) -> None:
+        """
+        Plot comparison between original and combined predictions, showing the time of each prediction.
+
+        Args:
+            days: List of days to plot
+            original_predictions: Dictionary of original predictions per time step
+            combined_predictions: Dictionary of combined predictions
+            time_interval_min: Time interval between observations in minutes
+        """
+        for day in days:
+            # Create figure
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+            
+            # Get datetimes for this day
+            day_df = self._prepare_day_metrics([day])
+            if day_df.empty:
+                continue
+
+            times = day_df["hour"].tolist()
+            x_vals = np.arange(len(times))
+            
+            # Plot Geneva
+            ax1.plot(x_vals, day_df["expected_geneva"], 'k-', label='Actual', linewidth=2)
+            
+            # Plot original predictions for each time step, showing prediction time in legend
+            for t_step, preds in original_predictions.items():
+                if len(preds) == len(day_df):
+                    # Calculate prediction time offset in minutes
+                    try:
+                        pred_minutes = int(t_step.split('_')[1]) * time_interval_min
+                    except Exception:
+                        pred_minutes = 0
+                    ax1.plot(x_vals, [p[0] for p in preds], '--', 
+                            label=f'Original {t_step} (+{pred_minutes}min)', alpha=0.7)
+            
+            # Plot combined predictions
+            if len(combined_predictions['geneva']) == len(day_df):
+                ax1.plot(x_vals, combined_predictions['geneva'], 'b-', 
+                        label='Combined (InvErr)', linewidth=2)
+            
+            ax1.set_title(f"Geneva - {day}")
+            ax1.set_ylabel("Radiation (W/m²)")
+            ax1.legend()
+            ax1.grid(True)
+            
+            # Plot Dole
+            ax2.plot(x_vals, day_df["expected_dole"], 'k-', label='Actual', linewidth=2)
+            
+            for t_step, preds in original_predictions.items():
+                if len(preds) == len(day_df):
+                    try:
+                        pred_minutes = int(t_step.split('_')[1]) * time_interval_min
+                    except Exception:
+                        pred_minutes = 0
+                    ax2.plot(x_vals, [p[1] for p in preds], '--', 
+                            label=f'Original {t_step} (+{pred_minutes}min)', alpha=0.7)
+            
+            if len(combined_predictions['dole']) == len(day_df):
+                ax2.plot(x_vals, combined_predictions['dole'], 'r-', 
+                        label='Combined (InvErr)', linewidth=2)
+            
+            ax2.set_title(f"Dole - {day}")
+            ax2.set_xlabel("Time")
+            ax2.set_ylabel("Radiation (W/m²)")
+            ax2.legend()
+            ax2.grid(True)
+            
+            # Set x-ticks
+            for ax in [ax1, ax2]:
+                ax.set_xticks(x_vals[::2])
+                ax.set_xticklabels(times[::2], rotation=45)
+            
+            plt.tight_layout()
+            
+            # Save plot
+            month = day_df["month"].iloc[0]
+            month_dir = os.path.join(self.save_path, month)
+            os.makedirs(month_dir, exist_ok=True)
+            
+            plt.savefig(
+                os.path.join(month_dir, f"combined_vs_original_{day}.png"),
+                dpi=self.plot_config.dpi,
+                bbox_inches='tight'
+            )
             plt.close()

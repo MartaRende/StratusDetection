@@ -15,7 +15,7 @@ import json
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 72 # or any number you want
+MODEL_NUM = 3 # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -34,8 +34,8 @@ if len(sys.argv) > 1:
             num_views = 2
     if len(sys.argv) > 3:
         seq_len = int(sys.argv[3])
-MODEL_PATH = f"models_backup/model_{MODEL_NUM}"
-module_path = f"models_backup.model_{MODEL_NUM}.model"
+MODEL_PATH = f"models/model_{MODEL_NUM}"
+module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
@@ -68,7 +68,8 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction}
 all_expected = {t: [] for t in prediction}
 
-months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2024, m) for m in range(11, 12)]
+#+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -194,24 +195,26 @@ for year, month in months:
 
        
            
-        if stratus_days_for_month:
-            # Plot prediction curves for stratus days
-            metrics.plot_prediction_curves(
-                x_meteo_not_norm, y_predicted, 
-                stratus_days_for_month,
-                time_interval_min=10, 
-                prediction_horizons=[10, 60]
-            )
-        if random_non_stratus_days:
-            metrics.plot_prediction_curves(
-                x_meteo_not_norm, y_predicted, 
-                non_stratus_days_for_month,
-                time_interval_min=10, 
-                prediction_horizons=[10, 60]
-            )
+        # if stratus_days_for_month:
+        #     # Plot prediction curves for stratus days
+        #     metrics.plot_prediction_curves(
+        #         x_meteo_not_norm, y_predicted, 
+        #         stratus_days_for_month,
+        #         time_interval_min=10, 
+        #         prediction_horizons=[10, 60]
+        #     )
+        # if random_non_stratus_days:
+        #     metrics.plot_prediction_curves(
+        #         x_meteo_not_norm, y_predicted, 
+        #         non_stratus_days_for_month,
+        #         time_interval_min=10, 
+        #         prediction_horizons=[10, 60]
+        #     )
         
-
-
+historical_errors = {t: {'geneva': 1.0, 'dole': 1.0} for t in prediction}  # Valori di default
+val_size = int(len(y_expected) * 0.2)
+val_expected = y_expected[:val_size]
+val_predicted = {t: y_predicted[t][:val_size] for t in prediction}
 for t in prediction:
     
 # Create global metrics instance
@@ -223,7 +226,26 @@ for t in prediction:
     global_metrics.save_metrics_report(
         stratus_days=stratus_days, non_stratus_days=non_stratus_days
     )
+    t_idx = int(t.split("_")[1])
+    val_metrics = metrics.calculate_historical_errors(
+        [point[t_idx] for point in val_expected],
+        val_predicted[t]
+    )
+    historical_errors[t] = val_metrics
     
+combined_predictions,_ = metrics.inverse_error_weighting(y_predicted, historical_errors)
+import ipdb
+ipdb.set_trace()
+combined_predictions ={
+    t: [[float(v) for v in pred['values']] for pred in preds]
+    for t, preds in combined_predictions.items()
+}
+metrics.plot_prediction_curves(
+    x_meteo_not_norm, combined_predictions, 
+    stratus_days_for_month + random_non_stratus_days,
+    time_interval_min=10, 
+)
+
 # Add this after your existing code, inside the same script
 
 time_steps = prediction
