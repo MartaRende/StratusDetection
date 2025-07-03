@@ -62,7 +62,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2024, m) for m in range(11, 12)] 
+months = [(2023, m) for m in range(1, 4)] + [(2024, m) for m in range(10, 13)]
 #+  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
@@ -122,7 +122,7 @@ for year, month in months:
             x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
-        for i in range(int(total_predictions/4)):
+        for i in range(int(total_predictions)):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
@@ -174,12 +174,25 @@ all_predicted =  [item for sublist in all_predicted for item in sublist]
 global_metrics = Metrics(
     all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", prediction_minutes=prediction_minutes, stats_for_month=False
 )
+specific_test_days = [
+            "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
+            "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
+            "2024-11-09", "2024-10-19", "2024-11-16"
+        ]
 global_metrics.save_metrics_report(
-    stratus_days=stratus_days, non_stratus_days=non_stratus_days
+    stratus_days=specific_test_days, non_stratus_days=non_stratus_days
 )
 # Step 1: Trova i parametri ottimali
-res = global_metrics.detect_slope_transitions(stratus_days)
-global_metrics.match_peaks(res)
+
+res = global_metrics.detect_slope_transitions(specific_test_days)
+matches = global_metrics.match_strongest_peaks(res)
+# Save matches to a CSV file
+matches_df = pd.DataFrame(matches)
+
+mean_time_difference = matches_df["time_difference_sec"].mean()
+with open(os.path.join(MODEL_PATH, "mean_time_difference_sec.txt"), "w") as f:
+    f.write(f"{mean_time_difference}\n")
+matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
 import ipdb
 ipdb.set_trace()
 # params, results = metrics.grid_search_detect_time_late(stratus_days)

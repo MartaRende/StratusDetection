@@ -765,10 +765,10 @@ class Metrics:
     def detect_slope_transitions(
     self,
     days: List[str],
-    min_slope: float = 1.0,
+    min_slope: float = 60,
     min_peak_distance: str = "30min",
     smooth_window: str = "15min",
-    plot_day: str = "2024-11-03"
+    plot_day: str = "2024-11-09"
 ) -> Dict[str, Optional[pd.DataFrame]]:
         """
         Identifica i punti di transizione critici basati sulle pendenze massime.
@@ -776,14 +776,18 @@ class Metrics:
         """
         import matplotlib.pyplot as plt
         
-        # Carica e prepara i dati
+# Carica e prepara i dati
         df = self.get_delta_btw_geneva_dole()
+        days = self._normalize_days_input(days)
         df = df.sort_values("datetime").set_index("datetime")
+        df = df[df.index.strftime("%Y-%m-%d").isin(days)]
+        # Ensure index is sorted in ascending order for correct time difference calculation
+        df = df.sort_index()
         
         # Aggiungi colonne delta
         df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
         df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
-        
+     
         # Calcolo delle derivate con smoothing
         for series in ["expected_geneva", "expected_dole", "predicted_geneva", "predicted_dole", 
                     "expected_delta", "predicted_delta"]:  # Aggiunte delta
@@ -854,6 +858,75 @@ class Metrics:
                     dpi=self.plot_config.dpi, bbox_inches='tight'
                 )
                 plt.close()
-        import ipdb 
-        ipdb.set_trace()
+        
         return results
+    def match_strongest_peaks(
+    self,
+    peaks_results: Dict[str, pd.DataFrame],
+    time_window: str = "3H",
+    min_slope_similarity: float = 0.6
+) -> pd.DataFrame:
+        """
+        Abbina i picchi più forti tra expected e predicted considerando:
+        - Prossimità temporale (entro time_window)
+        - Similarità dell'intensità (slope_combined)
+        
+        Args:
+            peaks_results: Output di detect_slope_transitions()
+            time_window: Massima differenza temporale per il matching
+            min_slope_similarity: Soglia minima di similarità (0-1)
+        
+        Returns:
+            DataFrame con le corrispondenze e metriche di matching
+        """
+        
+        exp_peaks = peaks_results["expected_peaks"]
+        pred_peaks = peaks_results["predicted_peaks"]
+        exp_peaks = exp_peaks.reset_index()
+        pred_peaks = pred_peaks.reset_index()
+        
+        # Normalizza gli slope per compararli
+        max_exp_slope = exp_peaks["slope_combined"].max()
+        max_pred_slope = pred_peaks["slope_combined"].max()
+        exp_peaks["norm_slope"] = exp_peaks["slope_combined"] / max_exp_slope
+        pred_peaks["norm_slope"] = pred_peaks["slope_combined"] / max_pred_slope
+        
+        matches = []
+        max_time_diff = pd.Timedelta(time_window)
+        
+        for _, exp_row in exp_peaks.iterrows():
+            # Trova candidati nella finestra temporale
+            time_mask = (
+                (pred_peaks["datetime"] >= exp_row["datetime"] - max_time_diff) & 
+                (pred_peaks["datetime"] <= exp_row["datetime"] + max_time_diff)
+            )
+            candidates = pred_peaks[time_mask].copy()
+            
+            if not candidates.empty:
+                # Calcola score di matching combinando tempo e slope
+                candidates["time_diff"] = (candidates["datetime"] - exp_row["datetime"]).abs().dt.total_seconds()
+                candidates["time_score"] = 1 - (candidates["time_diff"] / max_time_diff.total_seconds())
+                candidates["slope_score"] = 1 - abs(candidates["norm_slope"] - exp_row["norm_slope"])
+                candidates["combined_score"] = 0.3 * candidates["time_score"] + 0.7 * candidates["slope_score"]
+                
+                best_match = candidates.nlargest(1, "combined_score").iloc[0]
+                
+                if best_match["combined_score"] >= min_slope_similarity:
+                    matches.append({
+                        "expected_time": exp_row["datetime"],
+                        "predicted_time": best_match["datetime"],
+                        "expected_slope": exp_row["slope_combined"],
+                        "predicted_slope": best_match["slope_combined"],
+                        "time_difference_sec": (best_match["datetime"] - exp_row["datetime"]).total_seconds(),
+                        "slope_similarity": best_match["slope_score"],
+                        "combined_score": best_match["combined_score"],
+                        "is_early": best_match["datetime"] < exp_row["datetime"],
+                        "is_late": best_match["datetime"] > exp_row["datetime"]
+                    })
+                # Save the time position (index) instead of time difference in seconds
+           
+   
+        # Remove matches where predicted is earlier than expected (negative time difference)
+        matches = [m for m in matches if m["time_difference_sec"] >= 0]
+      
+        return pd.DataFrame(matches).sort_values("combined_score", ascending=False)
