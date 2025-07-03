@@ -190,14 +190,16 @@ matches = global_metrics.match_strongest_peaks(res)
 matches_df = pd.DataFrame(matches)
 
 mean_time_difference = matches_df["time_difference_sec"].mean()
-with open(os.path.join(MODEL_PATH, "mean_time_difference_sec.txt"), "w") as f:
-    f.write(f"{mean_time_difference}\n")
+
 matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
+# Add mean time difference to the CSV file
+with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
+    f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
 import ipdb
 ipdb.set_trace()
 # params, results = metrics.grid_search_detect_time_late(stratus_days)
 
-# # Se vuoi, puoi anche salvarli o visualizzarli:
+# # If you want, you can also save or display them:
 # metrics.analyze_all_delays(results)
 # # Group results by day and print summary statistics
 # # Convert res (list of dicts) to DataFrame
