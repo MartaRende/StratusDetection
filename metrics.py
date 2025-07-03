@@ -765,7 +765,7 @@ class Metrics:
         self,
         days: List[str],
         min_slope: float = 200,
-        min_peak_distance: str = "30min",
+        min_peak_distance: str = "10min",
         smooth_window: str = "15min",
         plot_day: str = "2023-01-27"
     ) -> Dict[str, Optional[pd.DataFrame]]:
@@ -857,7 +857,7 @@ class Metrics:
                     dpi=self.plot_config.dpi, bbox_inches='tight'
                 )
                 plt.close()
-     
+        print("Results:", results)
         return results
     def match_strongest_peaks(
     self,
@@ -946,5 +946,5 @@ class Metrics:
         result_df = result_df.drop(columns="sort_key")
         # Drop rows where time_difference_sec is negative
         result_df = result_df[result_df["time_difference_sec"].isna() | (result_df["time_difference_sec"] >= 0)]
-   
+        print("Result DataFrame:", result_df)
         return result_df
