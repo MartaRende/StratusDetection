@@ -62,6 +62,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
+#months = [(2023, m) for m in range(3, 4)]
 months = [(2023, m) for m in range(1, 4)] + [(2024, m) for m in range(10, 13)]
 #+  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
