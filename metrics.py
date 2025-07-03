@@ -765,7 +765,7 @@ class Metrics:
         self,
         days: List[str],
         min_slope: float = 60,
-        min_peak_distance: str = "30min",
+        min_peak_distance: str = "1H",
         smooth_window: str = "15min",
         plot_day: str = "2023-01-27"
     ) -> Dict[str, Optional[pd.DataFrame]]:
@@ -857,12 +857,12 @@ class Metrics:
                     dpi=self.plot_config.dpi, bbox_inches='tight'
                 )
                 plt.close()
-
+   
         return results
     def match_strongest_peaks(
         self,
         peaks_results: Dict[str, pd.DataFrame],
-        time_window: str = "1H",
+        time_window: str = "3H",
         min_slope_similarity: float = 0.6
     ) -> pd.DataFrame:
         """
@@ -928,5 +928,5 @@ class Metrics:
 
         # Remove matches where predicted is earlier than expected (negative time difference)
         matches = [m for m in matches if m["time_difference_sec"] >= 0]
-
+   
         return pd.DataFrame(matches).sort_values("combined_score", ascending=False)
