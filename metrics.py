@@ -764,7 +764,7 @@ class Metrics:
     def detect_slope_transitions(
         self,
         days: List[str],
-        min_slope: float = 100,
+        min_slope: float = 50,
         min_peak_distance: str = "10min",
         smooth_window: str = "15min",
         plot_day: str = "2023-01-27"
