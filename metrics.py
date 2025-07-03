@@ -10,6 +10,7 @@ from collections import defaultdict
 from PIL import Image
 from sklearn.cluster import KMeans
 from scipy import stats
+from scipy.signal import find_peaks
 
 @dataclass
 class PlotConfig:
@@ -760,269 +761,99 @@ class Metrics:
         return days
     
 
-    def get_big_delta_differences(self, days, threshold: float = 80) -> dict:
-        """
-        Find significant changes in the delta (geneva-dole) for expected and predicted values.
 
-        Args:
-            days: List of days in format 'YYYY-MM-DD'
-            threshold: Minimum absolute difference to consider as significant
-
-        Returns:
-            dict: {
-                "expected": DataFrame with datetime, delta_geneva_dole, delta_geneva_dole_diff,
-                "predicted": DataFrame with datetime, predicted_delta_geneva_dole, predicted_delta_geneva_dole_diff
-            }
+    def detect_slope_transitions(
+    self,
+    days: List[str],
+    min_slope: float = 1.0,
+    min_peak_distance: str = "30min",
+    smooth_window: str = "15min",
+    plot_day: str = "2024-11-03"
+) -> Dict[str, Optional[pd.DataFrame]]:
         """
+        Identifica i punti di transizione critici basati sulle pendenze massime.
+        Calcola anche la derivata del delta (predetto e atteso).
+        """
+        import matplotlib.pyplot as plt
+        
+        # Carica e prepara i dati
         df = self.get_delta_btw_geneva_dole()
-        df["date_str"] = df["datetime"].dt.strftime("%Y-%m-%d")
-        days = self._normalize_days_input(days)
-        df = df[df["date_str"].isin(days)]
-        if "delta_geneva_dole" not in df:
-            df["delta_geneva_dole"] = df["expected_geneva"] - df["expected_dole"]
-        if "predicted_delta_geneva_dole" not in df:
-            df["predicted_delta_geneva_dole"] = df["predicted_geneva"] - df["predicted_dole"]
-        df = df.sort_values(["date_str", "datetime"]).reset_index(drop=True)
-        df["delta_geneva_dole_diff"] = df.groupby("date_str")["delta_geneva_dole"].diff()
-        df["predicted_delta_geneva_dole_diff"] = df.groupby("date_str")["predicted_delta_geneva_dole"].diff()
-        sig_exp = df[abs(df["delta_geneva_dole_diff"]) > threshold]
-        sig_pred = df[abs(df["predicted_delta_geneva_dole_diff"]) > threshold]
-   
-        return {
-            "expected": sig_exp.dropna(subset=["delta_geneva_dole_diff"])[
-                ["datetime", "delta_geneva_dole", "delta_geneva_dole_diff"]],
-            "predicted": sig_pred.dropna(subset=["predicted_delta_geneva_dole_diff"])[
-                ["datetime", "predicted_delta_geneva_dole", "predicted_delta_geneva_dole_diff"]]
-        }
-
-    def detect_cusum(self, arr: np.ndarray, threshold: float, drift: float):
-        s_pos, s_neg = 0.0, 0.0
-        pos_cp, neg_cp = [], []
-        for i, x in enumerate(arr):
-            s_pos = max(0.0, s_pos + x - drift)
-            s_neg = min(0.0, s_neg + x + drift)
-            if s_pos > threshold:
-                pos_cp.append(i)
-                s_pos = 0.0
-            if abs(s_neg) > threshold:
-                neg_cp.append(i)
-                s_neg = 0.0
-        return pos_cp, neg_cp
-
-    def find_datetime_most_near(self, days, threshold: float = 00, drift: float = 5):
-        diffs = self.get_big_delta_differences(days, threshold)
-        exp_df = diffs["expected"].copy().reset_index(drop=True)
-        pred_df = diffs["predicted"].copy().reset_index(drop=True)
-
-        exp_t = exp_df["datetime"].values.astype(np.int64)
-        pred_t = pred_df["datetime"].values.astype(np.int64)
-        idxs = np.argmin(np.abs(pred_t[:, None] - exp_t), axis=0)
-
-        result = exp_df.copy()
-        result["predicted_datetime"] = pred_df.loc[idxs, "datetime"].values
-        for col in pred_df.columns:
-            result[f"predicted_{col}"] = pred_df.loc[idxs, col].values
-
-        result["delta_diff"] = result["predicted_predicted_delta_geneva_dole"] - result["delta_geneva_dole"]
-        result["delta_direction_exp"] = np.sign(result["delta_geneva_dole_diff"]).map({1.0:"increase", -1.0:"decrease"}).fillna("no_change")
-        result["delta_direction_pred"] = np.sign(result["predicted_predicted_delta_geneva_dole_diff"]).map({1.0:"increase", -1.0:"decrease"}).fillna("no_change")
-
-        # *** CUSUM detection per ciascun giorno ***
-        grouped = result.groupby(result["datetime"].dt.strftime("%Y-%m-%d"))
-        result["cusum_pos_cp"] = False
-        result["cusum_neg_cp"] = False
-
-        for date, grp in grouped:
-            diffs_array = grp["delta_geneva_dole_diff"].dropna().values
-            pos_cp, neg_cp = self.detect_cusum(diffs_array, threshold=threshold, drift=drift)
-            idxs_global = grp.dropna(subset=["delta_geneva_dole_diff"]).index
-            for i in pos_cp: 
-                result.at[idxs_global[i], "cusum_pos_cp"] = True
-            for i in neg_cp: 
-                result.at[idxs_global[i], "cusum_neg_cp"] = True
-        return result
-    def grid_search_detect_time_late(self, days, max_delay=5*3600):
-        import itertools
-
-        # Parameters to test
-        time_windows = ['30min', '1H', '2H', '4H', '6H']
-        alphas = [0.2, 0.5, 0.8, 1.0]
-        delta_tolerances = [20, 40, 70, 100]
-
-        best_params = None
-        best_score = -1
-        best_results = []
-
-        for time_window, alpha, delta_tol in itertools.product(time_windows, alphas, delta_tolerances):
-            print(f"🔍 Testing: time_window={time_window}, alpha={alpha}, delta_tol={delta_tol}")
-
-            results, _ = self.detect_time_late(
-                days=days,
-                time_window=time_window,
-                alpha=alpha,
-                delta_tolerance=delta_tol
-            )
-
-            # Filter valid results
-            valid_results = [
-                r for r in results
-                if 0 <= r["timedelta_sec"] < max_delay and r["delta_similarity"] > 0.7
-            ]
-
-            print(f"   → Valid matches: {len(valid_results)}")
-
-            if len(valid_results) > best_score:
-                best_score = len(valid_results)
-                best_params = (time_window, alpha, delta_tol)
-                best_results = valid_results
-
-        print(f"\n✅ Best parameters found:")
-        print(f"   time_window = {best_params[0]}")
-        print(f"   alpha = {best_params[1]}")
-        print(f"   delta_tolerance = {best_params[2]}")
-        print(f"   → Valid matches = {best_score}")
-
-        return best_params, best_results
-
-    def detect_time_late(
-        self,
-        days: List[str],
-        delta_tolerance: float = 20,
-        time_window: str = '12H',
-        alpha: float = 0.9
-    ) -> Tuple[List[dict], Optional[float]]:
-        """
-        Find precise temporal matches between expected and predicted,
-        using a hybrid scoring system between time distance and delta similarity.
-
-        Args:
-            days: List of days to analyze
-            delta_tolerance: Maximum acceptable difference between deltas to consider a match
-            time_window: Maximum time window to pair changes (e.g., '1H', '30min')
-            alpha: Weight between 0 and 1 for balancing time and delta (0 = only delta, 1 = only time)
-
-        Returns:
-            List of dictionaries with detailed results, and the mean delay (in seconds)
-        """
-        # Get data with matched datetimes
-        df = self.find_datetime_most_near(days)
+        df = df.sort_values("datetime").set_index("datetime")
         
-        # Filter significant changes
-        significant_changes = df[
-            (abs(df["delta_geneva_dole_diff"]) > 0) &
-            (abs(df["predicted_predicted_delta_geneva_dole_diff"]) > 0)
-        ].copy()
+        # Aggiungi colonne delta
+        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
+        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
         
-        max_time_diff = pd.Timedelta(time_window)
-        results = []
-
-        for _, exp_row in significant_changes.iterrows():
-            exp_time = exp_row["datetime"]
-            exp_delta_diff = exp_row["delta_geneva_dole_diff"]
-            exp_dir = exp_row["delta_direction_exp"]
-            
-            # Candidate matches within time_window, consistent direction, similar delta
-            mask = (
-                (significant_changes["predicted_datetime"] >= exp_time) &
-                (abs(significant_changes["predicted_datetime"] - exp_time) <= max_time_diff) &
-                (abs(significant_changes["predicted_predicted_delta_geneva_dole_diff"] - exp_delta_diff) <= delta_tolerance) &
-                (significant_changes["delta_direction_pred"] == exp_dir)
+        # Calcolo delle derivate con smoothing
+        for series in ["expected_geneva", "expected_dole", "predicted_geneva", "predicted_dole", 
+                    "expected_delta", "predicted_delta"]:  # Aggiunte delta
+            df[f"{series}_slope"] = (
+                df[series]
+                .rolling(smooth_window, center=True)
+                .mean()
+                .diff()
+                .abs()
             )
-            matches = significant_changes[mask]
+        
+        # Filtra il giorno specifico per il plot
+        plot_data = df[df.index.date == pd.to_datetime(plot_day).date()]
+        
+        # Calcola min_samples
+        time_diff = (df.index[1] - df.index[0]).total_seconds()
+        min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() / time_diff))
+
+        results = {}
+        for prefix in ["expected", "predicted"]:
+            # Usa la derivata del delta come pendenza principale
+            slopes = df[f"{prefix}_delta_slope"].values  # Cambiato da somma a derivata diretta del delta
             
-            if not matches.empty:
-                matches = matches.copy()
-                matches["timedelta"] = (matches["predicted_datetime"] - exp_time).abs()
-                matches["delta_sim"] = (matches["predicted_predicted_delta_geneva_dole_diff"] - exp_delta_diff).abs()
-
-                # Normalization + score
-                matches["timedelta_norm"] = matches["timedelta"] / (matches["timedelta"].max() + pd.Timedelta("1s"))
-                matches["delta_sim_norm"] = matches["delta_sim"] / (matches["delta_sim"].max() + 1e-6)
-                matches["score"] = alpha * matches["timedelta_norm"] + (1 - alpha) * matches["delta_sim_norm"]
-
-                best_match = matches.sort_values("score").iloc[0]
-
-                pred_time = best_match["predicted_datetime"]
-                time_delta = (pred_time - exp_time).total_seconds()
-
-                # Timing classification
-                if abs(time_delta) < 300:  # 5 minutes
-                    timing = "on_time"
-                elif time_delta > 300:
-                    timing = "late"
-                else:
-                    timing = "early"
+            try:
+                peaks, _ = find_peaks(slopes, height=min_slope, distance=min_samples)
+            except ValueError as e:
+                self.logger.warning(f"Errore in find_peaks: {e}. Usando distance=1 come fallback.")
+                peaks, _ = find_peaks(slopes, height=min_slope, distance=1)
+            
+            peaks_df = df.iloc[peaks].copy()
+            peaks_df["slope_combined"] = slopes[peaks]
+            
+            results[f"{prefix}_peaks"] = peaks_df.sort_values("slope_combined", ascending=False)
+            
+            # Plot
+            if not plot_data.empty:
+                plt.figure(figsize=(15, 10))
                 
-                results.append({
-                    "expected_datetime": exp_time,
-                    "predicted_datetime": pred_time,
-                    "expected_delta_diff": exp_delta_diff,
-                    "predicted_delta_diff": best_match["predicted_predicted_delta_geneva_dole_diff"],
-                    "expected_direction": exp_dir,
-                    "predicted_direction": best_match["delta_direction_pred"],
-                    "timing": timing,
-                    "timedelta_sec": time_delta,
-                    "delta_similarity": 1 - (
-                        abs(exp_delta_diff - best_match["predicted_predicted_delta_geneva_dole_diff"]) / 
-                        (abs(exp_delta_diff) + 1e-6)
-                    )
-                })
-
-        # Filter only non-negative delays
-        results = [r for r in results if r["timedelta_sec"] >= 0]
-
-        # Mean delay
-        mean_timedelta_sec = (
-            np.mean([r["timedelta_sec"] for r in results]) if results else None
-        )
-
-        self.logger.info(f"Mean timedelta_sec: {mean_timedelta_sec:.2f} seconds" if mean_timedelta_sec else "No valid results found.")
-     
-        return sorted(results, key=lambda x: x["expected_datetime"]), mean_timedelta_sec
-
-    def analyze_all_delays(self, results, max_delay_hours=24):
-        delays_sec = np.array([r["timedelta_sec"] for r in results])
-        delays_min = delays_sec / 60
-        
-        # 1. Plot full distribution
-        plt.figure(figsize=(12, 6))
-        plt.hist(delays_min, bins=50, range=(0, max_delay_hours * 60), edgecolor='black')
-        plt.xlabel("Delay (minutes)")
-        plt.ylabel("Frequency")
-        plt.axvline(10, color='red', linestyle='--', label='10 min')
-        plt.axvline(60, color='green', linestyle='--', label='1 hour')
-        plt.legend()
-        plt.title("Full delay distribution")
-        plt.savefig("delay_distribution_full.png", dpi=300)
-        
-        # 2. Identify delay clusters (K-Means)
-        if results:
-            import pandas as pd
-            df = pd.DataFrame(results)
-            df["day"] = df["expected_datetime"].dt.date
-            delays_by_day = df.groupby("day")["timedelta_sec"].count().sort_values(ascending=False)
-
-            print("\n► Days with most delays:")
-            print(delays_by_day.head(10))
-
-            # Plot delays per day
-            plt.figure(figsize=(12, 4))
-            delays_by_day.plot(kind="bar", color="skyblue", edgecolor="black")
-            plt.ylabel("Number of delays")
-            plt.title("Number of delays per day")
-            plt.xticks(rotation=45, ha='right')
-            plt.tight_layout()
-            plt.savefig("delays_by_day.png", dpi=300)
-
-        if len(delays_min) > 1:
-            kmeans = KMeans(n_clusters=2, random_state=42)
-            clusters = kmeans.fit_predict(delays_min.reshape(-1, 1))
-            cluster_centers_min = kmeans.cluster_centers_.flatten()
-            
-            print(f"\n► Main delay clusters: {cluster_centers_min.round(1)} minutes")
-        
-        # 3. Test for delays > 1 hour (Wilcoxon)
-        large_delays = delays_min[delays_min > 60]
-        if len(large_delays) > 10:  # Minimum 10 observations for the test
-            _, p_value = stats.wilcoxon(large_delays - 60)  # Test if > 60 min
-            print(f"\n► Delays > 1 hour: p-value = {p_value:.3f} → {'SIGNIFICANT' if p_value < 0.05 else 'RANDOM'}")
+                # 1. Plot dei delta
+                plt.subplot(3, 1, 1)
+                plt.plot(plot_data.index, plot_data[f"{prefix}_delta"], label=f"{prefix} Delta", color='blue')
+                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
+                    plt.axvline(peak.name, color='r', linestyle='--', alpha=0.5)
+                plt.title(f"{prefix.capitalize()} Delta (Geneva - Dole) - {plot_day}")
+                plt.legend()
+                plt.grid()
+                
+                # 2. Plot delle derivate del delta
+                plt.subplot(3, 1, 2)
+                plt.plot(plot_data.index, plot_data[f"{prefix}_delta_slope"], label=f"Derivata del {prefix} Delta", color='green')
+                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
+                    plt.scatter(peak.name, peak["slope_combined"], color='r', s=100)
+                plt.title(f"Derivata del {prefix} Delta (Pendenza) - {plot_day}")
+                plt.legend()
+                plt.grid()
+                
+                # 3. Plot componenti originali
+                plt.subplot(3, 1, 3)
+                plt.plot(plot_data.index, plot_data[f"{prefix}_geneva"], label=f"{prefix} Geneva")
+                plt.plot(plot_data.index, plot_data[f"{prefix}_dole"], label=f"{prefix} Dole")
+                plt.title(f"{prefix.capitalize()} Valori Originali - {plot_day}")
+                plt.legend()
+                plt.grid()
+                
+                plt.tight_layout()
+                plt.savefig(
+                    os.path.join(self.save_path, f"{prefix}_slope_transitions_{plot_day}.png"),
+                    dpi=self.plot_config.dpi, bbox_inches='tight'
+                )
+                plt.close()
+        import ipdb 
+        ipdb.set_trace()
+        return results

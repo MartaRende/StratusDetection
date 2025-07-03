@@ -122,7 +122,7 @@ for year, month in months:
             x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
-        for i in range(total_predictions):
+        for i in range(int(total_predictions/4)):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
@@ -178,29 +178,33 @@ global_metrics.save_metrics_report(
     stratus_days=stratus_days, non_stratus_days=non_stratus_days
 )
 # Step 1: Trova i parametri ottimali
-params, results = metrics.grid_search_detect_time_late(stratus_days)
+res = global_metrics.detect_slope_transitions(stratus_days)
+global_metrics.match_peaks(res)
+import ipdb
+ipdb.set_trace()
+# params, results = metrics.grid_search_detect_time_late(stratus_days)
 
-# Se vuoi, puoi anche salvarli o visualizzarli:
-metrics.analyze_all_delays(results)
-# Group results by day and print summary statistics
-# Convert res (list of dicts) to DataFrame
-df = pd.DataFrame(results)
+# # Se vuoi, puoi anche salvarli o visualizzarli:
+# metrics.analyze_all_delays(results)
+# # Group results by day and print summary statistics
+# # Convert res (list of dicts) to DataFrame
+# df = pd.DataFrame(results)
 
-# Ensure 'expected_datetime' is datetime
-df['expected_datetime'] = pd.to_datetime(df['expected_datetime'])
+# # Ensure 'expected_datetime' is datetime
+# df['expected_datetime'] = pd.to_datetime(df['expected_datetime'])
 
-# Add 'date' column for grouping
-df['date'] = df['expected_datetime'].dt.date
+# # Add 'date' column for grouping
+# df['date'] = df['expected_datetime'].dt.date
 
-# Group by 'date' and aggregate statistics
-grouped = df.groupby('date').agg({
-    'timing': lambda x: x.value_counts().to_dict(),
-    'timedelta_sec': ['mean', 'std', 'min', 'max', 'count'],
-    'delta_similarity': ['mean', 'std', 'min', 'max'],
-})
+# # Group by 'date' and aggregate statistics
+# grouped = df.groupby('date').agg({
+#     'timing': lambda x: x.value_counts().to_dict(),
+#     'timedelta_sec': ['mean', 'std', 'min', 'max', 'count'],
+#     'delta_similarity': ['mean', 'std', 'min', 'max'],
+# })
 
-# Add mean value of 'timedelta_sec' as a separate column for clarity
-# grouped['timedelta_sec_mean'] = mean_timedelta_sec
+# # Add mean value of 'timedelta_sec' as a separate column for clarity
+# # grouped['timedelta_sec_mean'] = mean_timedelta_sec
 
-print("Summary by day:")
-grouped.to_csv(os.path.join(MODEL_PATH, "grouped_summary_by_day.csv"))
+# print("Summary by day:")
+# grouped.to_csv(os.path.join(MODEL_PATH, "grouped_summary_by_day.csv"))

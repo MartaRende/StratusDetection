@@ -21,7 +21,7 @@ print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 num_views = 1
 seq_len = 3  # Number of timesteps
-prediction_minutes = 60  # Prediction time in minutes
+prediction_minutes = 10  # Prediction time in minutes
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -168,7 +168,7 @@ class PrepareDataset(Dataset):
             return weather_data, images_tensor, labels
 
 
-train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=True)
+train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
 validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
 test_dataset = PrepareDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
 print("train_dataset size:", len(train_dataset))
