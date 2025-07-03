@@ -764,8 +764,8 @@ class Metrics:
     def detect_slope_transitions(
         self,
         days: List[str],
-        min_slope: float = 60,
-        min_peak_distance: str = "1H",
+        min_slope: float = 70,
+        min_peak_distance: str = "20min",
         smooth_window: str = "15min",
         plot_day: str = "2023-01-27"
     ) -> Dict[str, Optional[pd.DataFrame]]:
@@ -857,54 +857,46 @@ class Metrics:
                     dpi=self.plot_config.dpi, bbox_inches='tight'
                 )
                 plt.close()
-   
+    
         return results
     def match_strongest_peaks(
-        self,
-        peaks_results: Dict[str, pd.DataFrame],
-        time_window: str = "3H",
-        min_slope_similarity: float = 0.6
-    ) -> pd.DataFrame:
+    self,
+    peaks_results: Dict[str, pd.DataFrame],
+    time_window: str = "2H",
+    min_slope_similarity: float = 0.6,
+    include_unmatched: bool = True  # New parameter to control inclusion
+) -> pd.DataFrame:
         """
-        Match the strongest peaks between expected and predicted considering:
-        - Temporal proximity (within time_window)
-        - Intensity similarity (slope_combined)
-        Each predicted peak can be matched to at most one expected peak (1:1 matching).
-
-        Args:
-            peaks_results: Output of detect_slope_transitions()
-            time_window: Maximum time difference for matching
-            min_slope_similarity: Minimum similarity threshold (0-1)
-
-        Returns:
-            DataFrame with matches and matching metrics
+        Enhanced version that:
+        1. Performs 1:1 matching of strongest peaks
+        2. Optionally includes unmatched expected peaks in results
+        3. Marks matching status explicitly
         """
-
         exp_peaks = peaks_results["expected_peaks"].reset_index()
         pred_peaks = peaks_results["predicted_peaks"].reset_index()
 
-        # Normalize slopes for comparison
-        max_exp_slope = exp_peaks["slope_combined"].max()
-        max_pred_slope = pred_peaks["slope_combined"].max()
-        exp_peaks["norm_slope"] = exp_peaks["slope_combined"] / max_exp_slope
-        pred_peaks["norm_slope"] = pred_peaks["slope_combined"] / max_pred_slope
+        # Normalize slopes using global maximum for fair comparison
+        global_max = max(exp_peaks["slope_combined"].max(), 
+                        pred_peaks["slope_combined"].max())
+        exp_peaks["norm_slope"] = exp_peaks["slope_combined"] / global_max
+        pred_peaks["norm_slope"] = pred_peaks["slope_combined"] / global_max
 
         matches = []
         max_time_diff = pd.Timedelta(time_window)
         used_pred_indices = set()
+        matched_exp_indices = set()
 
+        # First pass - find best matches
         for _, exp_row in exp_peaks.iterrows():
-            # Find candidates in the time window that have not been matched yet
-            time_mask = (
-                (pred_peaks["datetime"] >= exp_row["datetime"] - max_time_diff) &
-                (pred_peaks["datetime"] <= exp_row["datetime"] + max_time_diff)
-            )
-            candidates = pred_peaks[time_mask].copy()
-            # Exclude already matched predicted peaks
-            candidates = candidates[~candidates.index.isin(used_pred_indices)]
+            candidates = pred_peaks[
+                (pred_peaks["datetime"].between(
+                    exp_row["datetime"] - max_time_diff,
+                    exp_row["datetime"] + max_time_diff
+                )) &
+                (~pred_peaks.index.isin(used_pred_indices))
+            ].copy()
 
             if not candidates.empty:
-                # Compute matching score combining time and slope
                 candidates["time_diff"] = (candidates["datetime"] - exp_row["datetime"]).abs().dt.total_seconds()
                 candidates["time_score"] = 1 - (candidates["time_diff"] / max_time_diff.total_seconds())
                 candidates["slope_score"] = 1 - abs(candidates["norm_slope"] - exp_row["norm_slope"])
@@ -921,12 +913,38 @@ class Metrics:
                         "time_difference_sec": (best_match["datetime"] - exp_row["datetime"]).total_seconds(),
                         "slope_similarity": best_match["slope_score"],
                         "combined_score": best_match["combined_score"],
+                        "match_status": "matched",  # New field
                         "is_early": best_match["datetime"] < exp_row["datetime"],
                         "is_late": best_match["datetime"] > exp_row["datetime"]
                     })
+                    matched_exp_indices.add(exp_row.name)
                     used_pred_indices.add(best_match.name)
 
-        # Remove matches where predicted is earlier than expected (negative time difference)
-        matches = [m for m in matches if m["time_difference_sec"] >= 0]
-   
-        return pd.DataFrame(matches).sort_values("combined_score", ascending=False)
+        # Second pass - include unmatched expected peaks if requested
+        if include_unmatched:
+            unmatched_exp = exp_peaks[~exp_peaks.index.isin(matched_exp_indices)]
+            for _, exp_row in unmatched_exp.iterrows():
+                matches.append({
+                    "expected_time": exp_row["datetime"],
+                    "predicted_time": pd.NaT,
+                    "expected_slope": exp_row["slope_combined"],
+                    "predicted_slope": None,
+                    "time_difference_sec": None,
+                    "slope_similarity": None,
+                    "combined_score": None,
+                    "match_status": "unmatched",  # New field
+                    "is_early": None,
+                    "is_late": None
+                })
+
+        # Convert to DataFrame and clean up
+        result_df = pd.DataFrame(matches)
+        
+        # Sort with matched peaks first (highest score), then unmatched
+        result_df["sort_key"] = result_df["combined_score"].fillna(-1)
+        result_df = result_df.sort_values(["sort_key", "expected_time"], ascending=[False, True])
+        result_df = result_df.drop(columns="sort_key")
+        # Drop rows where time_difference_sec is negative
+        result_df = result_df[result_df["time_difference_sec"].isna() | (result_df["time_difference_sec"] >= 0)]
+  
+        return result_df
