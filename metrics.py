@@ -841,7 +841,6 @@ class Metrics:
                     0.4 * peaks_df["z_score"].abs() / peaks_df["z_score"].abs().max()
                 )
                 # Filter out low-confidence transitions
-                peaks_df = peaks_df[peaks_df["confidence"] >= 0.3]
                 peaks_df = peaks_df.sort_values("confidence", ascending=False)
 
             results[f"{prefix}_transitions"] = peaks_df
