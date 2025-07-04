@@ -184,8 +184,8 @@ global_metrics.save_metrics_report(
 )
 # Step 1: Trova i parametri ottimali
 
-res = global_metrics.detect_cusum_transitions_simple(specific_test_days)
-matches = global_metrics.match_cusum_transitions(res)
+res = global_metrics.detect_slope_transitions(specific_test_days)
+matches = global_metrics.match_strongest_peaks(res)
 # Save matches to a CSV file
 matches_df = pd.DataFrame(matches)
 
