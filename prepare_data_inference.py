@@ -3,11 +3,8 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from datetime import datetime, timedelta
-import random
 from itertools import groupby
 from operator import itemgetter
-from concurrent.futures import ThreadPoolExecutor
-import functools
 
 class PrepareData:
     def __init__(self, fp_images, fp_weather, num_views=1, seq_length=3, prediction_minutes=10):

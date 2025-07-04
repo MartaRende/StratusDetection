@@ -1,16 +1,15 @@
-from preparedatainference import PrepareData
 import torch
-import netCDF4
-import glob
 import os
-import h5py
 import numpy as np
 import sys
-from metrics import *
 import importlib
 from datetime import datetime, timedelta
 import random
 import pandas as pd
+
+from prepare_data_inference import PrepareData
+from metrics_analysis.metrics import *
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
@@ -208,11 +207,9 @@ specific_test_days = [
 #     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
 # # )
 # global_metrics.plot_delta_scatter(specific_test_days)
-# global_metrics.plot_residual_errors(specific_test_days)
-# global_metrics._prepare_day_metrics(specific_test_days)
-# global_metrics.compute_ramp_detection_score(specific_test_days)
-res = global_metrics.detect_critical_transitions(specific_test_days)
-matches = global_metrics.match_strongest_peaks(res)
+global_metrics.plotter.plot_residual_errors(specific_test_days)
+res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
+matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
 # # Save matches to a CSV file
 matches_df = pd.DataFrame(matches)
 
