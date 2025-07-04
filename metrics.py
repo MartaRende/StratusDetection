@@ -902,7 +902,7 @@ class Metrics:
         self,
         peaks_results: Dict[str, pd.DataFrame],
         time_window: str = "3H",
-        min_confidence: float = 0.7,
+        min_confidence: float = 0.87,
         include_unmatched: bool = True
     ) -> pd.DataFrame:
         """
@@ -964,8 +964,8 @@ class Metrics:
                 
                 # Combined score weights time more heavily
                 candidates["combined_score"] = (
-                    0.2 * candidates["time_score"] + 
-                    0.8 * candidates["conf_score"]
+                    0.8 * candidates["time_score"] + 
+                    0.2 * candidates["conf_score"]
                 )
 
                 # Get best match
