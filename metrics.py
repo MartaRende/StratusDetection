@@ -801,8 +801,8 @@ class Metrics:
             
             # 2. Statistical change detection (z-score)
             z_scores = zscore(series.fillna(0))
-            change_points = np.where(np.abs(z_scores) > 2.5)[0]  # 2.5 std threshold
-            
+            change_points = np.where(np.abs(z_scores) > 3.5)[0]  # 3.5 std threshold
+
             # 3. Find peaks in multiple features
             min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() / 
                                   (df.index[1] - df.index[0]).total_seconds()))
