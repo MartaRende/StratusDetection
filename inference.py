@@ -177,21 +177,23 @@ for year, month in months:
 if len(all_expected) > 0 or len(all_predicted) > 0:
     all_expected =  [item for sublist in all_expected for item in sublist]
     all_predicted =  [item for sublist in all_predicted for item in sublist]
-
+    
 # Save predictions and expected values to a CSV file, ready to be loaded in Metrics
     np.savez(
         os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz"),
-        predicted=np.array(all_predicted),
-        expected=np.array(all_expected),
+        predicted=np.array(all_predicted, dtype=np.float32),
+        expected=np.array(all_expected, dtype=np.float32),
     )
 else : 
     with np.load(pred_file, allow_pickle=True) as pred_data:
             all_predicted = pred_data["predicted"]
             all_expected = pred_data["expected"]
-    all_expected =  [item for sublist in all_expected for item in sublist]
-    all_predicted =  [item for sublist in all_predicted for item in sublist]
-import ipdb 
-ipdb.set_trace()
+            all_expected.astype(float)
+            all_predicted.astype(float)
+        
+    # all_expected =  [item for sublist in all_expected for item in sublist]
+    # all_predicted =  [item for sublist in all_predicted for item in sublist]
+
 global_metrics = Metrics(
         
         
@@ -202,9 +204,9 @@ specific_test_days = [
             "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
             "2024-11-09", "2024-10-19", "2024-11-16"
         ]
-global_metrics.save_metrics_report(
-    stratus_days=specific_test_days, non_stratus_days=non_stratus_days
-)
+# global_metrics.save_metrics_report(
+#     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
+# )
 # Step 1: Trova i parametri ottimali
 global_metrics.plot_delta_scatter(specific_test_days)
 # res = global_metrics.detect_critical_transitions(specific_test_days)

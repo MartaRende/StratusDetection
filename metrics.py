@@ -1081,12 +1081,11 @@ class Metrics:
         # Calculate deltas
         df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
         df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
-        
-        # Calculate regression line and metrics
+  
+        # Calculate regression line
         slope, intercept, r_value, p_value, std_err = stats.linregress(
             df["expected_delta"], df["predicted_delta"]
         )
-        mae = np.mean(np.abs(df["predicted_delta"] - df["expected_delta"]))  
         line_x = np.linspace(df["expected_delta"].min(), df["expected_delta"].max(), 100)
         line_y = slope * line_x + intercept
         
@@ -1130,20 +1129,18 @@ class Metrics:
         plt.legend(fontsize=self.plot_config.fontsize["labels"])
         plt.grid(True, linestyle='--', alpha=0.3)
         
-        # Add stats annotation (now includes MAE)
+        # Add stats annotation
         stats_text = (
             f"Slope: {slope:.2f}\n"
             f"Intercept: {intercept:.2f}\n"
             f"R²: {r_value**2:.2f}\n"
-            f"MAE: {mae:.2f}\n"  # Aggiunto MAE
             f"Points: {len(df)}"
         )
         plt.annotate(
             stats_text,
             xy=(0.05, 0.8),
             xycoords='axes fraction',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
-            fontsize=self.plot_config.fontsize.get("annotations", 10)  # Usa un fontsize coerente
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8)
         )
         
         # Save plot
