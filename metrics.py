@@ -964,8 +964,8 @@ class Metrics:
                 
                 # Combined score weights time more heavily
                 candidates["combined_score"] = (
-                    0.7 * candidates["time_score"] + 
-                    0.3 * candidates["conf_score"]
+                    0.2 * candidates["time_score"] + 
+                    0.8 * candidates["conf_score"]
                 )
 
                 # Get best match
