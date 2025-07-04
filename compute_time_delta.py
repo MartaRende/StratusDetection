@@ -9,7 +9,11 @@ df["expected_time"] = pd.to_datetime(df["expected_time"], errors='coerce')
 df["date"] = df["expected_time"].dt.date
 # Mark days with 0 values and NaN values differently in the plot
 
-mean_time_diff_by_day = df.groupby("date")["time_difference_sec"].mean() / 60  # convert to minutes
+
+mean_time_diff_by_day = (
+    df.groupby("date")["time_difference_sec"].sum() /
+    df.groupby("date")["num_datetimes_for_day"].first() / 60  # convert to minutes
+)
 mean_time_diff_by_day = mean_time_diff_by_day.sort_values(ascending=False)
 mean_time_diff_by_day = mean_time_diff_by_day.rename("Mean_time_by_day")
 

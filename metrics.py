@@ -80,6 +80,7 @@ class Metrics:
 
     def _initialize_data(self, expected, predicted, data):
         """Initialize and normalize data structures"""
+        
         self.expected = pd.DataFrame(expected, columns=["geneva", "dole"])
         self.predicted = pd.DataFrame(predicted, columns=["geneva", "dole"])
         
@@ -765,7 +766,7 @@ class Metrics:
     def detect_critical_transitions(
         self,
         days: List[str],
-        min_slope: float = 70,
+        min_slope: float = 100,
         min_peak_distance: str = "10min",
         smooth_window: str = "15min",
         plot_day: str = "2024-11-08"
@@ -818,7 +819,7 @@ class Metrics:
                 try:
                     peaks, _ = find_peaks(
                         feature_values,
-                        height=np.percentile(feature_values, 75),  # Dynamic height
+                        height=np.percentile(feature_values, 65),  # Dynamic height
                         distance=min_samples
                     )
                     all_peaks.extend(peaks)
@@ -837,8 +838,8 @@ class Metrics:
                 
                 # Score based on multiple factors
                 peaks_df["confidence"] = (
-                    0.6 * peaks_df["slope_magnitude"] / peaks_df["slope_magnitude"].max() +
-                    0.4 * peaks_df["z_score"].abs() / peaks_df["z_score"].abs().max()
+                    0.5 * peaks_df["slope_magnitude"] / peaks_df["slope_magnitude"].max() +
+                    0.5 * peaks_df["z_score"].abs() / peaks_df["z_score"].abs().max()
                 )
                 # Filter out low-confidence transitions
                 peaks_df = peaks_df.sort_values("confidence", ascending=False)
@@ -897,13 +898,21 @@ class Metrics:
                     dpi=self.plot_config.dpi, bbox_inches='tight'
                 )
                 plt.close()
-        print(results)
+        # Count number of datetimes per day and save in results
+        if not df.empty and "datetime" in df.reset_index().columns:
+            df_reset = df.reset_index()
+            df_reset["date"] = df_reset["datetime"].dt.date
+            counts_per_day = df_reset.groupby("date")["datetime"].count().to_dict()
+            results["num_datetimes_per_day"] = counts_per_day
+        else:
+            results["num_datetimes_per_day"] = {}
+    
         return results
     def match_strongest_peaks(
         self,
         peaks_results: Dict[str, pd.DataFrame],
         time_window: str = "3H",
-        min_confidence: float = 0.86,
+        min_confidence: float = 0.8,
         include_unmatched: bool = True
     ) -> pd.DataFrame:
         """
@@ -925,7 +934,9 @@ class Metrics:
         # Prepare the dataframes
         exp_peaks = peaks_results.get("expected_transitions", pd.DataFrame()).reset_index()
         pred_peaks = peaks_results.get("predicted_transitions", pd.DataFrame()).reset_index()
-
+        num_datetimes_per_day = peaks_results.get("num_datetimes_per_day", {})
+        import ipdb
+        ipdb.set_trace()   
         # Early return if empty inputs
         if exp_peaks.empty or pred_peaks.empty:
             return pd.DataFrame()
@@ -962,12 +973,23 @@ class Metrics:
                 candidates["time_diff"] = (candidates["datetime"] - exp_row["datetime"]).abs().dt.total_seconds()
                 candidates["time_score"] = 1 - (candidates["time_diff"] / max_time_diff.total_seconds())
                 candidates["conf_score"] = 1 - abs(candidates["norm_conf"] - exp_row["norm_conf"])
-                
-                # Combined score weights time more heavily
+                # Add delta similarity score (expected_delta vs predicted_delta)
+                if "expected_delta" in exp_row and "predicted_delta" in candidates.columns:
+                    exp_delta = exp_row["expected_delta"] if not pd.isnull(exp_row["expected_delta"]) else 0
+                    candidates["delta_diff"] = (candidates["predicted_delta"] - exp_delta).abs()
+                    # Normalize delta_diff to [0,1] (smaller is better)
+                    max_delta_diff = candidates["delta_diff"].max() if candidates["delta_diff"].max() > 0 else 1
+                    candidates["delta_score"] = 1 - (candidates["delta_diff"] / max_delta_diff)
+                else:
+                    candidates["delta_score"] = 1.0  # fallback if not available
+
+                # Combined score: time, confidence, delta similarity
                 candidates["combined_score"] = (
-                    0.2 * candidates["time_score"] + 
-                    0.8 * candidates["conf_score"]
+                    0.2 * candidates["time_score"] +
+                    0.2 * candidates["conf_score"] +
+                    0.6 * candidates["delta_score"]
                 )
+            
 
                 # Get best match
                 best_match = candidates.nlargest(1, "combined_score").iloc[0]
@@ -1049,6 +1071,8 @@ class Metrics:
             na_position="last"
         )
 
+       
+
         # Calculate additional metrics for matched peaks
         if not result_df.empty:
             matched = result_df[result_df["match_status"] == "matched"]
@@ -1061,48 +1085,96 @@ class Metrics:
         result_df = result_df[
             (result_df["time_difference_sec"].isna()) | (result_df["time_difference_sec"] >= 0)
         ]
+     
+        # Keep only the matched row with the largest (absolute) time_difference_sec for each expected day
+        # if not result_df.empty and "expected_time" in result_df.columns:
+        #     # Extract date from expected_time
+        #     result_df["expected_date"] = pd.to_datetime(result_df["expected_time"]).dt.date
+        #     # For matched rows, keep only the one with the largest absolute time_difference_sec per day
+        #     matched = result_df[result_df["match_status"] == "matched"]
+        #     unmatched = result_df[result_df["match_status"] != "matched"]
+        #     matched = matched.assign(abs_time_diff=matched["time_difference_sec"].abs())
+        #     matched = matched.sort_values("abs_time_diff", ascending=False)
+        #     matched = matched.drop_duplicates(subset=["expected_date"], keep="first")
+        #     # Combine back with unmatched
+        #     result_df = pd.concat([matched.drop(columns=["abs_time_diff"]), unmatched], ignore_index=True)
+        #     result_df = result_df.drop(columns=["expected_date"])
+       
+        # For each matched row, add the number of datetimes for the expected day (if available)
+        if not result_df.empty and "expected_time" in result_df.columns:
+            result_df["expected_date"] = pd.to_datetime(result_df["expected_time"]).dt.date
+            result_df["num_datetimes_for_day"] = result_df["expected_date"].map(num_datetimes_per_day).fillna(0).astype(int)
+            result_df = result_df.drop(columns=["expected_date"])
+        import ipdb
+        ipdb.set_trace()
         return result_df
     def plot_delta_scatter(self, days: List[str], prefix: str = "delta_comparison", subdirectory: str = None) -> None:
         """
-        Create a scatter plot comparing expected vs predicted deltas (Geneva - Dole).
-        
-        Args:
-            days: List of days to include in the plot
-            prefix: Prefix for filename
-            subdirectory: Optional subdirectory to save plot
+        Create a scatter plot comparing expected vs predicted deltas (Geneva - Dole)
+        with datetime labels for outlier points.
         """
         # Prepare data
-        days = self._normalize_days_input(days)
-        df = self._prepare_day_metrics(days)
+        if not days:
+            df = self._create_comparison_dataframe()
+        else:
+            days = self._normalize_days_input(days)
+            df = self._prepare_day_metrics(days)
+        
         if df.empty:
             self.logger.warning("No data found for the provided days.")
             return
         
         # Calculate deltas
-        df["expected_delta"] = df["expected_geneva"] / df["expected_dole"]
-        df["predicted_delta"] = df["predicted_geneva"] / df["predicted_dole"]
+        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
+        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
         
-        # Calculate regression line and metrics
+        # Identify outliers (points where error > 2 standard deviations)
+        residuals = df["predicted_delta"] - df["expected_delta"]
+        outlier_threshold = 1.5 * np.std(residuals)
+        df["is_outlier"] = np.abs(residuals) > outlier_threshold
+        
+        # Calculate regression metrics
         slope, intercept, r_value, p_value, std_err = stats.linregress(
             df["expected_delta"], df["predicted_delta"]
         )
-        mae = np.mean(np.abs(df["predicted_delta"] - df["expected_delta"]))  # Calcolo MAE
-        line_x = np.linspace(df["expected_delta"].min(), df["expected_delta"].max(), 100)
-        line_y = slope * line_x + intercept
+        mae = np.mean(np.abs(residuals))
         
         # Create plot
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(12, 10))
         
-        # Scatter plot
+        # Scatter plot with different colors for outliers
         plt.scatter(
             df["expected_delta"], 
             df["predicted_delta"],
             alpha=0.6,
             color='blue',
-            label='Data points'
+            label='Normal points'
         )
         
+        # Highlight outliers in red
+        outliers = df[df["is_outlier"]]
+        plt.scatter(
+            outliers["expected_delta"],
+            outliers["predicted_delta"],
+            alpha=0.8,
+            color='red',
+            label='Outliers'
+        )
+        
+        # Add datetime labels for outliers
+        for _, row in outliers.iterrows():
+            plt.annotate(
+                str(row["datetime"].date()) if "datetime" in row else str(row.name),
+                xy=(row["expected_delta"], row["predicted_delta"]),
+                xytext=(5, 5),
+                textcoords='offset points',
+                fontsize=8,
+                color='red'
+            )
+        
         # Regression line
+        line_x = np.linspace(df["expected_delta"].min(), df["expected_delta"].max(), 100)
+        line_y = slope * line_x + intercept
         plt.plot(
             line_x, 
             line_y, 
@@ -1123,27 +1195,28 @@ class Metrics:
         )
         
         # Format plot
-        plt.title(f"Expected vs Predicted Delta (Geneva - Dole)\n{', '.join(days)}", 
+        plt.title(f"Expected vs Predicted Delta (Geneva - Dole)\nOutliers labeled with date", 
                 fontsize=self.plot_config.fontsize["title"])
         plt.xlabel("Expected Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
         plt.ylabel("Predicted Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
         plt.legend(fontsize=self.plot_config.fontsize["labels"])
         plt.grid(True, linestyle='--', alpha=0.3)
         
-        # Add stats annotation (now includes MAE)
+        # Add stats annotation
         stats_text = (
             f"Slope: {slope:.2f}\n"
             f"Intercept: {intercept:.2f}\n"
             f"R²: {r_value**2:.2f}\n"
-            f"MAE: {mae:.2f}\n"  # Aggiunto MAE
-            f"Points: {len(df)}"
+            f"MAE: {mae:.2f}\n"
+            f"Outliers: {len(outliers)}/{len(df)}\n"
+            f"Threshold: ±{outlier_threshold:.1f} W/m²"
         )
         plt.annotate(
             stats_text,
-            xy=(0.05, 0.8),
+            xy=(0.05, 0.75),
             xycoords='axes fraction',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
-            fontsize=self.plot_config.fontsize.get("annotations", 10)  # Usa un fontsize coerente
+            fontsize=self.plot_config.fontsize.get("annotations", 10)
         )
         
         # Save plot
@@ -1151,8 +1224,81 @@ class Metrics:
         if self.save_path:
             output_path = os.path.join(
                 subdirectory if subdirectory else self.save_path,
-                f"{prefix}_scatter.png"
+                f"{prefix}_scatter_outliers.png"
             )
             plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
-            print(f"Saved delta scatter plot to {output_path}")
+            print(f"Saved delta scatter plot with outliers to {output_path}")
         plt.close()
+    
+    def plot_residual_errors(self, days, prefix: str = "residual_errors", subdirectory: str = None) -> None:
+        """
+        Plot residual errors for expected vs predicted deltas (Geneva - Dole).
+        
+        Args:
+            days: List of days to include in the plot
+            prefix: Prefix for filename
+            subdirectory: Optional subdirectory to save plot
+        """
+        # Prepare data
+        if not days:
+            # If days is empty, use all available days in the data
+            df = self._create_comparison_dataframe()
+        else:
+            days = self._normalize_days_input(days)
+            df = self._prepare_day_metrics(days)
+        if df.empty:
+            self.logger.warning("No data found for the provided days.")
+            return
+        
+        # Calculate deltas and residuals
+        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
+        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
+        df["residual"] = df["predicted_delta"] - df["expected_delta"]
+        
+        # Create plot
+        plt.figure(figsize=(10, 6))
+        
+        # Residuals scatter plot
+        # Scatter plot of residuals
+        plt.scatter(
+            df["expected_delta"], 
+            df["residual"],
+            alpha=0.6,
+            color='blue',
+            label='Residuals'
+        )
+        # Histogram of residuals on a secondary y-axis
+        ax = plt.gca()
+        ax_hist = ax.twinx()
+        ax_hist.hist(
+            df["residual"],
+            bins=30,
+            color='orange',
+            alpha=0.3,
+            label='Residuals Histogram'
+        )
+        ax_hist.set_ylabel("Count", fontsize=self.plot_config.fontsize["labels"])
+        ax_hist.legend(loc='upper right', fontsize=self.plot_config.fontsize["labels"])
+        
+        # Horizontal line at zero residual
+        plt.axhline(0, color='red', linestyle='--', label='Zero Residual')
+        
+        # Format plot
+        plt.title(f"Residual Errors (Predicted - Expected Delta) - Stratus Days\n", 
+                fontsize=self.plot_config.fontsize["title"])
+        plt.xlabel("Expected Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
+        plt.ylabel("Residual Error (W/m²)", fontsize=self.plot_config.fontsize["labels"])
+        plt.legend(fontsize=self.plot_config.fontsize["labels"])
+        plt.grid(True, linestyle='--', alpha=0.3)
+        
+        # Save plot
+        plt.tight_layout()
+        if self.save_path:
+            output_path = os.path.join(
+                subdirectory if subdirectory else self.save_path,
+                f"{prefix}_residuals.png"
+            )
+            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
+            print(f"Saved residual errors plot to {output_path}")
+        plt.close()
+    
