@@ -183,18 +183,18 @@ global_metrics.save_metrics_report(
     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
 )
 # Step 1: Trova i parametri ottimali
+global_metrics.plot_delta_scatter(specific_test_days)
+# res = global_metrics.detect_critical_transitions(specific_test_days)
+# matches = global_metrics.match_strongest_peaks(res)
+# # Save matches to a CSV file
+# matches_df = pd.DataFrame(matches)
 
-res = global_metrics.detect_critical_transitions(specific_test_days)
-matches = global_metrics.match_strongest_peaks(res)
-# Save matches to a CSV file
-matches_df = pd.DataFrame(matches)
+# mean_time_difference = matches_df["time_difference_sec"].mean()
 
-mean_time_difference = matches_df["time_difference_sec"].mean()
-
-matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
-# Add mean time difference to the CSV file
-with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
-    f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
+# matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
+# # Add mean time difference to the CSV file
+# with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
+#     f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
 import ipdb
 ipdb.set_trace()
 # params, results = metrics.grid_search_detect_time_late(stratus_days)

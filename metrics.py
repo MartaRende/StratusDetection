@@ -1062,3 +1062,94 @@ class Metrics:
             (result_df["time_difference_sec"].isna()) | (result_df["time_difference_sec"] >= 0)
         ]
         return result_df
+    def plot_delta_scatter(self, days: List[str], prefix: str = "delta_comparison", subdirectory: str = None) -> None:
+        """
+        Create a scatter plot comparing expected vs predicted deltas (Geneva - Dole).
+        
+        Args:
+            days: List of days to include in the plot
+            prefix: Prefix for filename
+            subdirectory: Optional subdirectory to save plot
+        """
+        # Prepare data
+        days = self._normalize_days_input(days)
+        df = self._prepare_day_metrics(days)
+        if df.empty:
+            self.logger.warning("No data found for the provided days.")
+            return
+        
+        # Calculate deltas
+        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
+        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
+        
+        # Calculate regression line
+        slope, intercept, r_value, p_value, std_err = stats.linregress(
+            df["expected_delta"], df["predicted_delta"]
+        )
+        line_x = np.linspace(df["expected_delta"].min(), df["expected_delta"].max(), 100)
+        line_y = slope * line_x + intercept
+        
+        # Create plot
+        plt.figure(figsize=(10, 10))
+        
+        # Scatter plot
+        plt.scatter(
+            df["expected_delta"], 
+            df["predicted_delta"],
+            alpha=0.6,
+            color='blue',
+            label='Data points'
+        )
+        
+        # Regression line
+        plt.plot(
+            line_x, 
+            line_y, 
+            color='red',
+            linestyle='--',
+            label=f'Regression (R²={r_value**2:.2f})'
+        )
+        
+        # Perfect fit line
+        max_val = max(df["expected_delta"].max(), df["predicted_delta"].max())
+        min_val = min(df["expected_delta"].min(), df["predicted_delta"].min())
+        plt.plot(
+            [min_val, max_val], 
+            [min_val, max_val], 
+            color='green',
+            linestyle=':',
+            label='Perfect fit'
+        )
+        
+        # Format plot
+        plt.title(f"Expected vs Predicted Delta (Geneva - Dole)\n{', '.join(days)}", 
+                fontsize=self.plot_config.fontsize["title"])
+        plt.xlabel("Expected Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
+        plt.ylabel("Predicted Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
+        plt.legend(fontsize=self.plot_config.fontsize["labels"])
+        plt.grid(True, linestyle='--', alpha=0.3)
+        
+        # Add stats annotation
+        stats_text = (
+            f"Slope: {slope:.2f}\n"
+            f"Intercept: {intercept:.2f}\n"
+            f"R²: {r_value**2:.2f}\n"
+            f"Points: {len(df)}"
+        )
+        plt.annotate(
+            stats_text,
+            xy=(0.05, 0.8),
+            xycoords='axes fraction',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8)
+        )
+        
+        # Save plot
+        plt.tight_layout()
+        if self.save_path:
+            output_path = os.path.join(
+                subdirectory if subdirectory else self.save_path,
+                f"{prefix}_scatter.png"
+            )
+            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
+            self.logger.info(f"Saved delta scatter plot to {output_path}")
+        plt.close()
