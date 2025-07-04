@@ -1,7 +1,7 @@
 
 import torch
 from torch.utils.data import Dataset
-from prepare_data.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
+from data_tools.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 from PIL import Image
 import numpy as np
 class PrepareDataset(Dataset):
