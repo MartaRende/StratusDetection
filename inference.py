@@ -62,7 +62,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2024, m) for m in range(10, 11)]
+#months = [(2024, m) for m in range(10, 11)]
 months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
@@ -184,7 +184,7 @@ global_metrics.save_metrics_report(
 )
 # Step 1: Trova i parametri ottimali
 
-res = global_metrics.detect_slope_transitions(specific_test_days)
+res = global_metrics.detect_critical_transitions(specific_test_days)
 matches = global_metrics.match_strongest_peaks(res)
 # Save matches to a CSV file
 matches_df = pd.DataFrame(matches)
