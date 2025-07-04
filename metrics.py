@@ -902,7 +902,7 @@ class Metrics:
         self,
         peaks_results: Dict[str, pd.DataFrame],
         time_window: str = "3H",
-        min_confidence: float = 0.87,
+        min_confidence: float = 0.7,
         include_unmatched: bool = True
     ) -> pd.DataFrame:
         """
