@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from matplotlib.patches import Patch
-MODEL_NUM = 6
+MODEL_NUM = 2
 MODEL_PATH = f"models/model_{MODEL_NUM}/matches.csv"
 df = pd.read_csv(MODEL_PATH)
 df = df.sort_values(by="expected_time")

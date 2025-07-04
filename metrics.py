@@ -790,20 +790,20 @@ class Metrics:
 
         # Compute derivatives with smoothing
         for series in ["expected_geneva", "expected_dole", "predicted_geneva", "predicted_dole",
-                       "expected_delta", "predicted_delta"]:
+                   "expected_delta", "predicted_delta"]:
             df[f"{series}_slope"] = (
-                df[series]
-                .rolling(smooth_window, center=True)
-                .mean()
-                .diff()
-                .abs()
+            df[series]
+            .rolling(smooth_window, center=True)
+            .mean()
+            .diff()
+            .abs()
             )
 
-        # Filter the specific day for plotting
-        plot_data = df[df.index.date == pd.to_datetime(plot_day).date()]
-
         # Calculate min_samples
-        time_diff = (df.index[1] - df.index[0]).total_seconds()
+        if len(df.index) > 1:
+            time_diff = (df.index[1] - df.index[0]).total_seconds()
+        else:
+            time_diff = 60  # fallback
         min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() / time_diff))
 
         results = {}
@@ -821,58 +821,45 @@ class Metrics:
             peaks_df["slope_combined"] = slopes[peaks]
 
             results[f"{prefix}_peaks"] = peaks_df.sort_values("slope_combined", ascending=False)
-            peaks_df = results[f"{prefix}_peaks"]
-            if not peaks_df.empty:
-            # Get the first datetime for each day from the full df
-                first_times = df.groupby(df.index.date).apply(lambda g: g.index.min())
-                # Remove rows in peaks_df where index matches any first_times
-                results[f"{prefix}_peaks"] = peaks_df[~peaks_df.index.isin(first_times.values)]
-                # Remove peaks at the first datetime of each day from peaks_df as well
-                peaks_df = peaks_df[~peaks_df.index.isin(first_times.values)]
-            # Plot
-            if not plot_data.empty:
-                plt.figure(figsize=(15, 10))
 
-                # 1. Plot deltas
-                plt.subplot(3, 1, 1)
-                plt.plot(plot_data.index, plot_data[f"{prefix}_delta"], label=f"{prefix} Delta", color='blue')
-                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
-                    plt.axvline(peak.name, color='r', linestyle='--', alpha=0.5)
-                plt.title(f"{prefix.capitalize()} Delta (Geneva - Dole) - {plot_day}")
-                plt.legend()
-                plt.grid()
+            # Plot for each day in 'days'
+            for day in days:
+                plot_data = df[df.index.date == pd.to_datetime(day).date()]
+                peaks_day_df = peaks_df[peaks_df.index.date == pd.to_datetime(day).date()]
+                if not plot_data.empty:
+                    plt.figure(figsize=(15, 10))
 
-                # 2. Plot derivatives of delta
-                plt.subplot(3, 1, 2)
-                plt.plot(plot_data.index, plot_data[f"{prefix}_delta_slope"], label=f"Derivative of {prefix} Delta", color='green')
-                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
-                    plt.scatter(peak.name, peak["slope_combined"], color='r', s=100)
-                plt.title(f"Derivative of {prefix} Delta (Slope) - {plot_day}")
-                plt.legend()
-                plt.grid()
+        
+                    # Create a figure with 2 rows: top for slope, bottom for original values
+                    fig, axes = plt.subplots(2, 1, figsize=(15, 10), sharex=True)
 
-                # 3. Plot original components
-                plt.subplot(3, 1, 3)
-                plt.plot(plot_data.index, plot_data[f"{prefix}_geneva"], label=f"{prefix} Geneva")
-                plt.plot(plot_data.index, plot_data[f"{prefix}_dole"], label=f"{prefix} Dole")
-                plt.title(f"{prefix.capitalize()} Original Values - {plot_day}")
-                plt.legend()
-                plt.grid()
+                    # 1. Plot derivative of delta (slope) with peaks
+                    axes[0].plot(plot_data.index, plot_data[f"{prefix}_delta_slope"], label=f"Derivative of {prefix} Delta", color='green')
+                    for _, peak in peaks_day_df.iterrows():
+                        axes[0].scatter(peak.name, peak["slope_combined"], color='r', s=100)
+                    axes[0].set_title(f"Derivative of {prefix} Delta (Slope) - {day}")
+                    axes[0].legend()
+                    axes[0].grid()
 
-                plt.tight_layout()
-                plt.savefig(
-                    os.path.join(self.save_path, f"{prefix}_slope_transitions_{plot_day}.png"),
-                    dpi=self.plot_config.dpi, bbox_inches='tight'
-                )
-                plt.close()
-        # Remove peaks at the first datetime of each day (from the full df) if present in results
-       
+                    # 2. Plot original geneva and dole values
+                    axes[1].plot(plot_data.index, plot_data[f"{prefix}_geneva"], label=f"{prefix} Geneva")
+                    axes[1].plot(plot_data.index, plot_data[f"{prefix}_dole"], label=f"{prefix} Dole")
+                    axes[1].set_title(f"{prefix.capitalize()} Original Values - {day}")
+                    axes[1].legend()
+                    axes[1].grid()
+
+                    plt.tight_layout()
+                    plt.savefig(
+                        os.path.join(self.save_path, f"{prefix}_slope_transitions_{day}.png"),
+                        dpi=self.plot_config.dpi, bbox_inches='tight'
+                    )
+                    plt.close()
         print("Results:", results)
         return results
     def match_strongest_peaks(
         self,
         peaks_results: Dict[str, pd.DataFrame],
-        time_window: str = "8H",
+        time_window: str = "2H",
         min_slope_similarity: float = 0.0,
         include_unmatched: bool = True  # New parameter to control inclusion
     ) -> pd.DataFrame:
