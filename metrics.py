@@ -896,12 +896,12 @@ class Metrics:
                     dpi=self.plot_config.dpi, bbox_inches='tight'
                 )
                 plt.close()
-   
+        print(results)
         return results
     def match_strongest_peaks(
         self,
         peaks_results: Dict[str, pd.DataFrame],
-        time_window: str = "1H",
+        time_window: str = "2H",
         min_confidence: float = 0.7,
         include_unmatched: bool = True
     ) -> pd.DataFrame:
