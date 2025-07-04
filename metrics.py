@@ -765,7 +765,7 @@ class Metrics:
     def detect_critical_transitions(
         self,
         days: List[str],
-        min_slope: float = 100,
+        min_slope: float = 50,
         min_peak_distance: str = "30min",
         smooth_window: str = "15min",
         plot_day: str = "2024-11-08"
@@ -903,7 +903,7 @@ class Metrics:
         self,
         peaks_results: Dict[str, pd.DataFrame],
         time_window: str = "3H",
-        min_confidence: float = 0.7,
+        min_confidence: float = 0.86,
         include_unmatched: bool = True
     ) -> pd.DataFrame:
         """
