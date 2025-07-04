@@ -14,11 +14,11 @@ import pandas as pd
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 6  # or any number you want
+MODEL_NUM = 2  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
-num_views = 1
+num_views = 2
 seq_len = 3  # Number of time steps in the sequence
 prediction_minutes = 10  # Minutes for prediction
 if len(sys.argv) > 1:
@@ -62,7 +62,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2024, m) for m in range(11, 12)]
+months = [(2024, m) for m in range(10, 11)]
 months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
@@ -184,8 +184,8 @@ global_metrics.save_metrics_report(
 )
 # Step 1: Trova i parametri ottimali
 
-res = global_metrics.detect_slope_transitions(specific_test_days)
-matches = global_metrics.match_strongest_peaks(res)
+res = global_metrics.detect_cusum_transitions_simple(specific_test_days)
+matches = global_metrics.match_cusum_transitions(res)
 # Save matches to a CSV file
 matches_df = pd.DataFrame(matches)
 

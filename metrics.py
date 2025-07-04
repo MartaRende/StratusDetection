@@ -762,133 +762,110 @@ class Metrics:
     
 
 
-    def detect_slope_transitions(
-        self,
-        days: List[str],
-        min_slope: float = 70,
-        min_peak_distance: str = "30min",
-        smooth_window: str = "15min",
-        plot_day: str = "2023-01-27"
-    ) -> Dict[str, Optional[pd.DataFrame]]:
+    def detect_cusum_transitions_simple(
+    self,
+    days: List[str],
+    threshold: float = 200,
+    drift: float = 15,
+    smooth_window: str = "15min",
+    plot_day: str = "2024-10-30"
+) -> Dict[str, pd.DataFrame]:
         """
-        Identify critical transition points based on maximum slopes.
-        Also computes the derivative of the delta (predicted and expected).
+        Detect change points in expected and predicted deltas using a simple CUSUM without ruptures.
         """
         import matplotlib.pyplot as plt
 
-        # Load and prepare data
         df = self.get_delta_btw_geneva_dole()
         days = self._normalize_days_input(days)
         df = df.sort_values("datetime").set_index("datetime")
         df = df[df.index.strftime("%Y-%m-%d").isin(days)]
-        # Ensure index is sorted in ascending order for correct time difference calculation
-        df = df.sort_index()
 
-        # Add delta columns
+        # Delta calculations
         df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
         df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
 
-        # Compute derivatives with smoothing
-        for series in ["expected_geneva", "expected_dole", "predicted_geneva", "predicted_dole",
-                       "expected_delta", "predicted_delta"]:
-            df[f"{series}_slope"] = (
-                df[series]
-                .rolling(smooth_window, center=True)
-                .mean()
-                .diff()
-                .abs()
-            )
+        # Smoothing
+        df["expected_smooth"] = df["expected_delta"].rolling(smooth_window, center=True).mean()
+        df["predicted_smooth"] = df["predicted_delta"].rolling(smooth_window, center=True).mean()
+        df = df.dropna()
 
-        # Filter the specific day for plotting
-        plot_data = df[df.index.date == pd.to_datetime(plot_day).date()]
+        def apply_cusum(series, threshold, drift):
+            pos, neg = 0.0, 0.0
+            change_points = []
+            for i in range(1, len(series)):
+                diff = series[i] - series[i - 1]
+                pos = max(0, pos + diff - drift)
+                neg = min(0, neg + diff + drift)
+                if pos > threshold:
+                    change_points.append((series.index[i], diff))
+                    pos = 0
+                elif neg < -threshold:
+                    change_points.append((series.index[i], diff))
+                    neg = 0
+            return pd.DataFrame(change_points, columns=["datetime", "change_magnitude"])
 
-        # Calculate min_samples
-        time_diff = (df.index[1] - df.index[0]).total_seconds()
-        min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() / time_diff))
-
-        results = {}
-        for prefix in ["expected", "predicted"]:
-            # Use the derivative of the delta as the main slope
-            slopes = df[f"{prefix}_delta_slope"].values
-
-            try:
-                peaks, _ = find_peaks(slopes, height=min_slope, distance=min_samples)
-            except ValueError as e:
-                self.logger.warning(f"Error in find_peaks: {e}. Using distance=1 as fallback.")
-                peaks, _ = find_peaks(slopes, height=min_slope, distance=1)
-
-            peaks_df = df.iloc[peaks].copy()
-            peaks_df["slope_combined"] = slopes[peaks]
-
-            results[f"{prefix}_peaks"] = peaks_df.sort_values("slope_combined", ascending=False)
-
-            # Plot
-            if not plot_data.empty:
-                plt.figure(figsize=(15, 10))
-
-                # 1. Plot deltas
-                plt.subplot(3, 1, 1)
-                plt.plot(plot_data.index, plot_data[f"{prefix}_delta"], label=f"{prefix} Delta", color='blue')
-                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
-                    plt.axvline(peak.name, color='r', linestyle='--', alpha=0.5)
-                plt.title(f"{prefix.capitalize()} Delta (Geneva - Dole) - {plot_day}")
+        expected_cp = apply_cusum(df["expected_smooth"], threshold, drift)
+        predicted_cp = apply_cusum(df["predicted_smooth"], threshold, drift)
+        expected_cp["prefix"] = "expected"
+        predicted_cp["prefix"] = "predicted"
+        # Remove first datetime of each day from expected_cp and predicted_cp
+        for cp_df in [expected_cp, predicted_cp]:
+            if not cp_df.empty:
+                df["datetime"] = df.index
+                df["date"] = df["datetime"].dt.date
+                first_times = df.groupby("date")["datetime"].min().values
+                cp_df.drop(cp_df[cp_df.index.isin(first_times)].index, inplace=True)
+        # Plotting
+        if plot_day:
+            for prefix in ["expected", "predicted"]:
+                plt.figure(figsize=(12, 5))
+                plot_df = df[df.index.date == pd.to_datetime(plot_day).date()]
+                plt.plot(plot_df.index, plot_df[f"{prefix}_delta"], label="Raw", alpha=0.4)
+                plt.plot(plot_df.index, plot_df[f"{prefix}_smooth"], label="Smoothed", color="orange")
+                cp_df = expected_cp if prefix == "expected" else predicted_cp
+                for t in cp_df["datetime"]:
+                    if t.date() == pd.to_datetime(plot_day).date():
+                        plt.axvline(t, color="red", linestyle="--")
+                plt.title(f"{prefix.capitalize()} CUSUM - {plot_day}")
                 plt.legend()
                 plt.grid()
-
-                # 2. Plot derivatives of delta
-                plt.subplot(3, 1, 2)
-                plt.plot(plot_data.index, plot_data[f"{prefix}_delta_slope"], label=f"Derivative of {prefix} Delta", color='green')
-                for _, peak in peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()].iterrows():
-                    plt.scatter(peak.name, peak["slope_combined"], color='r', s=100)
-                plt.title(f"Derivative of {prefix} Delta (Slope) - {plot_day}")
-                plt.legend()
-                plt.grid()
-
-                # 3. Plot original components
-                plt.subplot(3, 1, 3)
-                plt.plot(plot_data.index, plot_data[f"{prefix}_geneva"], label=f"{prefix} Geneva")
-                plt.plot(plot_data.index, plot_data[f"{prefix}_dole"], label=f"{prefix} Dole")
-                plt.title(f"{prefix.capitalize()} Original Values - {plot_day}")
-                plt.legend()
-                plt.grid()
-
                 plt.tight_layout()
-                plt.savefig(
-                    os.path.join(self.save_path, f"{prefix}_slope_transitions_{plot_day}.png"),
-                    dpi=self.plot_config.dpi, bbox_inches='tight'
-                )
+                plt.savefig(os.path.join(self.save_path, f"{prefix}_cusum_simple_{plot_day}.png"))
                 plt.close()
-        print("Results:", results)
-        return results
-    def match_strongest_peaks(
-        self,
-        peaks_results: Dict[str, pd.DataFrame],
-        time_window: str = "2H",
-        min_slope_similarity: float = 0.6,
-        include_unmatched: bool = True  # New parameter to control inclusion
-    ) -> pd.DataFrame:
-        """
-        Enhanced version that:
-        1. Performs 1:1 matching of strongest peaks
-        2. Optionally includes unmatched expected peaks in results
-        3. Marks matching status explicitly
-        4. Also includes predicted peaks that have no matching expected peak
-        """
-        exp_peaks = peaks_results["expected_peaks"].reset_index()
-        pred_peaks = peaks_results["predicted_peaks"].reset_index()
 
-        # Normalize slopes using global maximum for fair comparison
-        global_max = max(exp_peaks["slope_combined"].max(), 
-                        pred_peaks["slope_combined"].max())
-        exp_peaks["norm_slope"] = exp_peaks["slope_combined"] / global_max
-        pred_peaks["norm_slope"] = pred_peaks["slope_combined"] / global_max
+        return {
+            "expected_cusum": expected_cp.set_index("datetime"),
+            "predicted_cusum": predicted_cp.set_index("datetime")
+        }
+
+
+    def match_cusum_transitions(
+    self,
+    cusum_results: Dict[str, pd.DataFrame],
+    time_window: str = "3H",
+    min_magnitude_similarity: float = 0.4,
+    include_unmatched: bool = True
+) -> pd.DataFrame:
+        """
+        Match expected vs predicted CUSUM transitions based on time proximity and change magnitude similarity.
+        """
+        exp_peaks = cusum_results.get("expected_cusum", pd.DataFrame()).reset_index()
+        pred_peaks = cusum_results.get("predicted_cusum", pd.DataFrame()).reset_index()
+
+        if exp_peaks.empty or pred_peaks.empty:
+            print("No peaks to match.")
+            return pd.DataFrame()
+
+        # Normalize magnitudes
+        global_max = max(exp_peaks["change_magnitude"].abs().max(), pred_peaks["change_magnitude"].abs().max())
+        exp_peaks["norm_mag"] = exp_peaks["change_magnitude"] / global_max
+        pred_peaks["norm_mag"] = pred_peaks["change_magnitude"] / global_max
 
         matches = []
-        max_time_diff = pd.Timedelta(time_window)
         used_pred_indices = set()
         matched_exp_indices = set()
-
-        # First pass - find best matches
+        max_time_diff = pd.Timedelta(time_window)
+        
         for _, exp_row in exp_peaks.iterrows():
             candidates = pred_peaks[
                 (pred_peaks["datetime"].between(
@@ -897,71 +874,68 @@ class Metrics:
                 )) &
                 (~pred_peaks.index.isin(used_pred_indices))
             ].copy()
+            
 
             if not candidates.empty:
                 candidates["time_diff"] = (candidates["datetime"] - exp_row["datetime"]).abs().dt.total_seconds()
                 candidates["time_score"] = 1 - (candidates["time_diff"] / max_time_diff.total_seconds())
-                candidates["slope_score"] = 1 - abs(candidates["norm_slope"] - exp_row["norm_slope"])
-                candidates["combined_score"] = 0.7 * candidates["time_score"] + 0.3 * candidates["slope_score"]
+                candidates["magnitude_score"] = 1 - abs(candidates["norm_mag"] - exp_row["norm_mag"])
+                candidates["combined_score"] = 0.7 * candidates["time_score"] + 0.3 * candidates["magnitude_score"]
 
                 best_match = candidates.nlargest(1, "combined_score").iloc[0]
 
-                if best_match["combined_score"] >= min_slope_similarity:
+                if best_match["combined_score"] >= min_magnitude_similarity:
                     matches.append({
                         "expected_time": exp_row["datetime"],
                         "predicted_time": best_match["datetime"],
-                        "expected_slope": exp_row["slope_combined"],
-                        "predicted_slope": best_match["slope_combined"],
+                        "expected_mag": exp_row["change_magnitude"],
+                        "predicted_mag": best_match["change_magnitude"],
                         "time_difference_sec": (best_match["datetime"] - exp_row["datetime"]).total_seconds(),
-                        "slope_similarity": best_match["slope_score"],
+                        "magnitude_similarity": best_match["magnitude_score"],
                         "combined_score": best_match["combined_score"],
-                        "match_status": "matched",  # New field
+                        "match_status": "matched",
                         "is_early": best_match["datetime"] < exp_row["datetime"],
                         "is_late": best_match["datetime"] > exp_row["datetime"]
                     })
                     matched_exp_indices.add(exp_row.name)
                     used_pred_indices.add(best_match.name)
 
-        # Second pass - include unmatched expected peaks if requested
         if include_unmatched:
             unmatched_exp = exp_peaks[~exp_peaks.index.isin(matched_exp_indices)]
-            for _, exp_row in unmatched_exp.iterrows():
+            for _, row in unmatched_exp.iterrows():
                 matches.append({
-                    "expected_time": exp_row["datetime"],
+                    "expected_time": row["datetime"],
                     "predicted_time": pd.NaT,
-                    "expected_slope": exp_row["slope_combined"],
-                    "predicted_slope": None,
+                    "expected_mag": row["change_magnitude"],
+                    "predicted_mag": None,
                     "time_difference_sec": None,
-                    "slope_similarity": None,
+                    "magnitude_similarity": None,
                     "combined_score": None,
-                    "match_status": "unmatched_expected",  # Mark as unmatched expected
+                    "match_status": "unmatched_expected",
                     "is_early": None,
                     "is_late": None
                 })
 
-        # Third pass - include unmatched predicted peaks
-        unmatched_pred = pred_peaks[~pred_peaks.index.isin(used_pred_indices)]
-        for _, pred_row in unmatched_pred.iterrows():
-            matches.append({
-                "expected_time": pd.NaT,
-                "predicted_time": pred_row["datetime"],
-                "expected_slope": None,
-                "predicted_slope": pred_row["slope_combined"],
-                "time_difference_sec": None,
-                "slope_similarity": None,
-                "combined_score": None,
-                "match_status": "unmatched_predicted",  # Mark as unmatched predicted
-                "is_early": None,
-                "is_late": None
-            })
+            unmatched_pred = pred_peaks[~pred_peaks.index.isin(used_pred_indices)]
+            for _, row in unmatched_pred.iterrows():
+                matches.append({
+                    "expected_time": pd.NaT,
+                    "predicted_time": row["datetime"],
+                    "expected_mag": None,
+                    "predicted_mag": row["change_magnitude"],
+                    "time_difference_sec": None,
+                    "magnitude_similarity": None,
+                    "combined_score": None,
+                    "match_status": "unmatched_predicted",
+                    "is_early": None,
+                    "is_late": None
+                })
 
-        # Convert to DataFrame and clean up
         result_df = pd.DataFrame(matches)
-        
-        # Sort with matched peaks first (highest score), then unmatched
         result_df["sort_key"] = result_df["combined_score"].fillna(-1)
         result_df = result_df.sort_values(["sort_key", "expected_time"], ascending=[False, True])
         result_df = result_df.drop(columns="sort_key")
-        # Drop rows where time_difference_sec is negative (for matched only)
         result_df = result_df[result_df["time_difference_sec"].isna() | (result_df["time_difference_sec"] >= 0)]
+       
+        print(f"Matched {len(result_df[result_df['match_status'] == 'matched'])} of {len(exp_peaks)} expected transitions.")
         return result_df
