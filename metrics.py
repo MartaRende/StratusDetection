@@ -768,7 +768,7 @@ class Metrics:
         min_slope: float = 70,
         min_peak_distance: str = "10min",
         smooth_window: str = "15min",
-        plot_day: str = "2024-10-25"
+        plot_day: str = "2024-11-08"
     ) -> Dict[str, Optional[pd.DataFrame]]:
         """
         Detect critical transitions using:
@@ -801,7 +801,7 @@ class Metrics:
             
             # 2. Statistical change detection (z-score)
             z_scores = zscore(series.fillna(0))
-            change_points = np.where(np.abs(z_scores) > 3.5)[0]  # 3.5 std threshold
+            change_points = np.where(np.abs(z_scores) > 2.5)[0]  # 3.5 std threshold
 
             # 3. Find peaks in multiple features
             min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() / 
@@ -837,9 +837,11 @@ class Metrics:
                 
                 # Score based on multiple factors
                 peaks_df["confidence"] = (
-                    peaks_df["slope_magnitude"] / peaks_df["slope_magnitude"].max() +
-                    peaks_df["z_score"].abs() / peaks_df["z_score"].abs().max()
+                    0.6 * peaks_df["slope_magnitude"] / peaks_df["slope_magnitude"].max() +
+                    0.4 * peaks_df["z_score"].abs() / peaks_df["z_score"].abs().max()
                 )
+                # Filter out low-confidence transitions
+                peaks_df = peaks_df[peaks_df["confidence"] >= 0.3]
                 peaks_df = peaks_df.sort_values("confidence", ascending=False)
 
             results[f"{prefix}_transitions"] = peaks_df

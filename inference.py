@@ -14,7 +14,7 @@ import pandas as pd
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 2  # or any number you want
+MODEL_NUM = 6  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -62,7 +62,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-#months = [(2024, m) for m in range(10, 11)]
+months = [(2024, m) for m in range(11, 12)]
 months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
