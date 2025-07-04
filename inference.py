@@ -14,13 +14,13 @@ import pandas as pd
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 6  # or any number you want
+MODEL_NUM = 7  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
-num_views = 2
+num_views = 1
 seq_len = 3  # Number of time steps in the sequence
-prediction_minutes = 10  # Minutes for prediction
+prediction_minutes = 60  # Minutes for prediction
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -160,17 +160,17 @@ for year, month in months:
   
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH,fp_images=FP_IMAGES, start_date=start_date, end_date=end_date,prediction_minutes=prediction_minutes)
        
-        # metrics.plot_day_curves(stratus_days_for_month)
+        metrics.plot_day_curves(stratus_days_for_month)
         # Take up to 3 random non-stratus days and plot their curves
         num_days_to_plot = min(3, len(non_stratus_days_for_month))
         if num_days_to_plot > 0:
             random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
             print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
-            #metrics.plot_day_curves(non_stratus_days_for_month)
+            metrics.plot_day_curves(non_stratus_days_for_month)
         else:
             print("No non-stratus days to select for plotting.")
-        # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-        # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+        metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+        metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
         #df = metrics.detect_time_late(stratus_days_for_month)
 
 # Flatten all_expected into a 1D array
@@ -204,9 +204,9 @@ specific_test_days = [
             "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
             "2024-11-09", "2024-10-19", "2024-11-16"
         ]
-# global_metrics.save_metrics_report(
-#     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
-# )
+global_metrics.save_metrics_report(
+    stratus_days=specific_test_days, non_stratus_days=non_stratus_days
+)
 # Step 1: Trova i parametri ottimali
 global_metrics.plot_delta_scatter(specific_test_days)
 # res = global_metrics.detect_critical_transitions(specific_test_days)
@@ -220,8 +220,7 @@ global_metrics.plot_delta_scatter(specific_test_days)
 # # Add mean time difference to the CSV file
 # with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
 #     f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
-import ipdb
-ipdb.set_trace()
+
 # params, results = metrics.grid_search_detect_time_late(stratus_days)
 
 # # If you want, you can also save or display them:
