@@ -766,7 +766,7 @@ class Metrics:
         self,
         days: List[str],
         min_slope: float = 70,
-        min_peak_distance: str = "30min",
+        min_peak_distance: str = "50min",
         smooth_window: str = "15min",
         plot_day: str = "2024-10-25"
     ) -> Dict[str, Optional[pd.DataFrame]]:
