@@ -64,8 +64,16 @@ all_predicted = []
 all_expected = []
 months = [(2024, m) for m in range(10, 11)]
 months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz")
 
+
+        
 for year, month in months:
+    if os.path.exists(pred_file):
+        with np.load(pred_file) as pred_data:
+            all_predicted = pred_data["predicted"]
+            all_expected = pred_data["expected"]
+        break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
     if month == 12:
@@ -168,10 +176,20 @@ for year, month in months:
         #df = metrics.detect_time_late(stratus_days_for_month)
 
 # Flatten all_expected into a 1D array
-all_expected =  [item for sublist in all_expected for item in sublist]
-all_predicted =  [item for sublist in all_predicted for item in sublist]
+if len(all_expected) == 0 or len(all_predicted) == 0:
+    all_expected =  [item for sublist in all_expected for item in sublist]
+    all_predicted =  [item for sublist in all_predicted for item in sublist]
+# Save predictions and expected values to a CSV file, ready to be loaded in Metrics
+    np.savez(
+        os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz"),
+        predicted=np.array(all_predicted),
+        expected=np.array(all_expected),
+    )
 
+    
 global_metrics = Metrics(
+        
+        
     all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", prediction_minutes=prediction_minutes, stats_for_month=False
 )
 specific_test_days = [

@@ -1079,8 +1079,8 @@ class Metrics:
             return
         
         # Calculate deltas
-        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
-        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
+        df["expected_delta"] = df["expected_geneva"] / df["expected_dole"]
+        df["predicted_delta"] = df["predicted_geneva"] / df["predicted_dole"]
         
         # Calculate regression line
         slope, intercept, r_value, p_value, std_err = stats.linregress(
