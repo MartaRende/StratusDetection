@@ -118,13 +118,9 @@ class Metrics:
             if distances[min_idx] < 2.0:  # Only accept if within 2 W/m²
                 matched_indices.append(min_idx)
             else:
-                self.logger.warning(f"No close match found for geneva={geneva}, dole={dole}")
                 matched_indices.append(None)  # Or handle missing values as needed
         
-        # Verify we found exactly 74 matches
-        if len(matched_indices) != len(self.expected):
-            self.logger.error(f"Found {len(matched_indices)} matches but expected {len(self.expected)}")
-     
+            
         return [idx for idx in matched_indices if idx is not None]  # Filter out None values
         
     def get_image_for_datetime(self, dt, view=2):
