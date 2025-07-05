@@ -5,7 +5,7 @@ A project aimed at predicting the appearance and disappearance of stratus clouds
 ## Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
+- [Code Overview](#code_overview)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -13,13 +13,18 @@ A project aimed at predicting the appearance and disappearance of stratus clouds
 
 ## Overview
 
-StratusDetection is designed to identify and analyze stratus cloud formations from meteorological data.
+This project is designed to analyze stratus cloud phenomena by processing weather images from La Dôle and meteorological data from INCA provided by MeteoSwiss.
 
-## Features
+## Code Overview
 
-- Automated stratus cloud detection
-- Data visualization tools
-- Configurable detection parameters
+The main codebase consists of:
+
+- **model.py**: Questo file contiene la struttura del modello utilizzato 
+- **training.py**: Questo file serve per poter addestrare il modello. In questo file si preparano i dati meteo, le immagini e le labels, si splittano i dati in train/validation/test e si trasformano in tensori.
+
+- **prepareData.py**: Questa classe permette di preparare i dati per poi essere trasformati in tensori nel training. In essa quindi si generano i dati di input e si controlla la loro esistenza(immagini e dati meteo)
+
+Each module is documented with inline comments. For more details on usage and customization, refer to the docstrings within each script.
 
 ## Requirements
 

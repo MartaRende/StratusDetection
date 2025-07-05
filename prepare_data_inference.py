@@ -24,12 +24,25 @@ class PrepareData:
         self.desired_prediction = prediction_minutes  # minutes for prediction
 
     def _load_weather_data(self):
+                # load data test of npz file
+        complete_data_gen_fp = f"data/complete_data_gen.npz"
+        complete_data_gen = np.load(complete_data_gen_fp, allow_pickle=True)
         npz_file = np.load(self.fp_weather, allow_pickle=True)
         data_all = {k: npz_file[k] for k in npz_file.files}
+        complete_data_gen = {k: complete_data_gen[k] for k in complete_data_gen.files}
+        complete_df = pd.DataFrame(complete_data_gen['dole'])
+        complete_df = pd.json_normalize(complete_df[0])
+        complete_df['datetime'] = pd.to_datetime(complete_df['datetime'])
         df = pd.DataFrame(data_all['dole'])
         df = pd.json_normalize(df[0])
         df['datetime'] = pd.to_datetime(df['datetime'])
-        return df
+        # Find intersection of dates (ignore hour) between complete_df and df
+        complete_dates = complete_df['datetime'].dt.date
+        df_dates = df['datetime'].dt.date
+        common_dates = np.intersect1d(complete_dates, df_dates)
+                # Filter complete_df to only include rows where the date is in common_dates
+        complete_df = complete_df[complete_df['datetime'].dt.date.isin(common_dates)]
+        return complete_df
 
     def get_image_path(self, dt, view=2):
         """Get the path for an image without loading it"""
@@ -135,7 +148,6 @@ class PrepareData:
             if not valid_images:
                 print(f"Skipping sequence starting at index {i} due to missing images.")
                 continue
-                
             # Prepare target (next time step after sequence)
             
             target = next_point[["gre000z0_nyon", "gre000z0_dole"]].values
@@ -143,13 +155,11 @@ class PrepareData:
             if pd.isnull(target).any():
                 print(f"Skipping sequence starting at index {i} due to NaN values in target data. at hour", next_point['datetime'])
                 continue
-        
             # Add to sequences
             x_meteo_seq.append(meteo_sequence)
             x_images_seq.append(np.array(img_sequence))
             y_seq.append(target)
             valid_indices.append(i)
-           
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)

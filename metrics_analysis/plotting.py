@@ -79,7 +79,7 @@ class Plotter:
             month = day_df["month"].iloc[0]
             month_dir = os.path.join(self.metrics.save_path, month)
             os.makedirs(month_dir, exist_ok=True)
-
+            print(f"Plotting day curves for {day} in {month_dir}")
             day_datetimes = day_df["datetime"].tolist()
             num_images = min(6, len(day_datetimes))
             indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int) if num_images > 1 else [0]

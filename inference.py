@@ -13,13 +13,13 @@ from metrics_analysis.metrics import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 2  # or any number you want
+MODEL_NUM = 1  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
 num_views = 1
 seq_len = 3  # Number of time steps in the sequence
-prediction_minutes = 30  # Minutes for prediction
+prediction_minutes = 60  # Minutes for prediction
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -44,7 +44,7 @@ model = StratusModel(15, 2, num_views,seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
-# load data test of npz file
+
 data = np.load(npz_file, allow_pickle=True)
 stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
 
@@ -61,7 +61,7 @@ stratus_days = []
 non_stratus_days = []
 all_predicted = []
 all_expected = []
-months = [(2023, m) for m in range(1,2)]
+months = [(2024, m) for m in range(11, 12)]
 months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz")
 
@@ -127,7 +127,7 @@ for year, month in months:
             x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
-        for i in range(total_predictions):
+        for i in range(int(total_predictions)):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
@@ -202,6 +202,10 @@ specific_test_days = [
             "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
             "2024-11-09", "2024-10-19", "2024-11-16"
         ]
+# stratus_days_well= [
+#             "2024-11-08", "2023-01-25", "2024-10-30", "2024-11-16", "2024-10-25",
+#             "2024-12-26","2023-02-13", "2024-11-03", "2023-03-02"
+#         ]
 # global_metrics.save_metrics_report(
 #     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
 # )
@@ -209,6 +213,8 @@ specific_test_days = [
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
 
 global_metrics.plotter.plot_residual_errors(specific_test_days)
+global_metrics.plotter.plot_delta_scatter(specific_test_days)
+
 res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
 matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
 # # Save matches to a CSV file

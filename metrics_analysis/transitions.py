@@ -20,9 +20,9 @@ class TransitionAnalyzer:
     min_peak_distance: str = "30min",
     smooth_window: str = "15min",
     plot_day: str = "2023-01-27",
-    slope_weight: float = 0.8,
-    accel_weight: float = 0.0,
-    cusum_weight: float = 0.2,
+    slope_weight: float = 0.9,
+    accel_weight: float = 0.1,
+    cusum_weight: float = 0.0,
 ) -> Dict[str, Optional[pd.DataFrame]]:
         df = self.metrics.get_delta_btw_geneva_dole()
         days = self.metrics._normalize_days_input(days)
@@ -119,6 +119,14 @@ class TransitionAnalyzer:
             results["num_datetimes_per_day"] = df_reset.groupby("date")["datetime"].count().to_dict()
         else:
             results["num_datetimes_per_day"] = {}
+
+        # Ensure all dates in df are present in results["num_datetimes_per_day"]
+        if not df.empty and "num_datetimes_per_day" in results:
+            all_dates = set(df.index.date)
+            for date in all_dates:
+                if date not in results["num_datetimes_per_day"]:
+                    results["num_datetimes_per_day"][date] = 0
+        
         return results
 
 

@@ -104,7 +104,6 @@ class PrepareData:
 
             if not all_images_exist:
                 continue
-
             # Save valid sequence
             valid_indices.append(i)
             valid_seqs.append({
@@ -113,9 +112,9 @@ class PrepareData:
                 "target": next_t[["gre000z0_nyon", "gre000z0_dole"]].values,
                 "next_datetime": next_t['datetime']
             })
-   
         # Update self.data only after collecting all valid sequences
         self.data = self.data.loc[valid_indices].reset_index(drop=True)
+        import ipdb; ipdb.set_trace()
 
         for seq in valid_seqs:
             seq["indices"] = [self.data.index[i] for i in seq["indices"]]
