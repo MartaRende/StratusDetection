@@ -195,7 +195,7 @@ else :
 global_metrics = Metrics(
         
         
-    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", prediction_minutes=prediction_minutes, stats_for_month=False
+    all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", prediction_minutes=prediction_minutes, stats_for_month=False,
 )
 specific_test_days = [
             "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
@@ -205,21 +205,21 @@ specific_test_days = [
 global_metrics.save_metrics_report(
     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
 )
-global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
-global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
+# global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
+# global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
 
-global_metrics.plotter.plot_residual_errors(specific_test_days)
-res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
-matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
-# # Save matches to a CSV file
-matches_df = pd.DataFrame(matches)
+# global_metrics.plotter.plot_residual_errors(specific_test_days)
+# res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
+# matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
+# # # Save matches to a CSV file
+# matches_df = pd.DataFrame(matches)
 
-mean_time_difference = matches_df["time_difference_sec"].mean()
+# mean_time_difference = matches_df["time_difference_sec"].mean()
 
-matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
-# Add mean time difference to the CSV file
-with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
-    f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
+# matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
+# # Add mean time difference to the CSV file
+# with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
+#     f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
 
 # params, results = metrics.grid_search_detect_time_late(stratus_days)
 

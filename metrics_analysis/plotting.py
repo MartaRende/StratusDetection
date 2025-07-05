@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from typing import List, Optional, Dict
 from PIL import Image
 from scipy import stats
-import seaborn as sns
 
 from .config import PlotConfig
 
