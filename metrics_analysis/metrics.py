@@ -330,6 +330,27 @@ class Metrics:
             "daily": delta_metrics,
             "global": global_delta_metrics
         }
+    def get_delta_stats(self) -> Dict[str, float]:
+        """
+        Compute MAE, RMSE, and mean relative error for delta_dole_geneva.
+        Returns:
+            Dictionary with keys: 'mae', 'rmse', 'mean_relative_error'
+        """
+        df = self.get_delta_btw_geneva_dole()
+        expected_delta = df["expected_delta_geneva_dole"]
+        predicted_delta = df["predicted_delta_geneva_dole"]
+        abs_error = (predicted_delta - expected_delta).abs()
+        mae = abs_error.mean()
+        rmse = np.sqrt(((predicted_delta - expected_delta) ** 2).mean())
+        # Avoid division by zero
+        rel_error = abs_error / expected_delta.abs().replace(0, np.nan)
+        mean_rel_error = rel_error.fillna(0).mean()
+    
+        return {
+            "mae": mae,
+            "rmse": rmse,
+            "mean_relative_error": mean_rel_error
+        }
     def compute_and_save_metrics_by_month(self, days: List[str], label: str = "stratus_days") -> None:
         """
         Compute and save metrics organized by month, including delta metrics.
