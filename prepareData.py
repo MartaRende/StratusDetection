@@ -114,7 +114,6 @@ class PrepareData:
             })
         # Update self.data only after collecting all valid sequences
         self.data = self.data.loc[valid_indices].reset_index(drop=True)
-        import ipdb; ipdb.set_trace()
 
         for seq in valid_seqs:
             seq["indices"] = [self.data.index[i] for i in seq["indices"]]
