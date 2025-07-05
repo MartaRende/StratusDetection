@@ -31,26 +31,26 @@ class Plotter:
         geneva_values = [day_metrics[day][metric_type]["geneva"] for day in days_list]
         dole_values = [day_metrics[day][metric_type]["dole"] for day in days_list]
 
-        fig, ax = plt.subplots(figsize=self.config.figsize)
-        
+        fig, ax = plt.subplots(figsize=self.plot_config.figsize)
+
         ax.plot(days_list, geneva_values, 
                 marker='o', linestyle='-', 
-                color=self.config.colors["geneva"],
-                markersize=self.config.marker_size,
-                linewidth=self.config.line_width,
+                color=self.plot_config.colors["geneva"],
+                markersize=self.plot_config.marker_size,
+                linewidth=self.plot_config.line_width,
                 label='Geneva')
                 
         ax.plot(days_list, dole_values, 
                 marker='x', linestyle='--', 
-                color=self.config.colors["dole"],
-                markersize=self.config.marker_size,
-                linewidth=self.config.line_width,
+                color=self.plot_config.colors["dole"],
+                markersize=self.plot_config.marker_size,
+                linewidth=self.plot_config.line_width,
                 label='Dole')
 
         ax.set_title(f"{metric_type.upper()} for Specific Days", 
-                    fontsize=self.config.fontsize["title"])
-        ax.set_xlabel("Date", fontsize=self.config.fontsize["labels"])
-        ax.set_ylabel(metric_type.upper(), fontsize=self.config.fontsize["labels"])
+                    fontsize=self.plot_config.fontsize["title"])
+        ax.set_xlabel("Date", fontsize=self.plot_config.fontsize["labels"])
+        ax.set_ylabel(metric_type.upper(), fontsize=self.plot_config.fontsize["labels"])
         ax.tick_params(axis='x', rotation=45)
         ax.grid(True, linestyle='--', alpha=0.5)
         ax.legend()
@@ -61,7 +61,7 @@ class Plotter:
                 subdirectory if subdirectory else self.metrics.save_path, 
                 f"{metric_type}_specific_days_{prefix}.png"
             )
-            plt.savefig(output_path, dpi=self.config.dpi, bbox_inches='tight')
+            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
             self.metrics.logger.info(f"Saved plot to {output_path}")
         plt.close()
 
@@ -83,28 +83,28 @@ class Plotter:
             day_datetimes = day_df["datetime"].tolist()
             num_images = min(6, len(day_datetimes))
             indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int) if num_images > 1 else [0]
-   
-            fig = plt.figure(figsize=(self.config.figsize[0], self.config.figsize[1] * 1.5))
+
+            fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
 
             ax1 = fig.add_subplot(gs[0])
             for var in ["geneva", "dole"]:
                 ax1.plot(day_df["hour"], day_df[f"expected_{var}"],
-                        'o-', color=self.config.colors[var],
-                        markersize=self.config.marker_size,
-                        linewidth=self.config.line_width,
+                        'o-', color=self.plot_config.colors[var],
+                        markersize=self.plot_config.marker_size,
+                        linewidth=self.plot_config.line_width,
                         label=f'Expected {var.capitalize()}')
 
                 ax1.plot(day_df["hour"], day_df[f"predicted_{var}"],
-                        'x--', color=self.config.colors[var],
-                        markersize=self.config.marker_size,
-                        linewidth=self.config.line_width,
+                        'x--', color=self.plot_config.colors[var],
+                        markersize=self.plot_config.marker_size,
+                        linewidth=self.plot_config.line_width,
                         label=f'Predicted {var.capitalize()}')
 
             ax1.set_title(f"Day Curves - {day} - Prediction in {self.metrics.prediction_minutes} minutes", 
-                         fontsize=self.config.fontsize["title"])
-            ax1.set_ylabel("Radiation (W/m²)", fontsize=self.config.fontsize["labels"])
-            ax1.set_xlabel("Hours", fontsize=self.config.fontsize["labels"])
+                         fontsize=self.plot_config.fontsize["title"])
+            ax1.set_ylabel("Radiation (W/m²)", fontsize=self.plot_config.fontsize["labels"])
+            ax1.set_xlabel("Hours", fontsize=self.plot_config.fontsize["labels"])
             ax1.legend()
             ax1.grid(True)
 
@@ -141,7 +141,7 @@ class Plotter:
             plt.tight_layout()
             plt.savefig(
                 os.path.join(month_dir, f"day_curve_{day}.png"),
-                dpi=self.config.dpi,
+                dpi=self.plot_config.dpi,
                 bbox_inches='tight'
             )
             plt.close()
@@ -162,14 +162,14 @@ class Plotter:
             delta_abs_error = ((month_df["predicted_geneva"] - month_df["predicted_dole"]) -
                              (month_df["expected_geneva"] - month_df["expected_dole"])).abs()
 
-            fig, ax = plt.subplots(figsize=self.config.figsize)
+            fig, ax = plt.subplots(figsize=self.plot_config.figsize)
             x_vals = np.arange(len(month_df))
             dates_labels = month_df["datetime"].dt.strftime("%Y-%m-%d %H:%M")
 
             ax.plot(x_vals, delta_abs_error[month_df.index],
                     'o-', color='red',
-                    markersize=self.config.marker_size,
-                    linewidth=self.config.line_width,
+                    markersize=self.plot_config.marker_size,
+                    linewidth=self.plot_config.line_width,
                     label='Absolute Error (Geneva - Dole)')
 
             step = max(1, len(x_vals) // 10)
@@ -177,9 +177,9 @@ class Plotter:
             ax.set_xticklabels(dates_labels[::step], rotation=45)
 
             ax.set_title(f"Absolute Error of Delta (Geneva-Dole) - {month}",
-                         fontsize=self.config.fontsize["title"])
-            ax.set_xlabel("Date", fontsize=self.config.fontsize["labels"])
-            ax.set_ylabel("Absolute Error", fontsize=self.config.fontsize["labels"])
+                         fontsize=self.plot_config.fontsize["title"])
+            ax.set_xlabel("Date", fontsize=self.plot_config.fontsize["labels"])
+            ax.set_ylabel("Absolute Error", fontsize=self.plot_config.fontsize["labels"])
             ax.legend()
             ax.grid(True, linestyle='--', alpha=0.5)
 
@@ -188,7 +188,7 @@ class Plotter:
                 output_path = os.path.join(
                     subdirectory, f"delta_absolute_error_{prefix}.png"
                 )
-                plt.savefig(output_path, dpi=self.config.dpi, bbox_inches='tight')
+                plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
                 self.metrics.logger.info(f"Saved delta absolute error plot to {output_path}")
             plt.close()
 
