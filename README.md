@@ -14,15 +14,38 @@ A project aimed at predicting the appearance and disappearance of stratus clouds
 ## Overview
 
 This project is designed to analyze stratus cloud phenomena by processing weather images from La Dôle and meteorological data from INCA provided by MeteoSwiss.
-
 ## Code Overview
 
 The main codebase consists of:
 
-- **model.py**: Questo file contiene la struttura del modello utilizzato 
-- **training.py**: Questo file serve per poter addestrare il modello. In questo file si preparano i dati meteo, le immagini e le labels, si splittano i dati in train/validation/test e si trasformano in tensori.
+- **model.py**  
+    Defines the architecture of the machine learning model.
 
-- **prepareData.py**: Questa classe permette di preparare i dati per poi essere trasformati in tensori nel training. In essa quindi si generano i dati di input e si controlla la loro esistenza(immagini e dati meteo)
+- **training.py**  
+    Handles the training process: prepares meteorological data, images, and labels; splits data into train/validation/test sets; and transforms data into tensors using `data_loader.py`.
+
+- **prepareData.py**  
+    Contains a class for preparing and validating input data (images and meteorological data) for training.
+
+- **prepare_data_inference.py**  
+    Contains a class for preparing data specifically for inference on the test set.
+
+- **inference.py**  
+    Runs the trained model on test data, generates predictions, computes main metrics, and produces result visualizations.
+- **data_analysis.ipynb**: 
+    Contains preliminary analyses performed on the images and meteorological data.
+- **rules.def**: 
+    Nel quadro del progetto avevo a disposizione un'infrastruttura molto piu potente che il mio laptop per usarla devo lanciare in miei job con appteiner quindi questo file è la definizione della mia immagine apptainer.
+- **train_sbatch.sh and inference_sbatch.sh**: 
+
+- **metrics_analysis/**  
+    Scripts for generating metrics, creating various plots, and analyzing stratus dissipation delays.
+
+- **data_tools/**  
+    Utilities for filtering study data and visualizing images, including data augmentation and cropping.
+
+- **docs/**  
+    Documentation, research notes, and project progress updates.
 
 Each module is documented with inline comments. For more details on usage and customization, refer to the docstrings within each script.
 
@@ -38,7 +61,7 @@ Each module is documented with inline comments. For more details on usage and cu
 ```bash
 git clone https://github.com/yourusername/StratusDetection.git
 cd StratusDetection
-pip install -r requirements.txt
+pip install .
 ```
 
 ## Usage
