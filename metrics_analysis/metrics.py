@@ -195,3 +195,180 @@ class Metrics:
         else:
             days = [str(days)]
         return days
+    def get_global_metrics_for_days(self, days: List[str]) -> Dict[str, Dict[str, float]]:
+        """
+        Calculate global metrics (averaged across all specified days).
+        
+        Args:
+            days: List of days in format 'YYYY-MM-DD'
+            
+        Returns:
+            Dictionary of global metrics
+        """
+        day_metrics = self.get_metrics_for_days(days)
+        if not day_metrics:
+            return {}
+
+        # Initialize aggregators
+        global_metrics = {
+            "mae": {"geneva": [], "dole": []},
+            "rmse": {"geneva": [], "dole": []},
+            "relative_error": {"geneva": [], "dole": []}
+        }
+
+        # Collect all values
+        for metrics in day_metrics.values():
+            for metric_type in global_metrics:
+                for var in ["geneva", "dole"]:
+                    global_metrics[metric_type][var].append(metrics[metric_type][var])
+
+        # Calculate means
+        return {
+            metric_type: {
+                var: np.mean(vals) if vals else None
+                for var, vals in values.items()
+            }
+            for metric_type, values in global_metrics.items()
+        }
+    def get_delta_metrics_for_days(self, days: List[str]) -> Dict[str, Dict[str, float]]:
+        """
+        Compute delta metrics (geneva-dole differences) for specific days.
+        
+        Args:
+            days: List of days in format 'YYYY-MM-DD'
+            
+        Returns:
+            Dictionary with delta metrics for each day and globally
+        """
+        day_df = self._prepare_day_metrics(days)
+        if day_df.empty:
+            self.logger.warning(f"No data found for days: {days}")
+            return {}
+
+        delta_metrics = {}
+        global_metrics = {
+            "mae": [],
+            "rmse": [],
+            "mean_relative_error": []
+        }
+
+        for day, group in day_df.groupby("date_str"):
+            expected_delta = group["expected_geneva"] - group["expected_dole"]
+            predicted_delta = group["predicted_geneva"] - group["predicted_dole"]
+            
+            abs_error = (predicted_delta - expected_delta).abs()
+            mae = abs_error.mean()
+            rmse = np.sqrt(((predicted_delta - expected_delta) ** 2).mean())
+            rel_error = abs_error / expected_delta.abs().replace(0, np.nan)
+            mean_rel_error = rel_error.fillna(0).mean()
+            
+            delta_metrics[day] = {
+                "mae": mae,
+                "rmse": rmse,
+                "mean_relative_error": mean_rel_error
+            }
+            
+            # Collect for global metrics
+            global_metrics["mae"].append(mae)
+            global_metrics["rmse"].append(rmse)
+            global_metrics["mean_relative_error"].append(mean_rel_error)
+
+        # Calculate global delta metrics
+        global_delta_metrics = {
+            metric: np.mean(vals) if vals else None
+            for metric, vals in global_metrics.items()
+        }
+
+        return {
+            "daily": delta_metrics,
+            "global": global_delta_metrics
+        }
+    def compute_and_save_metrics_by_month(self, days: List[str], label: str = "stratus_days") -> None:
+        """
+        Compute and save metrics organized by month, including delta metrics.
+        """
+        
+        # Flatten and validate days input
+        days = self._normalize_days_input(days)
+        if not days:
+            self.logger.warning("No days provided for monthly metrics")
+            return
+
+        # Group days by month
+        month_day_map = defaultdict(list)
+        for day in days:
+            month = day[:7]  # "YYYY-MM"
+            month_day_map[month].append(day)
+
+        # Process each month
+        for month, month_days in month_day_map.items():
+            month_dir = os.path.join(self.save_path, month)
+            os.makedirs(month_dir, exist_ok=True)
+            
+            # Compute all metrics
+            metrics = self.get_global_metrics_for_days(month_days)
+            delta_metrics = self.get_delta_metrics_for_days(month_days)
+            # Save report
+            report_path = os.path.join(month_dir, f"metrics_{label}.txt")
+            with open(report_path, 'w') as f:
+                f.write(f"Metrics for {label} - {month}\n")
+                f.write(f"Days: {month_days}\n")
+                f.write(f"Global RMSE: {metrics.get('rmse', {})}\n")
+                f.write(f"Global Relative Error: {metrics.get('relative_error', {})}\n")
+                f.write(f"Global MAE: {metrics.get('mae', {})}\n")
+                if delta_metrics and "global" in delta_metrics and delta_metrics["global"]:
+                    f.write(f"Delta geneva-Dole Stats: {delta_metrics['global']}\n")
+                else:
+                    f.write("Delta geneva-Dole Stats: No data available\n")
+            self.logger.info(f"Saved {label} metrics for {month} to {report_path}")
+
+            # Plot metrics in the month directory
+            self.plotter.plot_error_metrics(month_days, metric_type="rmse", prefix=label, subdirectory=month_dir)
+            self.plotter.plot_error_metrics(month_days, metric_type="relative_error", prefix=label, subdirectory=month_dir)
+            self.plotter.plot_delta_absolute_error(month_days, prefix=label, subdirectory=month_dir)
+    def save_metrics_report(self, stratus_days: Optional[List[str]] = None, 
+                        non_stratus_days: Optional[List[str]] = None) -> None:
+        """
+        Save comprehensive metrics report including delta metrics.
+        """
+        report_lines = [
+            "=== Metrics Report ===",
+            f"Accuracy (tolerance={self.tolerance}): {self.get_accuracy():.4f}",
+            f"Mean Absolute Error: {self.get_mean_absolute_error()}",
+            f"Root Mean Squared Error: {self.get_root_mean_squared_error()}",
+            f"Mean Relative Error: {self.get_mean_relative_error()}",
+            f"\n=== Global Delta geneva-Dole Stats ===",
+            f"{self.get_delta_stats()}",  # Uses the cached version
+        ]
+
+        if stratus_days:
+            stratus_metrics = self.get_global_metrics_for_days(stratus_days)
+            stratus_delta = self.get_delta_metrics_for_days(stratus_days)["global"]
+            
+            report_lines.extend([
+                "\n=== Stratus Days Metrics ===",
+                f"Days: {stratus_days}",
+                f"Global RMSE: {stratus_metrics.get('rmse', {})}",
+                f"Global Relative Error: {stratus_metrics.get('relative_error', {})}",
+                f"Global MAE: {stratus_metrics.get('mae', {})}",
+                f"Delta geneva-Dole Stats: {stratus_delta}",
+            ])
+
+        if non_stratus_days:
+            non_stratus_metrics = self.get_global_metrics_for_days(non_stratus_days)
+            non_stratus_delta = self.get_delta_metrics_for_days(non_stratus_days)["global"]
+            
+            report_lines.extend([
+                "\n=== Non-Stratus Days Metrics ===",
+                f"Days: {non_stratus_days}",
+                f"Global RMSE: {non_stratus_metrics.get('rmse', {})}",
+                f"Global Relative Error: {non_stratus_metrics.get('relative_error', {})}",
+                f"Global MAE: {non_stratus_metrics.get('mae', {})}",
+                f"Delta geneva-Dole Stats: {non_stratus_delta}",
+            ])
+
+        if self.save_path:
+            report_path = os.path.join(self.save_path, "metrics_report.txt")
+            with open(report_path, 'w') as f:
+                f.write("\n".join(report_lines))
+            self.logger.info(f"Saved metrics report to {report_path}")

@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 from typing import List, Optional, Dict
 from PIL import Image
 from scipy import stats
+import seaborn as sns
+
 from .config import PlotConfig
+
 class Plotter:
     """Handles all plotting functionality for the Metrics class"""
     
@@ -201,13 +204,25 @@ class Plotter:
         if df.empty:
             self.metrics.logger.warning("No data found for the provided days.")
             return
-        
-        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
-        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
-        residuals = df["predicted_delta"] - df["expected_delta"]
-        outlier_threshold = 1.5 * np.std(residuals)
-        df["is_outlier"] = np.abs(residuals) > outlier_threshold
-        
+        if prefix == "delta_comparison":
+            df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
+            df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
+            residuals = df["predicted_delta"] - df["expected_delta"]
+            outlier_threshold = 1.5 * np.std(residuals)
+            df["is_outlier"] = np.abs(residuals) > outlier_threshold
+        elif prefix == "geneva":
+            df["expected_delta"] = df["expected_geneva"]
+            df["predicted_delta"] = df["predicted_geneva"]
+            residuals = df["predicted_delta"] - df["expected_delta"]
+            outlier_threshold = 1.5 * np.std(residuals)
+            df["is_outlier"] = np.abs(residuals) > outlier_threshold
+        elif prefix == "dole":
+            df["expected_delta"] = df["expected_dole"]
+            df["predicted_delta"] = df["predicted_dole"]
+            residuals = df["predicted_delta"] - df["expected_delta"]
+            outlier_threshold = 2.5 * np.std(residuals)
+            df["is_outlier"] = np.abs(residuals) > outlier_threshold
+
         slope, intercept, r_value, p_value, std_err = stats.linregress(
             df["expected_delta"], df["predicted_delta"]
         )
@@ -262,10 +277,10 @@ class Plotter:
         )
         
         plt.title(f"Expected vs Predicted Delta (Geneva - Dole)\nOutliers labeled with date", 
-                fontsize=self.config.fontsize["title"])
-        plt.xlabel("Expected Delta (W/m²)", fontsize=self.config.fontsize["labels"])
-        plt.ylabel("Predicted Delta (W/m²)", fontsize=self.config.fontsize["labels"])
-        plt.legend(fontsize=self.config.fontsize["labels"])
+                fontsize=self.plot_config.fontsize["title"])
+        plt.xlabel("Expected Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
+        plt.ylabel("Predicted Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
+        plt.legend(fontsize=self.plot_config.fontsize["labels"])
         plt.grid(True, linestyle='--', alpha=0.3)
         
         stats_text = (
@@ -281,7 +296,7 @@ class Plotter:
             xy=(0.05, 0.75),
             xycoords='axes fraction',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
-            fontsize=self.config.fontsize.get("annotations", 10)
+            fontsize=self.plot_config.fontsize.get("annotations", 10)
         )
         
         plt.tight_layout()
@@ -290,8 +305,8 @@ class Plotter:
                 subdirectory if subdirectory else self.metrics.save_path,
                 f"{prefix}_scatter_outliers.png"
             )
-            plt.savefig(output_path, dpi=self.config.dpi, bbox_inches='tight')
-            self.metrics.logger.info(f"Saved delta scatter plot with outliers to {output_path}")
+            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
+        print(f"Saved delta scatter plot to {output_path}")
         plt.close()
     
     def plot_residual_errors(self, days, prefix: str = "residual_errors", subdirectory: str = None) -> None:
@@ -365,4 +380,6 @@ class Plotter:
             plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
             print(f"Saved residual errors plot to {output_path}")
         plt.close()
+
+
     

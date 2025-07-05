@@ -20,7 +20,7 @@ print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 num_views = 1
 seq_len = 3  # Number of timesteps
-prediction_minutes = 10  # Prediction time in minutes
+prediction_minutes = 60  # Prediction time in minutes
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
