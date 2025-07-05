@@ -68,8 +68,7 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction}
 all_expected = {t: [] for t in prediction}
 
-months = [(2024, m) for m in range(11, 12)]
-#+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
+months = [(2023, m) for m in range(1, 4)]+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
 
 for year, month in months:
     start_date = f"{year}-{month:02d}-01"
@@ -195,21 +194,21 @@ for year, month in months:
 
        
            
-        # if stratus_days_for_month:
-        #     # Plot prediction curves for stratus days
-        #     metrics.plot_prediction_curves(
-        #         x_meteo_not_norm, y_predicted, 
-        #         stratus_days_for_month,
-        #         time_interval_min=10, 
-        #         prediction_horizons=[10, 60]
-        #     )
-        # if random_non_stratus_days:
-        #     metrics.plot_prediction_curves(
-        #         x_meteo_not_norm, y_predicted, 
-        #         non_stratus_days_for_month,
-        #         time_interval_min=10, 
-        #         prediction_horizons=[10, 60]
-        #     )
+        if stratus_days_for_month:
+            # Plot prediction curves for stratus days
+            metrics.plot_prediction_curves(
+                x_meteo_not_norm, y_predicted, 
+                stratus_days_for_month,
+                time_interval_min=10, 
+                prediction_horizons=[10, 60]
+            )
+        if random_non_stratus_days:
+            metrics.plot_prediction_curves(
+                x_meteo_not_norm, y_predicted, 
+                non_stratus_days_for_month,
+                time_interval_min=10, 
+                prediction_horizons=[10, 60]
+            )
         
 historical_errors = {t: {'geneva': 1.0, 'dole': 1.0} for t in prediction}  # Valori di default
 val_size = int(len(y_expected) * 0.2)
