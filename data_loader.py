@@ -4,6 +4,8 @@ from torch.utils.data import Dataset
 from data_tools.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 from PIL import Image
 import numpy as np
+
+
 class PrepareDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False, prepare_data=None):
         self.weather = torch.tensor(weather, dtype=torch.float32)  

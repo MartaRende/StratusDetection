@@ -92,9 +92,9 @@ y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     var_order=["gre000z0_nyon", "gre000z0_dole"]
 )
 
-train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False)
-validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len)
-test_dataset = PrepareDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len)
+train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False, prepare_data=prepare_data)
+validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len, prepare_data=prepare_data)
+test_dataset = PrepareDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len, prepare_data=prepare_data)
 print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))
