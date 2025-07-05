@@ -230,6 +230,53 @@ class Metrics:
             }
             for metric_type, values in global_metrics.items()
         }
+    def get_metrics_for_days(self, days) -> Dict[str, Dict[str, float]]:
+        """
+        Calculate all metrics (MAE, RMSE, Relative Error) for specific days.
+        
+        Args:
+            days: List of days in format 'YYYY-MM-DD'
+            
+        Returns:
+            Dictionary of metrics for each day
+        """
+        
+        # Flatten days if not already flat
+        if isinstance(days, np.ndarray):
+            days = days.flatten().tolist()
+        elif isinstance(days, (list, tuple)):
+            # Flatten nested lists/tuples
+            days = [item for sublist in days for item in (sublist if isinstance(sublist, (list, tuple, np.ndarray)) else [sublist])]
+            days = [str(d) for d in days]
+        else:
+            days = [str(days)]
+        day_df = self._prepare_day_metrics(days)
+
+        if day_df.empty:
+            self.logger.warning(f"No data found for days: {days}")
+            return {}
+
+        metrics = {}
+        for day, group in day_df.groupby("date_str"):
+            metrics[day] = {
+                "mae": {
+                    "geneva": (group["predicted_geneva"] - group["expected_geneva"]).abs().mean(),
+                    "dole": (group["predicted_dole"] - group["expected_dole"]).abs().mean(),
+                },
+                "rmse": {
+                    "geneva": np.sqrt(((group["predicted_geneva"] - group["expected_geneva"]) ** 2).mean()),
+                    "dole": np.sqrt(((group["predicted_dole"] - group["expected_dole"]) ** 2).mean()),
+                },
+                
+                "relative_error": {
+                    "geneva": ((group["predicted_geneva"] - group["expected_geneva"]).abs() / 
+                            group["expected_geneva"].replace(0, np.nan)).fillna(0).mean(),
+                    "dole": ((group["predicted_dole"] - group["expected_dole"]).abs() / 
+                            group["expected_dole"].replace(0, np.nan)).fillna(0).mean(),
+                }
+            }
+  
+        return metrics 
     def get_delta_metrics_for_days(self, days: List[str]) -> Dict[str, Dict[str, float]]:
         """
         Compute delta metrics (geneva-dole differences) for specific days.
