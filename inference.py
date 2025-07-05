@@ -13,7 +13,7 @@ from metrics_analysis.metrics import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 7  # or any number you want
+MODEL_NUM = 2  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -202,25 +202,25 @@ specific_test_days = [
             "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
             "2024-11-09", "2024-10-19", "2024-11-16"
         ]
-global_metrics.save_metrics_report(
-    stratus_days=specific_test_days, non_stratus_days=non_stratus_days
-)
+# global_metrics.save_metrics_report(
+#     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
+# )
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
 
-# global_metrics.plotter.plot_residual_errors(specific_test_days)
-# res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
-# matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
-# # # Save matches to a CSV file
-# matches_df = pd.DataFrame(matches)
+global_metrics.plotter.plot_residual_errors(specific_test_days)
+res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
+matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
+# # Save matches to a CSV file
+matches_df = pd.DataFrame(matches)
 
-# mean_time_difference = matches_df["time_difference_sec"].mean()
+mean_time_difference = matches_df["time_difference_sec"].mean()
 
-# matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
-# # Add mean time difference to the CSV file
-# with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
-#     f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
-
+matches_df.to_csv(os.path.join(MODEL_PATH, "matches.csv"), index=False)
+# Add mean time difference to the CSV file
+with open(os.path.join(MODEL_PATH, "matches.csv"), "a") as f:
+    f.write(f"\nmean_time_difference_sec,{mean_time_difference}\n")
+print(f"Saved matches to {os.path.join(MODEL_PATH, 'matches.csv')}")
 # params, results = metrics.grid_search_detect_time_late(stratus_days)
 
 # # If you want, you can also save or display them:

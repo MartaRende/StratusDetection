@@ -14,14 +14,16 @@ class TransitionAnalyzer:
         self.metrics = metrics
         
     def detect_critical_transitions(
-        self,
-        days: List[str],
-        min_slope: float = 100,
-        min_peak_distance: str = "10min",
-        smooth_window: str = "15min",
-        plot_day: str = "2024-11-08"
-    ) -> Dict[str, Optional[pd.DataFrame]]:
-        """Detect critical transitions using multiple methods"""
+    self,
+    days: List[str],
+    min_slope: float = 100,
+    min_peak_distance: str = "30min",
+    smooth_window: str = "15min",
+    plot_day: str = "2023-01-27",
+    slope_weight: float = 0.8,
+    accel_weight: float = 0.0,
+    cusum_weight: float = 0.2,
+) -> Dict[str, Optional[pd.DataFrame]]:
         df = self.metrics.get_delta_btw_geneva_dole()
         days = self.metrics._normalize_days_input(days)
         df = df.sort_values("datetime").set_index("datetime")
@@ -36,48 +38,80 @@ class TransitionAnalyzer:
             smoothed = series.rolling(smooth_window, center=True).mean()
             first_deriv = smoothed.diff()
             second_deriv = first_deriv.diff()
-            
-            z_scores = stats.zscore(series.fillna(0))
-            change_points = np.where(np.abs(z_scores) > 2.5)[0]
 
-            min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() / 
-                            (df.index[1] - df.index[0]).total_seconds()))
-            
+            z_scores = stats.zscore(series.fillna(0))
+            z_score_peaks = np.where(np.abs(z_scores) > 2.5)[0]
+
+            min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() /
+                                    (df.index[1] - df.index[0]).total_seconds()))
+
             features_to_analyze = {
                 'slope': first_deriv.abs().fillna(0).values,
                 'accel': second_deriv.abs().fillna(0).values,
                 'delta': series.abs().values
             }
-            
-            all_peaks = []
-            for feature_name, feature_values in features_to_analyze.items():
+
+            all_peaks = list(z_score_peaks)
+
+            for _, values in features_to_analyze.items():
                 try:
-                    peaks, _ = find_peaks(
-                        feature_values,
-                        height=np.percentile(feature_values, 65),
-                        distance=min_samples
-                    )
+                    peaks, _ = find_peaks(values, height=np.percentile(values, 65), distance=min_samples)
                     all_peaks.extend(peaks)
-                except:
+                except Exception:
                     continue
 
-            unique_peaks = list(set(list(change_points) + all_peaks))
+            # Grandi salti improvvisi
+            delta_diff = series.diff().abs()
+            big_jump_idx = np.where(delta_diff > np.percentile(delta_diff.dropna(), 90))[0]
+            all_peaks.extend(big_jump_idx)
+
+            # Variazioni lente (rolling range)
+            rolling_range = series.rolling("2H").apply(lambda x: x.max() - x.min())
+            if not rolling_range.isna().all():
+                big_cum_idx = np.where(rolling_range > np.percentile(rolling_range.dropna(), 95))[0]
+                all_peaks.extend(big_cum_idx)
+
+            # CUSUM sulla derivata prima
+            slope_series = first_deriv.fillna(0)
+            mean = slope_series.mean()
+            std = slope_series.std()
+            k = 0.5 * std
+            h = std
+            pos_cusum = np.zeros_like(slope_series)
+            neg_cusum = np.zeros_like(slope_series)
+
+            for i in range(1, len(slope_series)):
+                pos_cusum[i] = max(0, pos_cusum[i - 1] + (slope_series.iloc[i] - mean - k))
+                neg_cusum[i] = max(0, neg_cusum[i - 1] - (slope_series.iloc[i] - mean + k))
+
+            cusum_slope_idx = np.where((pos_cusum > h) | (neg_cusum > h))[0]
+            all_peaks.extend(cusum_slope_idx)
+
+            # Unifica e deduplica
+            unique_peaks = sorted(set(all_peaks))
             peaks_df = df.iloc[unique_peaks].copy() if unique_peaks else pd.DataFrame()
-            
+
             if not peaks_df.empty:
-                peaks_df["slope_magnitude"] = first_deriv.iloc[unique_peaks].abs()
+                peaks_df["slope_magnitude"] = first_deriv.iloc[unique_peaks].abs().values
+                peaks_df["accel_magnitude"] = second_deriv.iloc[unique_peaks].abs().values
                 peaks_df["z_score"] = z_scores[unique_peaks]
+                peaks_df["delta_magnitude"] = series.iloc[unique_peaks].abs().values
+                peaks_df["cusum_flag"] = [i in cusum_slope_idx for i in unique_peaks]
+
+                # Nuova formula confidence: derivate + CUSUM
                 peaks_df["confidence"] = (
-                    0.5 * peaks_df["slope_magnitude"] / peaks_df["slope_magnitude"].max() +
-                    0.5 * peaks_df["z_score"].abs() / peaks_df["z_score"].abs().max()
+                    slope_weight * (peaks_df["slope_magnitude"] / peaks_df["slope_magnitude"].max()) +
+                    accel_weight * (peaks_df["accel_magnitude"] / peaks_df["accel_magnitude"].max()) +
+                    cusum_weight * peaks_df["cusum_flag"].astype(float)
                 )
+
                 peaks_df = peaks_df.sort_values("confidence", ascending=False)
+                peaks_df = peaks_df[peaks_df["confidence"] >= 0.2]
 
             results[f"{prefix}_transitions"] = peaks_df
 
             if plot_day and (pd.to_datetime(plot_day).date() in df.index.date):
-                self._plot_transition_analysis(prefix, df, plot_day, peaks_df, 
-                                             first_deriv, second_deriv, z_scores)
+                self._plot_transition_analysis(prefix, df, plot_day, peaks_df, first_deriv, second_deriv, z_scores)
 
         if not df.empty and "datetime" in df.reset_index().columns:
             df_reset = df.reset_index()
@@ -85,8 +119,8 @@ class TransitionAnalyzer:
             results["num_datetimes_per_day"] = df_reset.groupby("date")["datetime"].count().to_dict()
         else:
             results["num_datetimes_per_day"] = {}
-    
         return results
+
 
     def _plot_transition_analysis(self, prefix, df, plot_day, peaks_df, 
                                 first_deriv, second_deriv, z_scores):
@@ -146,6 +180,8 @@ class TransitionAnalyzer:
         """Enhanced matching of critical transitions"""
         exp_peaks = peaks_results.get("expected_transitions", pd.DataFrame()).reset_index()
         pred_peaks = peaks_results.get("predicted_transitions", pd.DataFrame()).reset_index()
+        import ipdb 
+        ipdb.set_trace()
         num_datetimes_per_day = peaks_results.get("num_datetimes_per_day", {})
         
         if exp_peaks.empty or pred_peaks.empty:
@@ -188,9 +224,9 @@ class TransitionAnalyzer:
                     candidates["delta_score"] = 1.0
 
                 candidates["combined_score"] = (
-                    0.2 * candidates["time_score"] +
-                    0.2 * candidates["conf_score"] +
-                    0.6 * candidates["delta_score"]
+                    0.2* candidates["time_score"] +
+                    0.8 * candidates["conf_score"] +
+                    0.0 * candidates["delta_score"]
                 )
             
                 best_match = candidates.nlargest(1, "combined_score").iloc[0]

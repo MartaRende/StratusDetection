@@ -28,8 +28,11 @@ plt.ylabel('Mean Time Difference (min)')
 plt.title('Mean Time Difference by Day')
 
 # Calculate and plot global mean
-global_mean = df["time_difference_sec"].mean() / 60
-global_median = df["time_difference_sec"].median() / 60
+global_mean = df["time_difference_sec"].sum() / df["num_datetimes_for_day"].sum() / 60
+
+# Compute per-row mean (in minutes), then take the median of those
+per_row_mean = df["time_difference_sec"] / df["num_datetimes_for_day"] / 60
+global_median = per_row_mean.median()
 plt.axhline(global_mean, color='red', linestyle='--', label='Global Mean (min)')
 plt.axhline(global_median, color='orange', linestyle='--', label='Global Median (min)')
 
@@ -46,6 +49,58 @@ legend_elements = [
     plt.Line2D([0], [0], color='orange', lw=2, linestyle='--', label='Global Median (min)')
 ]
 plt.legend(handles=legend_elements)
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
+MODEL_NUM = 2
+MODEL_PATH = f"models/model_{MODEL_NUM}/matches.csv"
+df = pd.read_csv(MODEL_PATH)
+
+# Seleziona solo le colonne numeriche rilevanti per la heatmap
+corr_cols = [
+    'expected_confidence', 
+    'predicted_confidence',
+    'time_difference_sec',
+    'confidence_similarity',
+    'combined_score',
+    'expected_slope',
+    'predicted_slope',
+    'expected_z_score',
+    'predicted_z_score'
+]
+
+# Filtra solo i match completi (escludi unmatched)
+matched = df[df['match_status'] == 'matched'].copy()
+
+# Calcola la matrice di correlazione
+corr_matrix = matched[corr_cols].corr()
+
+# Crea la heatmap
+plt.figure(figsize=(12, 10))
+sns.heatmap(
+    corr_matrix,
+    annot=True,
+    fmt=".2f",
+    cmap='coolwarm',
+    center=0,
+    vmin=-1,
+    vmax=1,
+    linewidths=0.5,
+    linecolor='gray',
+    cbar_kws={'label': 'Coefficiente di Correlazione'}
+)
+
+# Aggiungi titolo e formattazione
+plt.title('Heatmap delle Correlazioni tra Variabili dei Picchi\n(Solo matched peaks)', pad=20)
+plt.xticks(rotation=45, ha='right')
+plt.yticks(rotation=0)
+plt.tight_layout()
+
+# Salva la figura
+plt.savefig(f"models/model_{MODEL_NUM}/correlation_heatmap.png", dpi=300, bbox_inches='tight')
+plt.close()
 plt.tight_layout()
 plt.savefig(f"models/model_{MODEL_NUM}/mean_time_diff_by_day.png")
