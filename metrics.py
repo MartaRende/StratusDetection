@@ -887,8 +887,7 @@ class Metrics:
         with robust handling of cases where predicted datetimes don't have corresponding actual values.
         """
         # Create dataframe filtered for specific days
-        import ipdb 
-        ipdb.set_trace()
+
         day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
         
         if day_df.empty:
