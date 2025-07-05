@@ -13,7 +13,7 @@ from metrics_analysis.metrics import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 1  # or any number you want
+MODEL_NUM = 0  # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -206,9 +206,9 @@ specific_test_days = [
 #             "2024-11-08", "2023-01-25", "2024-10-30", "2024-11-16", "2024-10-25",
 #             "2024-12-26","2023-02-13", "2024-11-03", "2023-03-02"
 #         ]
-# global_metrics.save_metrics_report(
-#     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
-# )
+global_metrics.save_metrics_report(
+    stratus_days=specific_test_days, non_stratus_days=non_stratus_days
+)
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
 
