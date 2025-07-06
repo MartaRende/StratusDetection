@@ -13,13 +13,13 @@ from metrics_analysis.metrics import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 1  # or any number you want
+MODEL_NUM = 10 # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
 num_views = 1
 seq_len = 3  # Number of time steps in the sequence
-prediction_minutes = 60  # Minutes for prediction
+prediction_minutes = 120  # Minutes for prediction
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -211,10 +211,12 @@ specific_test_days = [
 # )
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
-
+global_metrics.plotter.plot_max_delta_jump_delay(specific_test_days)
 global_metrics.plotter.plot_residual_errors(specific_test_days)
-global_metrics.plotter.plot_delta_scatter(specific_test_days)
-
+global_metrics.plotter.plot_delta_scatter([], "geneva")
+global_metrics.plotter.plot_delta_scatter([], "dole")
+global_metrics.plotter.plot_delta_scatter([])
+global_metrics.plotter.plot_delta_error_heatmap(specific_test_days)
 res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
 matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
 # # Save matches to a CSV file

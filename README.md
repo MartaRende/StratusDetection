@@ -81,3 +81,7 @@ StratusDetection/
 ├── visualization/         # Data visualization scripts
 └── README.md              # Project documentation
 ```
+model 0 1 __> 1h
+model 2 6 --> 10 min
+model 7 10 --> 30 min
+model 8 9 --> 2h
