@@ -170,10 +170,33 @@ class Metrics:
         return self._datetime_cache
         
     def _compute_datetime_list(self):
-        """Simply return the filtered datetime values"""
-       
-        return list(self._datetime_values)  # Now guaranteed to match expected/predicted
-
+        """Compute datetime list with vectorized operations"""
+        datetimes = []
+        
+        # Convert expected to numpy for faster access
+        exp_geneva= self.expected["geneva"].to_numpy()
+        exp_dole = self.expected["dole"].to_numpy()
+        
+        for geneva, dole in zip(exp_geneva, exp_dole):
+            # Vectorized comparison
+            mask = (
+                np.isclose(self._geneva_values, geneva, atol=1e-6) & 
+                np.isclose(self._dole_values, dole, atol=1e-6)
+            )
+            
+            # Apply date range filter if specified
+            if self.start_date and self.end_date:
+                date_mask = (
+                    (self._datetime_values >= self.start_date) & 
+                    (self._datetime_values <= self.end_date)
+                )
+                mask = mask & date_mask
+            # import ipdb
+            # ipdb.set_trace()
+            matches = self._datetime_values[mask]
+            datetimes.append(matches[0] if len(matches) > 0 else None)
+            
+        return datetimes
     def get_correct_predictions(self, tol: Optional[float] = None) -> int:
         """
         Count predictions within tolerance of expected values.
@@ -797,84 +820,86 @@ class Metrics:
         return days
 
     def create_prediction_dataframe(self, 
-                              expected_values: List[List[float]], 
-                              predicted_values: List[List[float]], 
+                              expected_values: np.ndarray, 
+                              predicted_values: dict, 
                               days: List[str],
-                              time_steps: List[int] = ["t_0", "t_1", "t_2", "t_3", "t_4", "t_5"]) -> pd.DataFrame:
+                              time_steps: List[str] = ["t_0", "t_1", "t_2", "t_3", "t_4", "t_5"]) -> pd.DataFrame:
         """
         Create a structured DataFrame containing expected values and predictions at multiple time steps,
         filtered for specific days.
-        
+
         Args:
-            expected_values: List of expected values for each time point [[geneva, dole], ...]
-            predicted_values: List of predicted values for each time point [[geneva_t0, dole_t0, geneva_t1, dole_t1, ...], ...]
+            expected_values: np.ndarray of shape (N, T, 2) where N is number of samples, T is time steps, 2 for geneva/dole
+            predicted_values: dict of {t_step: list of [geneva, dole] predictions for each sample}
             days: List of dates in format 'YYYY-MM-DD' to filter by
-            time_steps: List of prediction time steps (1=10min, 2=20min, etc.)
-        
+            time_steps: List of prediction time steps (e.g., ["t_0", "t_1", ...])
+
         Returns:
             pd.DataFrame: Structured DataFrame with expected and predicted values for all time steps
         """
         # Get the datetime values that were already matched with expected/predicted values
         datetimes = self.datetime_list
-  
-        import ipdb 
-        ipdb.set_trace()
-        # Create base DataFrame with datetime and expected values
+
+        # Shift all datetimes by -10 minutes to align with the prediction base time
+        shifted_datetimes = [dt - pd.Timedelta(minutes=10) if pd.notnull(dt) else None for dt in datetimes]
+
+        # Use the last time step in expected_values as the "current" expected value
         df = pd.DataFrame({
-        'datetime': self.datetime_list,
-        'expected_geneva': [x[0] for x in expected_values[:, -1, :]],
-        'expected_dole': [x[1] for x in expected_values[:, -1, :]],
-    })
+            'datetime': shifted_datetimes,
+            'expected_geneva': [x[0] for x in expected_values[:, -1, :]],
+            'expected_dole': [x[1] for x in expected_values[:, -1, :]],
+        })
+
         df['date_str'] = df['datetime'].dt.strftime('%Y-%m-%d')
         df = df.sort_values('datetime').reset_index(drop=True)
         missing_days = set(days) - set(df['date_str'].unique())
-       
-        # Filter complete data for the specified days
-        
+
         if missing_days:
             print(f"Warning: No data found for days: {missing_days}")
-        
+
         df = df[df['date_str'].isin(days)]
-        
+
         if df.empty:
             print("Warning: No data remaining after filtering for specified days")
             return df
-        
+
         # Convert datetime to hour:minute format
         df['hour'] = df['datetime'].dt.strftime('%H:%M')
         df['month'] = df['datetime'].dt.strftime('%Y-%m')
-        
+
         # Get indices of filtered datetimes in original data
-        original_indices = [i for i, dt in enumerate(self.datetime_list) if dt in df['datetime'].values]
-    
+        original_indices = [i for i, dt in enumerate(shifted_datetimes) if dt in df['datetime'].values]
+
         # Add predictions for each time step
         for t in time_steps:
-     
-            
-            # Get predictions and expected values for this time step
-            preds = predicted_values[t]
-            expected = expected_values[:, -1, 0:2]
-            
+            # Get predictions for this time step
+            preds = predicted_values.get(t, [])
+            # Get expected values for this time step
+            t_idx = int(t.split('_')[1])
+            if expected_values.shape[1] <= t_idx:
+                print(f"Warning: expected_values does not have time step {t}")
+                continue
+            expected = expected_values[:, t_idx, :]
+
             # Verify lengths match
-            if len(preds) != len(self.datetime_list) or len(expected) != len(self.datetime_list):
+            if len(preds) != len(datetimes) or len(expected) != len(datetimes):
                 print(f"Warning: Length mismatch for time step {t}")
                 continue
 
-            
             # Filter to only include data for our selected days
             filtered_preds = [preds[i] for i in original_indices]
             filtered_expected = [expected[i] for i in original_indices]
-            
+
             # Add to dataframe
-     
             df[f'predicted_geneva_{t}'] = [x[0] for x in filtered_preds]
             df[f'predicted_dole_{t}'] = [x[1] for x in filtered_preds]
-            
+            df[f'expected_geneva_{t}'] = [x[0] for x in filtered_expected]
+            df[f'expected_dole_{t}'] = [x[1] for x in filtered_expected]
+
             # Calculate future datetimes
             step_num = int(t.split('_')[1])
-            df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10*(step_num+1))
+            df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10 * (step_num + 1))
             df[f'hour_{t}'] = df[f'datetime_{t}'].dt.strftime('%H:%M')
-            
 
         return df
 
@@ -964,8 +989,7 @@ class Metrics:
 
                     # --- DEBUG block ---
                     expected_future_dt = current_dt + timedelta(minutes=prediction_horizons[j])
-                    import ipdb 
-                    ipdb.set_trace()
+               
                     if future_dt != expected_future_dt:
                         print(f"[DECALAGGIO] At {current_dt}, horizon {prediction_horizons[j]}min → expected {expected_future_dt}, got {future_dt}")
                     print(f"[DEBUG] Base: {current_dt.strftime('%H:%M')} | Future: {future_dt.strftime('%H:%M')} | "
