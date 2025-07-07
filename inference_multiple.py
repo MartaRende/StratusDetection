@@ -69,7 +69,7 @@ all_predicted = {t: [] for t in prediction}
 all_expected = {t: [] for t in prediction}
 
 months = [(2023, m) for m in range(1, 4)]+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
-months = [(2023, m) for m in range(3, 4)]
+#months = [(2023, m) for m in range(1, 2)]
 pred_file_0 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_0.npz")
 pred_file_2 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_2.npz")
 pred_file_5 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_5.npz")
@@ -189,6 +189,8 @@ for year, month in months:
             print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
         else:
             print("No non-stratus days to select for plotting.")
+        end_date = next_month.strftime("%Y-%m-%d")
+
         metrics = Metrics(final_expected[prediction[0]], y_predicted[prediction[0]], data, save_path=MODEL_PATH,
                             fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=0)
 

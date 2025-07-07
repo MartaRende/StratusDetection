@@ -889,8 +889,7 @@ class Metrics:
             step_num = int(t.split('_')[1])
             df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10 * (step_num + 1))
             df[f'hour_{t}'] = df[f'datetime_{t}'].dt.strftime('%H:%M')
-        import ipdb
-        ipdb.set_trace()
+
         return df
 
     def plot_prediction_curves(self, 
@@ -924,8 +923,7 @@ class Metrics:
 
             # Add predicted datetimes
             time_steps = [f"t_{h // time_interval_min - 1}" for h in prediction_horizons]
-            import ipdb 
-            ipdb.set_trace()
+
             for _, row in df_day.iterrows():
                 for t in time_steps:
                     pred_dt = row.get(f"datetime_{t}")
