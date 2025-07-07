@@ -817,7 +817,8 @@ class Metrics:
         # Get the datetime values that were already matched with expected/predicted values
         datetimes = self.datetime_list
   
-        
+        import ipdb 
+        ipdb.set_trace()
         # Create base DataFrame with datetime and expected values
         df = pd.DataFrame({
         'datetime': self.datetime_list,
