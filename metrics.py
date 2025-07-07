@@ -875,32 +875,22 @@ class Metrics:
             # Get predictions for this time step
             preds = predicted_values.get(t, [])
             # Get expected values for this time step
-            t_idx = int(t.split('_')[1])
-            if expected_values.shape[1] <= t_idx:
-                print(f"Warning: expected_values does not have time step {t}")
-                continue
-            expected = expected_values[:, t_idx, :]
-
-            # Verify lengths match
-            if len(preds) != len(datetimes) or len(expected) != len(datetimes):
-                print(f"Warning: Length mismatch for time step {t}")
-                continue
+           
 
             # Filter to only include data for our selected days
             filtered_preds = [preds[i] for i in original_indices]
-            filtered_expected = [expected[i] for i in original_indices]
 
             # Add to dataframe
             df[f'predicted_geneva_{t}'] = [x[0] for x in filtered_preds]
             df[f'predicted_dole_{t}'] = [x[1] for x in filtered_preds]
-            df[f'expected_geneva_{t}'] = [x[0] for x in filtered_expected]
-            df[f'expected_dole_{t}'] = [x[1] for x in filtered_expected]
+     
 
             # Calculate future datetimes
             step_num = int(t.split('_')[1])
             df[f'datetime_{t}'] = df['datetime'] + pd.Timedelta(minutes=10 * (step_num + 1))
             df[f'hour_{t}'] = df[f'datetime_{t}'].dt.strftime('%H:%M')
-
+        import ipdb
+        ipdb.set_trace()
         return df
 
     def plot_prediction_curves(self, 
@@ -908,13 +898,13 @@ class Metrics:
                             predicted_values: List[List[float]],
                             days: List[str],
                             time_interval_min: int = 10,
-                            prediction_horizons: List[int] = [10, 60]) -> None:
+                            prediction_horizons: List[int] = [10, 30,60]) -> None:
         """
         Plot prediction curves for multiple horizons from each observation point for specific days,
         with robust handling of cases where predicted datetimes don't have corresponding actual values.
         """
         # Create dataframe filtered for specific days
-        day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
+        day_df = self.create_prediction_dataframe(expected_values, predicted_values, days,["t_0", "t_2","t_5"])
 
         if day_df.empty:
             self.logger.warning(f"No data found for days: {days}")
@@ -934,6 +924,8 @@ class Metrics:
 
             # Add predicted datetimes
             time_steps = [f"t_{h // time_interval_min - 1}" for h in prediction_horizons]
+            import ipdb 
+            ipdb.set_trace()
             for _, row in df_day.iterrows():
                 for t in time_steps:
                     pred_dt = row.get(f"datetime_{t}")
@@ -991,7 +983,7 @@ class Metrics:
                     expected_future_dt = current_dt + timedelta(minutes=prediction_horizons[j])
                
                     if future_dt != expected_future_dt:
-                        print(f"[DECALAGGIO] At {current_dt}, horizon {prediction_horizons[j]}min → expected {expected_future_dt}, got {future_dt}")
+                        print(f"[Shift] At {current_dt}, horizon {prediction_horizons[j]}min → expected {expected_future_dt}, got {future_dt}")
                     print(f"[DEBUG] Base: {current_dt.strftime('%H:%M')} | Future: {future_dt.strftime('%H:%M')} | "
                         f"Pred G: {pred_geneva:.1f} | Pred D: {pred_dole:.1f} | "
                         f"Actual G: {future_actual[0]} | Actual D: {future_actual[1]}")
