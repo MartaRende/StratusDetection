@@ -257,16 +257,7 @@ class Plotter:
                 color='red'
             )
         
-        line_x = np.linspace(df["expected_delta"].min(), df["expected_delta"].max(), 100)
-        line_y = slope * line_x + intercept
-        plt.plot(
-            line_x, 
-            line_y, 
-            color='red',
-            linestyle='--',
-            label=f'Regression (R²={r_value**2:.2f})'
-        )
-        
+    
         max_val = max(df["expected_delta"].max(), df["predicted_delta"].max())
         min_val = min(df["expected_delta"].min(), df["predicted_delta"].min())
         plt.plot(
@@ -285,12 +276,8 @@ class Plotter:
         plt.grid(True, linestyle='--', alpha=0.3)
         
         stats_text = (
-            f"Slope: {slope:.2f}\n"
-            f"Intercept: {intercept:.2f}\n"
-            f"R²: {r_value**2:.2f}\n"
             f"MAE: {mae:.2f}\n"
-            f"Outliers: {len(outliers)}/{len(df)}\n"
-            f"Threshold: ±{outlier_threshold:.1f} W/m²"
+            f"Outliers: ({len(outliers)/len(df)*100:.1f}%)\n"
         )
         plt.annotate(
             stats_text,
@@ -306,6 +293,16 @@ class Plotter:
                 subdirectory if subdirectory else self.metrics.save_path,
                 f"{prefix}_scatter_outliers.png"
             )
+            if not days:
+                output_path = os.path.join(
+                    subdirectory if subdirectory else self.metrics.save_path,
+                    f"{prefix}_scatter_all.png"
+                )
+            else:
+                output_path = os.path.join(
+                    subdirectory if subdirectory else self.metrics.save_path,
+                    f"{prefix}_scatter_stratus.png"
+                )
             plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
         print(f"Saved delta scatter plot to {output_path}")
         plt.close()
@@ -408,13 +405,14 @@ class Plotter:
 
         # Plot heatmap
         plt.figure(figsize=(14, 6))
+    
         sns.heatmap(
             heatmap_data,
             cmap="YlOrRd",
             linewidths=0.5,
             linecolor='gray',
             vmin=0,
-            vmax=400
+            vmax=400,
         )
         plt.title("Heatmap of Absolute Delta Error (Geneva - Dole) per Day and Hour", fontsize=self.plot_config.fontsize["title"])
         plt.xlabel("Hour of Day", fontsize=self.plot_config.fontsize["labels"])
@@ -422,7 +420,7 @@ class Plotter:
         plt.tight_layout()
         # Plot mean of delta_abs_error across all days and hours
         mean_error = df["delta_abs_error"].mean()
-        plt.axhline(y=-0.5, color='blue', linestyle='--', linewidth=2, label=f"Mean Error: {mean_error:.2f}")
+        plt.axhline(mean_error, color='gray', linestyle='--', linewidth=1.5, label=f"Mean Delta Error: {mean_error:.2f} W/m²")
         plt.legend(loc='upper right', fontsize=self.plot_config.fontsize.get("labels", 10))
         # Save the file
         if self.metrics.save_path:

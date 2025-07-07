@@ -179,33 +179,36 @@ data_mul_out_img_11["horizons"] = convert_t_to_minutes(data_mul_out_img_11["hori
 def plot_mae_and_delta_combined(data_all, data_img, data_mul_out_img, data_mul_out_img_11, title, filename):
     fig, axs = plt.subplots(3,1, figsize=(10, 14), sharex=True, gridspec_kw={"hspace": 0.3})
     # --- Subplot 1: MAE Stratus Geneva
-    axs[0].plot(data_all["horizons"], data_all["geneva_stratus"], marker='o', label="Geneva Stratus (ALL)", color="#1f77b4")         # blue
-    axs[0].plot(data_img["horizons"], data_img["geneva_stratus"], marker='o', linestyle='--', label="Geneva Stratus (IMG)", color="#e377c2")   # pink
-    axs[0].plot(data_mul_out_img["horizons"], data_mul_out_img["geneva_stratus"], marker='o', linestyle=':', label="Geneva Stratus (IMG mult out)", color="#ff7f0e") # orange
-    axs[0].plot(data_mul_out_img_11["horizons"], data_mul_out_img_11["geneva_stratus"], marker='o', linestyle='-.', label="Geneva Stratus (ALL mult out)", color="#2ca02c") # green
-    axs[0].set_ylabel("MAE Stratus")
-    axs[0].set_title(title + " – Geneva Stratus")
+    axs[0].plot(data_all["horizons"], data_all["geneva_stratus"], marker='o', label="Geneva (model with all data)", color="#1f77b4")         # blue
+    axs[0].plot(data_img["horizons"], data_img["geneva_stratus"], marker='o', linestyle='--', label="Geneva (model with img only)", color="#e377c2")   # pink
+    axs[0].plot(data_mul_out_img["horizons"], data_mul_out_img["geneva_stratus"], marker='o', linestyle=':', label="Geneva (model with only img mult. out.)", color="#ff7f0e") # orange
+    axs[0].plot(data_mul_out_img_11["horizons"], data_mul_out_img_11["geneva_stratus"], marker='o', linestyle='-.', label="Geneva (model with all mult. out.)", color="#2ca02c") # green
+    axs[0].set_ylabel("MAE (W/m²)")
+    axs[0].set_title(title + " – Geneva Stratus Days")
     axs[0].grid(True, linestyle='--', alpha=0.5)
+    axs[0].set_xlabel("Minutes")
     axs[0].legend()
 
     # --- Subplot 2: MAE Stratus Dole
-    axs[1].plot(data_all["horizons"], data_all["dole_stratus"], marker='s', label="Dole Stratus (ALL)", color="#d62728")            # red
-    axs[1].plot(data_img["horizons"], data_img["dole_stratus"], marker='s', linestyle='--', label="Dole Stratus (IMG)", color="#9467bd")      # purple
-    axs[1].plot(data_mul_out_img["horizons"], data_mul_out_img["dole_stratus"], marker='s', linestyle=':', label="Dole Stratus (IMG mult out)", color="#8c564b") # brown
-    axs[1].plot(data_mul_out_img_11["horizons"], data_mul_out_img_11["dole_stratus"], marker='s', linestyle='-.', label="Dole Stratus (ALL mult out)", color="#17becf") # cyan
-    axs[1].set_ylabel("MAE Stratus")
-    axs[1].set_title(title + " – Dole Stratus")
+    axs[1].plot(data_all["horizons"], data_all["dole_stratus"], marker='s', label="Dole (model with all data)",  color="#1f77b4")            # red
+    axs[1].plot(data_img["horizons"], data_img["dole_stratus"], marker='s', linestyle='--', label="Dole (model with img only)", color="#e377c2")      # pink
+    axs[1].plot(data_mul_out_img["horizons"], data_mul_out_img["dole_stratus"], marker='s', linestyle=':', label="Dole (model with only img mult. out.)", color="#ff7f0e") # orange
+    axs[1].plot(data_mul_out_img_11["horizons"], data_mul_out_img_11["dole_stratus"], marker='s', linestyle='-.', label="Dole (model with all mult. out.)", color="#2ca02c") # green
+    axs[1].set_ylabel("MAE (W/m²)")
+    axs[1].set_title(title + " – Dole Stratus Days")
     axs[1].grid(True, linestyle='--', alpha=0.5)
+    axs[1].set_xlabel("Minutes")
     axs[1].legend()
 
     # --- Subplot 3: Delta MAE Stratus
-    axs[2].plot(data_all["horizons"], data_all["delta_stratus"], marker='s', label="Delta Stratus (ALL)", color="#bcbd22")          # olive
-    axs[2].plot(data_img["horizons"], data_img["delta_stratus"], marker='s', linestyle='--', label="Delta Stratus (IMG)", color="#7f7f7f")    # gray
-    axs[2].plot(data_mul_out_img["horizons"], data_mul_out_img["delta_stratus"], marker='s', linestyle=':', label="Delta Stratus (IMG mult out)", color="#aec7e8") # light blue
-    axs[2].plot(data_mul_out_img_11["horizons"], data_mul_out_img_11["delta_stratus"], marker='s', linestyle='-.', label="Delta Stratus (ALL mult out)", color="#ffbb78") # light orange
-    axs[2].set_ylabel("Δ MAE (Geneva − Dole)")
-    axs[2].set_title("Delta MAE Stratus")
+    axs[2].plot(data_all["horizons"], data_all["delta_stratus"], marker='s', label="Delta (model with all data)", color="#1f77b4")          # blue
+    axs[2].plot(data_img["horizons"], data_img["delta_stratus"], marker='s', linestyle='--', label="Delta (model with img only)", color="#e377c2")    # pink
+    axs[2].plot(data_mul_out_img["horizons"], data_mul_out_img["delta_stratus"], marker='s', linestyle=':', label="Delta (model with only img mult. out.)", color="#ff7f0e") # orange
+    axs[2].plot(data_mul_out_img_11["horizons"], data_mul_out_img_11["delta_stratus"], marker='s', linestyle='-.', label="Delta (model with all mult. out.)", color="#2ca02c") # green
+    axs[2].set_ylabel("MAE (W/m²)")
+    axs[2].set_title(title + " – Delta MAE Prediceted vs Expected values – Stratus Days")
     axs[2].grid(True, linestyle='--', alpha=0.5)
+    axs[2].set_xlabel("Minutes")
     axs[2].legend()
 
     plt.tight_layout()
@@ -213,4 +216,41 @@ def plot_mae_and_delta_combined(data_all, data_img, data_mul_out_img, data_mul_o
     plt.show()
     print(f"✅ Saved: {filename}")
     
-plot_mae_and_delta_combined(data_all, data_img, data_mul_out_img, data_mul_out_img_11, "MAE + Δ MAE (ALL Models)", "mae_delta_combined_all.png")
+plot_mae_and_delta_combined(data_all, data_img, data_mul_out_img, data_mul_out_img_11, "MAE", "mae_delta_combined_all.png")
+
+
+def plot_mae_and_delta(data_all, data_img, title, filename):
+    fig, axs = plt.subplots(3,1, figsize=(10, 14), sharex=True, gridspec_kw={"hspace": 0.3})
+    # --- Subplot 1: MAE Stratus Geneva
+    axs[0].plot(data_all["horizons"], data_all["geneva_stratus"], marker='o', label="Geneva (model with all data)", color="#1f77b4")         # blue
+    axs[0].plot(data_img["horizons"], data_img["geneva_stratus"], marker='o', linestyle='--', label="Geneva (model with img only)", color="#e377c2")   # pink
+    axs[0].set_ylabel("MAE (W/m²)")
+    axs[0].set_title(title + " – Geneva Stratus Days")
+    axs[0].grid(True, linestyle='--', alpha=0.5)
+    axs[0].set_xlabel("Minutes")
+    axs[0].legend()
+
+    # --- Subplot 2: MAE Stratus Dole
+    axs[1].plot(data_all["horizons"], data_all["dole_stratus"], marker='s', label="Dole (model with all data)",  color="#1f77b4")            # red
+    axs[1].plot(data_img["horizons"], data_img["dole_stratus"], marker='s', linestyle='--', label="Dole (model with img only)", color="#e377c2")      # pink
+    axs[1].set_ylabel("MAE (W/m²)")
+    axs[1].set_title(title + " – Dole Stratus Days")
+    axs[1].grid(True, linestyle='--', alpha=0.5)
+    axs[1].set_xlabel("Minutes")
+    axs[1].legend()
+
+    # --- Subplot 3: Delta MAE Stratus
+    axs[2].plot(data_all["horizons"], data_all["delta_stratus"], marker='s', label="Delta (model with all data)", color="#1f77b4")          # blue
+    axs[2].plot(data_img["horizons"], data_img["delta_stratus"], marker='s', linestyle='--', label="Delta (model with img only)", color="#e377c2")    # pink
+    axs[2].set_ylabel("MAE (W/m²)")
+    axs[2].set_title(title + " – Delta MAE Prediceted vs Expected values – Stratus Days")
+    axs[2].grid(True, linestyle='--', alpha=0.5)
+    axs[2].set_xlabel("Minutes")
+    axs[2].legend()
+
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.show()
+    print(f"✅ Saved: {filename}")
+
+plot_mae_and_delta(data_all, data_img, "MAE", "mae_delta_combined.png")

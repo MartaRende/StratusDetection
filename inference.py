@@ -13,7 +13,7 @@ from metrics_analysis.metrics import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 6 # or any number you want
+MODEL_NUM = 11 # or any number you want
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 
@@ -63,7 +63,7 @@ all_predicted = []
 all_expected = []
 months = [(2023, m) for m in range(3, 4)]
 #months = [(2023, m) for m in range(1, 4)] +  [(2023, m) for m in range(9, 13)] +  [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
-pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_2.npz")
+pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t0.npz")
 
 
         
@@ -210,12 +210,15 @@ specific_test_days = [
 #     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
 # )
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
-# global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
-global_metrics.plotter.plot_max_delta_jump_delay(specific_test_days)
+# # global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
+# global_metrics.plotter.plot_max_delta_jump_delay(specific_test_days)
 global_metrics.plotter.plot_residual_errors(specific_test_days)
 global_metrics.plotter.plot_delta_scatter([], "geneva")
 global_metrics.plotter.plot_delta_scatter([], "dole")
 global_metrics.plotter.plot_delta_scatter([])
+global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
+global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
+global_metrics.plotter.plot_delta_scatter(specific_test_days)
 global_metrics.plotter.plot_delta_error_heatmap(specific_test_days)
 res = global_metrics.transition_analyzer.detect_critical_transitions(specific_test_days)
 matches = global_metrics.transition_analyzer.match_strongest_peaks(res)
