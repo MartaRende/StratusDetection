@@ -69,8 +69,13 @@ all_predicted = {t: [] for t in prediction}
 all_expected = {t: [] for t in prediction}
 
 months = [(2023, m) for m in range(1, 4)]+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
-
+months = [(2023, m) for m in range(1, 2)]
+pred_file_0 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_0.npz")
+pred_file_2 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_2.npz")
+pred_file_5 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_5.npz")
 for year, month in months:
+    if os.path.exists(pred_file_0) and os.path.exists(pred_file_2) and os.path.exists(pred_file_5):
+        break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
     if month == 12:
@@ -200,20 +205,48 @@ for year, month in months:
                 x_meteo_not_norm, y_predicted, 
                 stratus_days_for_month,
                 time_interval_min=10, 
-                prediction_horizons=[10, 60]
+                prediction_horizons=[10,30, 60]
             )
         if random_non_stratus_days:
             metrics.plot_prediction_curves(
                 x_meteo_not_norm, y_predicted, 
                 non_stratus_days_for_month,
                 time_interval_min=10, 
-                prediction_horizons=[10, 60]
+                prediction_horizons=[10, 30,60]
             )
-        
-historical_errors = {t: {'geneva': 1.0, 'dole': 1.0} for t in prediction}  # Valori di default
-val_size = int(len(y_expected) * 0.2)
-val_expected = y_expected[:val_size]
-val_predicted = {t: y_predicted[t][:val_size] for t in prediction}
+   
+# Check if all values in all_expected and all_predicted are None for each time step
+for t in ["t_0", "t_2", "t_5"]:
+    if not all(
+        (expt is None or all(e is None for e in expt))
+        for expt in all_expected[t]
+    ) and not all(
+        (pred is None or all(p is None for p in pred))
+        for pred in all_predicted[t]
+    ):
+        np.savez(
+            os.path.join(MODEL_PATH, f"predictions_vs_expected_ready_{t}.npz"),
+            predicted=np.array(all_predicted[t], dtype=np.float32),
+            expected=np.array(all_expected[t], dtype=np.float32)
+        )
+    else:
+        with np.load(
+            os.path.join(MODEL_PATH, f"predictions_vs_expected_ready_{t}.npz"), 
+            allow_pickle=True
+        ) as pred_data:
+            all_predicted[t] = pred_data['predicted']
+            all_expected[t] = pred_data['expected']
+
+
+# historical_errors = {t: {'geneva': 1.0, 'dole': 1.0} for t in prediction}  # Valori di default
+# val_size = int(len(y_expected) * 0.2)
+# val_expected = y_expected[:val_size]
+# val_predicted = {t: y_predicted[t][:val_size] for t in prediction}
+specific_test_days = [
+            "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
+            "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
+            "2024-11-09", "2024-10-19", "2024-11-16"
+        ]
 for t in prediction:
     
 # Create global metrics instance
@@ -223,27 +256,27 @@ for t in prediction:
     )
 
     global_metrics.save_metrics_report(
-        stratus_days=stratus_days, non_stratus_days=non_stratus_days
+        stratus_days=specific_test_days, non_stratus_days=non_stratus_days
     )
-    t_idx = int(t.split("_")[1])
-    val_metrics = metrics.calculate_historical_errors(
-        [point[t_idx] for point in val_expected],
-        val_predicted[t]
-    )
-    historical_errors[t] = val_metrics
+#     t_idx = int(t.split("_")[1])
+#     val_metrics = metrics.calculate_historical_errors(
+#         [point[t_idx] for point in val_expected],
+#         val_predicted[t]
+#     )
+#     historical_errors[t] = val_metrics
     
-combined_predictions,_ = metrics.inverse_error_weighting(y_predicted, historical_errors)
+# combined_predictions,_ = metrics.inverse_error_weighting(y_predicted, historical_errors)
 import ipdb
 ipdb.set_trace()
-combined_predictions ={
-    t: [[float(v) for v in pred['values']] for pred in preds]
-    for t, preds in combined_predictions.items()
-}
-metrics.plot_prediction_curves(
-    x_meteo_not_norm, combined_predictions, 
-    stratus_days_for_month + random_non_stratus_days,
-    time_interval_min=10, 
-)
+# combined_predictions ={
+#     t: [[float(v) for v in pred['values']] for pred in preds]
+#     for t, preds in combined_predictions.items()
+# }
+# metrics.plot_prediction_curves(
+#     x_meteo_not_norm, combined_predictions, 
+#     stratus_days_for_month + random_non_stratus_days,
+#     time_interval_min=10, 
+# )
 
 # Add this after your existing code, inside the same script
 
