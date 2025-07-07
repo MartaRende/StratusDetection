@@ -126,6 +126,7 @@ class Plotter:
                 for i, idx in enumerate(indices):
                     dt = day_datetimes[idx]
                     img = self.metrics.get_image_for_datetime(dt)
+                 
                     if np.all(img == 0):
                         self.metrics.logger.warning(f"Image for {dt} is completely black.")
                     else:
