@@ -89,6 +89,7 @@ class Plotter:
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
 
             ax1 = fig.add_subplot(gs[0])
+
             for var in ["geneva", "dole"]:
                 ax1.plot(day_df["hour"], day_df[f"expected_{var}"],
                         'o-', color=self.plot_config.colors[var],
