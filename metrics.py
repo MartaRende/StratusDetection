@@ -1,3 +1,4 @@
+from datetime import timedelta
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -881,148 +882,138 @@ class Metrics:
                             predicted_values: List[List[float]],
                             days: List[str],
                             time_interval_min: int = 10,
-                            prediction_horizons: List[int] = [10,  60]) -> None:
+                            prediction_horizons: List[int] = [10, 60]) -> None:
         """
         Plot prediction curves for multiple horizons from each observation point for specific days,
         with robust handling of cases where predicted datetimes don't have corresponding actual values.
         """
         # Create dataframe filtered for specific days
-
         day_df = self.create_prediction_dataframe(expected_values, predicted_values, days)
-        
+
         if day_df.empty:
             self.logger.warning(f"No data found for days: {days}")
             return
 
-        # Plot each day separately
         for day in days:
             df_day = day_df[day_df["date_str"] == day]
             if df_day.empty:
                 self.logger.warning(f"No data found for day: {day}")
                 continue
 
-            # Get ALL datetime points for this day (actual and predicted)
-            all_day_datetimes = sorted([pd.to_datetime(dt) for dt in self.datetime_list 
-                                    if pd.to_datetime(dt).strftime('%Y-%m-%d') == day])
-            
-            # Add all predicted datetimes to the complete list
+            # Get all datetime points for this day (actual + predictions)
+            all_day_datetimes = sorted([
+                pd.to_datetime(dt) for dt in self.datetime_list
+                if pd.to_datetime(dt).strftime('%Y-%m-%d') == day
+            ])
+
+            # Add predicted datetimes
             time_steps = [f"t_{h // time_interval_min - 1}" for h in prediction_horizons]
             for _, row in df_day.iterrows():
                 for t in time_steps:
                     pred_dt = row.get(f"datetime_{t}")
                     if pred_dt and not pd.isnull(pred_dt):
                         all_day_datetimes.append(pd.to_datetime(pred_dt))
-            
-            # Remove duplicates and sort
-            all_day_datetimes = sorted(list(set(all_day_datetimes)))
-            all_day_hours = [dt.strftime('%H:%M') for dt in all_day_datetimes]
-            
-            # Create mapping from hour string to x-position
-            hour_to_pos = {hour: idx for idx, hour in enumerate(all_day_hours)}
-            
-            # Convert hour strings to x-positions in dataframe
-            df_day["x_pos"] = df_day["hour"].map(hour_to_pos)
-            
-            # Create a dictionary of actual values by time for quick lookup
+
+            # Unique + sorted
+            all_day_datetimes = sorted(set(all_day_datetimes))
+            datetime_to_x = {dt: idx for idx, dt in enumerate(all_day_datetimes)}
+
+            # Map to x positions
+            df_day["x_pos"] = df_day["datetime"].map(datetime_to_x)
+
+            # Build actual values lookup using full datetime
             actual_values = {
-                row["hour"]: (row["expected_geneva"], row["expected_dole"])
+                pd.to_datetime(row["datetime"]): (row["expected_geneva"], row["expected_dole"])
                 for _, row in df_day.iterrows()
             }
 
-            # Prepare for images
+            # Prepare images
             day_datetimes = df_day["datetime"].tolist()
             num_images = min(6, len(day_datetimes))
-            if num_images > 1:
-                indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int)
-            else:
-                indices = [0]
+            indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int) if num_images > 1 else [0]
 
-            # Create figure with subplots
             fig = plt.figure(figsize=(self.plot_config.figsize[0], self.plot_config.figsize[1] * 1.5))
             gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
             ax = fig.add_subplot(gs[0])
 
-            # Plot actual observations using x_pos
-            ax.plot(df_day["x_pos"], df_day["expected_geneva"], 
-                    '-o', color='blue', markersize=8, label='Actual Geneva')
-            ax.plot(df_day["x_pos"], df_day["expected_dole"], 
-                    '-o', color='red', markersize=8, label='Actual Dole')
+            # Plot actual values
+            ax.plot(df_day["x_pos"], df_day["expected_geneva"], '-o', color='blue', markersize=8, label='Actual Geneva')
+            ax.plot(df_day["x_pos"], df_day["expected_dole"], '-o', color='red', markersize=8, label='Actual Dole')
 
-            # Plot prediction curves
             for i, row in df_day.iterrows():
-                current_time = row["hour"]
+                current_dt = pd.to_datetime(row["datetime"])
                 current_xpos = row["x_pos"]
                 current_geneva = row["expected_geneva"]
                 current_dole = row["expected_dole"]
-                
+
                 for j, t in enumerate(time_steps):
-                    pred_geneva = row.get(f"predicted_geneva_{t}", None)
-                    pred_dole = row.get(f"predicted_dole_{t}", None)
-                    future_time = row.get(f"hour_{t}", None)
-                    future_dt = row.get(f"datetime_{t}", None)
-                    
-                    if None in (pred_geneva, pred_dole, future_time, future_dt):
+                    pred_geneva = row.get(f"predicted_geneva_{t}")
+                    pred_dole = row.get(f"predicted_dole_{t}")
+                    future_dt = row.get(f"datetime_{t}")
+                    if None in (pred_geneva, pred_dole, future_dt):
                         continue
 
-                    # Get x-position for future time
-                    future_xpos = hour_to_pos.get(future_time, None)
+                    future_dt = pd.to_datetime(future_dt)
+                    future_xpos = datetime_to_x.get(future_dt)
                     if future_xpos is None:
-                        continue  # should not happen as we've added all predicted times
+                        continue
 
-                    # Check if we have actual values at the future time
-                    future_actual = actual_values.get(future_time, (None, None))
-                    has_actual = future_actual[0] is not None and future_actual[1] is not None
+                    future_actual = actual_values.get(future_dt, (None, None))
+                    has_actual = all(val is not None for val in future_actual)
+
+                    # --- DEBUG block ---
+                    expected_future_dt = current_dt + timedelta(minutes=prediction_horizons[j])
+                    import ipdb 
+                    ipdb.set_trace()
+                    if future_dt != expected_future_dt:
+                        print(f"[DECALAGGIO] At {current_dt}, horizon {prediction_horizons[j]}min → expected {expected_future_dt}, got {future_dt}")
+                    print(f"[DEBUG] Base: {current_dt.strftime('%H:%M')} | Future: {future_dt.strftime('%H:%M')} | "
+                        f"Pred G: {pred_geneva:.1f} | Pred D: {pred_dole:.1f} | "
+                        f"Actual G: {future_actual[0]} | Actual D: {future_actual[1]}")
 
                     linestyle = ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))][j % 6]
-                    geneva_label = f'geneva +{prediction_horizons[j]}min' if i == 0 else ""
-                    dole_label = f'Dole +{prediction_horizons[j]}min' if i == 0 else ""
 
                     if has_actual:
-                        # Plot line from current to future point
                         ax.plot([current_xpos, future_xpos], [current_geneva, pred_geneva],
                                 linestyle=linestyle, color='blue', alpha=0.7)
                         ax.plot([current_xpos, future_xpos], [current_dole, pred_dole],
                                 linestyle=linestyle, color='red', alpha=0.7)
                     else:
-                        # Plot only the predicted point as a marker
                         ax.plot(future_xpos, pred_geneva, marker='x', color='blue', alpha=0.7)
                         ax.plot(future_xpos, pred_dole, marker='x', color='red', alpha=0.7)
 
-                    # Add labels only for first iteration to avoid duplicate legends
                     if i == 0:
+                        label = f'+{prediction_horizons[j]}min'
                         if has_actual:
-                            ax.plot([], [], linestyle=linestyle, color='gray',
-                                    label=f'+{prediction_horizons[j]}min')
+                            ax.plot([], [], linestyle=linestyle, color='gray', label=label)
                         else:
-                            ax.plot([], [], marker='x', color='gray', linestyle='None',
-                                    label=f'+{prediction_horizons[j]}min (pred only)')
+                            ax.plot([], [], marker='x', color='gray', linestyle='None', label=f'{label} (pred only)')
 
-            # Set x-ticks and labels
-            ax.set_xticks(range(len(all_day_hours)))
-            ax.set_xticklabels(all_day_hours, rotation=45)
-            
-            # Formatting
+            # X-axis formatting
+            xticks = [datetime_to_x[dt] for dt in all_day_datetimes]
+            xticklabels = [dt.strftime('%H:%M') for dt in all_day_datetimes]
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticklabels, rotation=45)
+
             ax.set_title(f"Prediction Curves - {day}", fontsize=14)
             ax.set_ylabel("Radiation (W/m²)", fontsize=12)
             ax.set_xlabel("Time", fontsize=12)
-            
-            # Improved legend
+
+            # Legend
             legend_elements = [
-                Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Geneve'),
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Actual Geneva'),
                 Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Actual Dole'),
-                *[Line2D([0], [0], color='gray', linestyle=linestyle, 
-                        label=f'+{h}min') for h, linestyle in zip(prediction_horizons, 
-                        ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))])],
-                Line2D([0], [0], marker='x', color='gray', linestyle='None',
-                    label='Prediction only', markersize=10)
+                *[Line2D([0], [0], color='gray', linestyle=ls, label=f'+{h}min')
+                for h, ls in zip(prediction_horizons, ['-', '--', ':', '-.', (0, (3, 1, 1, 1)), (0, (5, 10))])],
+                Line2D([0], [0], marker='x', color='gray', linestyle='None', label='Prediction only', markersize=10)
             ]
             ax.legend(handles=legend_elements, loc='upper right')
             ax.grid(True)
 
-            # Bottom subplot for images (unchanged)
+            # Subplot for images
             ax2 = fig.add_subplot(gs[1])
             ax2.axis('off')
-            
+
             if num_images > 0:
                 img_width = 1.0 / num_images
                 for i, idx in enumerate(indices):
@@ -1032,9 +1023,8 @@ class Metrics:
                         continue
                     if np.all(img == 0):
                         self.logger.warning(f"Image for {dt} is completely black.")
-                    else:
-                        if img.max() - img.min() < 1e-3:
-                            img = (img - img.min()) / (img.max() - img.min() + 1e-6)
+                    elif img.max() - img.min() < 1e-3:
+                        img = (img - img.min()) / (img.max() - img.min() + 1e-6)
                     if img.ndim == 2:
                         img = np.stack([img] * 3, axis=-1)
                     left = i * img_width
@@ -1047,7 +1037,7 @@ class Metrics:
             month = df_day["month"].iloc[0]
             month_dir = os.path.join(self.save_path, month)
             os.makedirs(month_dir, exist_ok=True)
-            
+
             plt.tight_layout()
             plt.savefig(
                 os.path.join(month_dir, f"prediction_curves_{day}_test.png"),

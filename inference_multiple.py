@@ -69,7 +69,7 @@ all_predicted = {t: [] for t in prediction}
 all_expected = {t: [] for t in prediction}
 
 months = [(2023, m) for m in range(1, 4)]+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
-months = [(2023, m) for m in range(1, 2)]
+months = [(2023, m) for m in range(3, 4)]
 pred_file_0 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_0.npz")
 pred_file_2 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_2.npz")
 pred_file_5 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_5.npz")
