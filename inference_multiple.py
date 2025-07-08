@@ -246,17 +246,17 @@ specific_test_days = [
             "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
             "2024-11-09", "2024-10-19", "2024-11-16"
         ]
-# for t in prediction:
+for t in prediction:
     
-# # Create global metrics instance
-#     global_metrics = Metrics(
-#         all_expected[t], all_predicted[t], data, save_path=MODEL_PATH, 
-#         start_date="2023-01-01", end_date="2024-12-31", time_key=t,stats_for_month=False
-#     )
+# Create global metrics instance
+    global_metrics = Metrics(
+        all_expected[t], all_predicted[t], data, save_path=MODEL_PATH, 
+        start_date="2023-01-01", end_date="2024-12-31", time_key=t,stats_for_month=False
+    )
 
-#     global_metrics.save_metrics_report(
-#         stratus_days=specific_test_days, non_stratus_days=non_stratus_days
-#     )
+    global_metrics.save_metrics_report(
+        stratus_days=specific_test_days, non_stratus_days=non_stratus_days
+    )
 
 import ipdb
 ipdb.set_trace()
