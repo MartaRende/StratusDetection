@@ -9,22 +9,23 @@ from prepareData import PrepareData
 from data_loader import PrepareDataset
 from model import StratusModel
 
-
-# Set device
+# Set device (GPU if available, else CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device is : {device}")
 print(os.system("whoami"))
 print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 
 # Set image folder path and views based on script args
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159" # Change this path to your image directory
 num_views = 1
 seq_len = 3  # Number of timesteps
 prediction_minutes = 10  # Prediction time in minutes
+
+# Parse command-line arguments for custom paths and parameters
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159" # Change this path is it's needed
         FP_IMAGES = os.path.normpath(FP_IMAGES)
     if len(sys.argv) > 2:
         num_views = int(sys.argv[2])
@@ -32,7 +33,10 @@ if len(sys.argv) > 1:
         seq_len = int(sys.argv[3])
     if len(sys.argv) > 4:
         prediction_minutes = int(sys.argv[4])
+
 print(f"Using {num_views} views, sequence length: {seq_len}, prediction minutes: {prediction_minutes}")
+
+# Check if image path exists
 if not os.path.exists(FP_IMAGES):
     print(f"Path {FP_IMAGES} does not exist. Please check the path.")
 else:
@@ -42,29 +46,28 @@ print("FP_IMAGES:", FP_IMAGES)
 FP_WEATHER_DATA = "data/complete_data_gen.npz"
 
 # Initialize data loader
-prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len, prediction_minutes=prediction_minutes)
+prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views, seq_length=seq_len, prediction_minutes=prediction_minutes)
 
-# Load filtered data
+# Load filtered data (weather, images, labels)
 x_meteo, x_images, y = prepare_data.load_data()
 print("Data after filter:", x_meteo.shape, y.shape)
 
-# Concatenate all data if multiple sources (your code suggests potential multiple)
+# Concatenate all data if multiple sources (currently only one)
 all_weatherX = x_meteo
 all_imagesX = x_images
 allY = y
 
-# Initial split into train/test sets
+# Split data into train/test sets
 weather_train, images_train, y_train, weather_test, images_test, y_test, train_datetimes, test_datetimes = prepare_data.split_data(
     all_weatherX, all_imagesX, allY
 )
-
-
 
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation, train_datetimes, val_datetimes = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
 
+# Define variable order for normalization
 var_order = []
 for i in range(seq_len):
     var_order.append("gre000z0_nyon_t" + str(i))
@@ -94,6 +97,7 @@ y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     var_order=["gre000z0_nyon", "gre000z0_dole"]
 )
 
+# Prepare PyTorch datasets
 train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False, prepare_data=prepare_data)
 validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len, prepare_data=prepare_data)
 test_dataset = PrepareDataset(weather_test, FP_IMAGES, test_datetimes, y_test, num_views=num_views, seq_len=seq_len, prepare_data=prepare_data)
@@ -101,15 +105,18 @@ print("train_dataset size:", len(train_dataset))
 print("validation_dataset size:", len(validation_dataset))
 print("test_dataset size:", len(test_dataset))
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True,num_workers=8)
+# Create DataLoaders for batching
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=8)
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, num_workers=8)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, num_workers=8)
+
 # Instantiate model, loss, optimizer, scheduler
 model = StratusModel(input_feature_size=15, output_size=2, num_views=num_views, seq_len=seq_len).to(device)
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=3, min_lr=1e-5)
 
+# Track losses and (optionally) accuracies
 losses = {"train": [], "eval": [], "test": []}
 accuracies = {"train": [], "eval": [], "test": []}  # Placeholder if accuracy metrics added
 
@@ -134,14 +141,12 @@ for epoch in range(num_epochs):
         count = 0
 
         for batch in loader:
-        
             optimizer.zero_grad()
             if num_views == 2:
                 weather_x, img1, img2, labels = batch
                 weather_x, img1, img2, labels = weather_x.to(device), img1.to(device), img2.to(device), labels.to(device)
                 y_pred = model(weather_x, img1, img2)
             else:
-             
                 weather_x, images_x, labels = batch
                 weather_x, images_x, labels = weather_x.to(device), images_x.to(device), labels.to(device)
                 y_pred = model(weather_x, images_x)
@@ -171,12 +176,13 @@ for epoch in range(num_epochs):
     print(f"Epoch [{epoch + 1}/{num_epochs}] - Train Loss: {losses['train'][-1]:.4f}, "
           f"Validation Loss: {losses['eval'][-1]:.4f}, Test Loss: {losses['test'][-1]:.4f}")
 
-
-#
+# Model save path
 MODEL_BASE_PATH = "./models/"
 
-
 def saveResults():
+    """
+    Save model, training plots, and relevant data/statistics to a new folder.
+    """
     currIndex = 0
     currPath: str
     if not os.path.exists(MODEL_BASE_PATH):
@@ -237,6 +243,7 @@ def saveResults():
     plt.savefig(currPath + "/loss_log_after15.png")
     plt.clf()
 
+    # Plot accuracy (if available)
     for key in accuracies:
         plt.plot(accuracies[key], label=f"{key.capitalize()} accuracy")
     plt.ylim((0, 1))
@@ -244,26 +251,24 @@ def saveResults():
     plt.title("Accuracy")
     plt.savefig(currPath + "/accuracy.png")
 
-    # save existing file model.py in the same folder
+    # Save a copy of model.py in the same folder
     with open(currPath + "/model.py", "w") as f:
         f.write("# Path: model.py\n")
         with open("model.py", "r") as original_file:
             for line in original_file:
                 f.write(line)
         
-    # save test data taken from test_dataset
+    # Save test data from test_dataset
     test_save_path = os.path.join(currPath, "test_data.npz")
     np.savez(test_save_path, dole=prepare_data.test_data)
-    # save the stats
+    # Save normalization statistics
     stats_save_path = os.path.join(currPath, "stats.npz")
     np.savez(stats_save_path, stats_input=stats_input, stats_label=stats_label)
-    # Save a tuple using numpy
+    # Save stratus days statistics
     stratus_days_stats = prepare_data.stats_stratus_days
     print("Stratus days stats:", stratus_days_stats)
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)
     print("All data saved to", currPath)
 
-    
-
-
+# Save results after training
 saveResults()

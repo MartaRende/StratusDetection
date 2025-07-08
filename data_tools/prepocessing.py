@@ -15,6 +15,7 @@ from tqdm import tqdm
 import multiprocessing
 import traceback
 
+# Code parallelization was made with the help of Deepseek AI
 def get_grid_indices(x_grid, y_grid, coordinates):
     """Find the nearest grid indices for each coordinate in the grid."""
     indices = {}

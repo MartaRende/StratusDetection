@@ -24,7 +24,7 @@ class PrepareData:
         self.desired_prediction = prediction_minutes  # minutes for prediction
 
     def _load_weather_data(self):
-                # load data test of npz file
+        # load data test of npz file
         complete_data_gen_fp = f"data/complete_data_gen.npz"
         complete_data_gen = np.load(complete_data_gen_fp, allow_pickle=True)
         npz_file = np.load(self.fp_weather, allow_pickle=True)
@@ -40,7 +40,7 @@ class PrepareData:
         complete_dates = complete_df['datetime'].dt.date
         df_dates = df['datetime'].dt.date
         common_dates = np.intersect1d(complete_dates, df_dates)
-                # Filter complete_df to only include rows where the date is in common_dates
+        # Filter complete_df to only include rows where the date is in common_dates
         complete_df = complete_df[complete_df['datetime'].dt.date.isin(common_dates)]
         return complete_df
 
@@ -82,6 +82,7 @@ class PrepareData:
             print(f"Image not found for datetime {dt} at view {view}. Returning empty image.")
             return np.zeros((512, 512, 3), dtype=np.uint8)
     def prepare_data(self, df):
+        """Prepare data fortesting"""
         df = df.sort_values('datetime').reset_index(drop=True)
         
         # Create sequences
@@ -171,16 +172,14 @@ class PrepareData:
         return x_meteo_seq, x_images_seq, y_seq
 
 
-    
-
     def find_stratus_days(self, df=None, median_gap=None, mad_gap=None):
+        """Find stratus days based on the gap between two weather stations with z_score modified method."""
         if df is None:
             df = self.data
         df = df.copy()
         
         weather_df = df.reset_index()[['datetime', 'gre000z0_dole', 'gre000z0_nyon']].copy()
-        # Suppose we have a DataFrame 'weather_df' with columns 'gre000z0_dole' and 'gre000z0_nyon'
-        # Calculate the absolute difference between the two columns
+        # Calculate the absolute difference between th two columns
        
         weather_df['gap_abs'] = weather_df['gre000z0_dole'] - weather_df['gre000z0_nyon']
 
@@ -193,13 +192,11 @@ class PrepareData:
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 
         # Define a threshold to identify outliers
-        threshold = 3
+        threshold = 3 # This threshold can be adjusted based on the desired sensitivity 3 was a # common choice in literature for modified z-scores
         weather_df['large_gap_mod_zscore'] = weather_df['gap_abs_mod_zscore'] > threshold
 
         # Filter the data considered outliers
         large_gap_data = weather_df[weather_df['large_gap_mod_zscore']]
-        # Print the results
-        # Find sequences where there are more than 5 consecutive large differences
         large_gap_data = weather_df[weather_df['large_gap_mod_zscore']].copy()
         large_gap_data = large_gap_data.sort_values('datetime')
 
@@ -224,14 +221,14 @@ class PrepareData:
         consecutive_large_diff_dates = np.unique(consecutive_large_diff_dates)
 
 
-        # Find days with at least 8 large differences in total
+        # Find days with at least 3 large differences in total
         counts = large_gap_data['datetime'].dt.date.value_counts()
-        days_with_8_or_more = counts[counts >= 3].index
+        days_with_3_or_more = counts[counts >= 3].index
 
-            # Find intersection of days with >5 consecutive large differences and days with at least 8 large differences
+        # Find intersection of days with >3 consecutive large differences and days with at least 8 large differences
         days_consecutive = set(consecutive_large_diff_dates)
-        days_8_or_more = set(days_with_8_or_more)
-        stratus_days = sorted(days_consecutive & days_8_or_more)
+        days_3_or_more = set(days_with_3_or_more)
+        stratus_days = sorted(days_consecutive & days_3_or_more)
         stratus_days = [str(d) for d in stratus_days]
         non_stratus_days = sorted(set(df['datetime'].dt.strftime('%Y-%m-%d').unique()) - set(stratus_days))
   
@@ -239,6 +236,7 @@ class PrepareData:
         return stratus_days,non_stratus_days, (median_gap, mad_gap)
     
     def filter_data(self, start_date, end_date, take_all_seasons=True):
+        """Filter data based on date range and optionally by season"""
         months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
 
         mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
@@ -248,9 +246,10 @@ class PrepareData:
         return self.data
 
     def normalize_data_test(self, data, var_order=None, stats=None):
+        """Normalize the meteorological data for testing"""
         arr = np.array(data)
         original_ndim = arr.ndim
-    
+        # This normalization logic with right reshapewas made with the help of GitHub Copilot
 
         if arr.ndim == 2:
             arr = arr[:, np.newaxis, :]  # Add the time dimension: (N, 1, F)
@@ -266,12 +265,7 @@ class PrepareData:
         
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
-        # drop_cols = [col for col in df.columns if col.startswith('gre000z0_nyon') or col.startswith('gre000z0_dole')]
-        # df = df.drop(columns=drop_cols)
-        # var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-        # if len(var_order) > 3:
-        #     var_order = [var for var in var_order if not (var.startswith('gre000z0_nyon') or var.startswith('gre000z0_dole'))]
-      
+     
         
         for var in var_order:
             col = df[var].astype(float).fillna(0)
@@ -288,6 +282,9 @@ class PrepareData:
         return reshaped
 
     def load_data_test(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
+        """
+        Load and prepare test data
+        """
         filtered_df = self.filter_data(start_date, end_date, take_all_seasons)
         print(f"Filtered data shape: {filtered_df.shape}")
         x_meteo, x_images, y = self.prepare_data(filtered_df)

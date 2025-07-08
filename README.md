@@ -6,10 +6,12 @@ A project aimed at predicting the appearance and disappearance of stratus clouds
 
 - [Overview](#overview)
 - [Requirements](#requirements)
+- [Project Structure](#project-structure)
 - [Installation](#installation)
 - [Code Overview](#code_overview)
 - [Usage](#usage)
-- [Project Structure](#project-structure)
+- [Data Sources and Attribution](#data-sources-and-attribution)
+
 ## Overview
 
 This project analyzes stratus cloud phenomena by processing weather images from La Dôle and meteorological data from INCA provided by MeteoSwiss.
@@ -25,13 +27,38 @@ This project analyzes stratus cloud phenomena by processing weather images from 
     - Sufficient computational resources to analyze the data and run the training processes.
 
 Ensure that these datasets are available and organized as described for successful training and inference.
+## Project Structure
+
+
+```
+StratusDetection/
+├── data/                     # Directory for input data files (not included in the repository)
+├── models/                   # Saved trained models and related outputs
+├── data_tools/               # Utilities for data preprocessing, augmentation
+├── metrics_analysis/         # Scripts for evaluation metrics and analysis of results
+├── docs/                     # Project documentation and research notes
+├── data_loader.py            # Module for loading and preparing datasets for training
+├── data_analysis.ipynb       # Jupyter notebook for exploratory data analysis
+├── training.py               # Script to train the machine learning model
+├── inference.py              # Script to run inference and evaluate model predictions
+├── inference_sbatch.sh       # SLURM batch script for inference on HPC infrastructure
+├── model.py                  # Defines the model architecture
+├── prepare_data_inference.py # Prepares data specifically for inference
+├── prepareData.py            # Prepares and validates input data for training
+├── pyproject.toml            # Project dependencies and build configuration
+├── rules.def                 # Apptainer definition file for containerized environments
+├── train_sbatch.sh           # SLURM batch script for training on HPC infrastructure
+└── README.md                 # Project overview and usage instructions
+
+```
+
+
 ## Installation
 ### To install locally
 1. Clone project
 ```bash
 git clone https://github.com/yourusername/StratusDetection.git
 cd StratusDetection
-
 ```
 2. Create and activate a virtual environnement
 ```bash
@@ -41,7 +68,6 @@ source .venv/bin/activate
 3. Install dependencies
 ```bash
 uv pip install -e .
-
 ```
 
 ### To install on Infrastructure with Apptainer and SLURM
@@ -53,31 +79,12 @@ The infrastructure uses Apptainer to execute jobs in isolated and reproducible e
 1. Build an Apptainer image that includes all project dependencies using the `rules.def` definition file.
     The image definition is provided in `rules.def`.
     You can build the image directly with:
+
     ```bash
     apptainer build train.sif rules.def
     ```
     This will create the image file `train.sif`.
-## Project Structure
 
-```
-StratusDetection/
-├── data/                  # Input and output data files
-├── models/                  # Input and output data files
-├── data_tools/                  # Input and output data files
-├── metrics_analysis/                  # Input and output data files
-├── docs/                  # Input and output data files
-├── data_loader.py      # Main script for detection
-├── data_analysis.ipynb      # Main script for detection
-├── training.py      # Main script for detection
-├── inference.py       # Python dependencies
-├── inference_sbatch.sh      # Python dependencies
-├── model.py      # Python dependencies
-├── prepare_data_inference.py      # Python dependencies
-├── utils/                 # Utility modules and helper functions
-├── visualization/         # Data visualization scripts
-└── README.md              # Project documentation
-
-```
 ## Code Overview
 
 The repository is organized into several key scripts and folders:
@@ -114,9 +121,10 @@ The repository is organized into several key scripts and folders:
     Scripts for generating evaluation metrics, creating plots, and analyzing stratus dissipation delays.
 
 - **data_tools/**  
-    Utilities for filtering, augmenting, and visualizing study data, including image cropping and data augmentation scripts.
-    - The `add_idaweb_data.py` file was also used to replace the solar radiation data for Nyon with that from Geneva.
-    - Il file preprocessing.py è usato per filtare i dati inca della dole e i dati di radiazione di nyon e della dole e salvarli in un  file.npz per il training.py
+    Utilities for filtering, augmenting, and visualizing study data, including scripts for image cropping and data augmentation.
+    - The `add_idaweb_data.py` script was also used to replace the solar radiation data for Nyon with that from Geneva.
+    - The `preprocessing.py` script is used to filter INCA data for La Dôle and solar radiation data for Nyon and La Dôle, saving them in a `.npz` file for use in `training.py`.
+    - The `CT_exam.py` file is used for visual analysis of INCA data.
 
 - **docs/**  
     Project documentation, research notes, and progress updates.
@@ -190,7 +198,8 @@ sbatch ./inference_sbatch.sh
 This setup allows you to leverage advanced computational resources and ensures experiment reproducibility.
 > **Note:** In both cases, before running inference, you must open the `inference.py` file and set the desired model number in the `MODEL_NUM` variable.
 
-## Data Citation
+
+## Data Sources and Attribution
 
 If you use the data provided in this project, please cite the following sources:
 
