@@ -14,7 +14,7 @@ from PIL import Image
 from data_tools.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 
 # Import PrepareDataset
-from prepareData import PrepareDataset
+from data_loader import PrepareDataset
 
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
