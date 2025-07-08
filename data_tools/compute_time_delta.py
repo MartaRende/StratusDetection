@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from matplotlib.patches import Patch
+
 MODEL_NUM = 2
 MODEL_PATH = f"models/model_{MODEL_NUM}/matches.csv"
 df = pd.read_csv(MODEL_PATH)
@@ -8,7 +9,6 @@ df = df.sort_values(by="expected_time")
 df["expected_time"] = pd.to_datetime(df["expected_time"], errors='coerce')
 df["date"] = df["expected_time"].dt.date
 # Mark days with 0 values and NaN values differently in the plot
-
 
 mean_time_diff_by_day = (
     df.groupby("date")["time_difference_sec"].sum() /
@@ -49,17 +49,10 @@ legend_elements = [
     plt.Line2D([0], [0], color='orange', lw=2, linestyle='--', label='Global Median (min)')
 ]
 plt.legend(handles=legend_elements)
-import pandas as pd
-import numpy as np
+
 import seaborn as sns
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
 
-MODEL_NUM = 2
-MODEL_PATH = f"models/model_{MODEL_NUM}/matches.csv"
-df = pd.read_csv(MODEL_PATH)
-
-# Seleziona solo le colonne numeriche rilevanti per la heatmap
+# Select only relevant numeric columns for the heatmap
 corr_cols = [
     'expected_confidence', 
     'predicted_confidence',
@@ -72,13 +65,13 @@ corr_cols = [
     'predicted_z_score'
 ]
 
-# Filtra solo i match completi (escludi unmatched)
+# Filter only complete matches (exclude unmatched)
 matched = df[df['match_status'] == 'matched'].copy()
 
-# Calcola la matrice di correlazione
+# Compute the correlation matrix
 corr_matrix = matched[corr_cols].corr()
 
-# Crea la heatmap
+# Create the heatmap
 plt.figure(figsize=(12, 10))
 sns.heatmap(
     corr_matrix,
@@ -90,16 +83,16 @@ sns.heatmap(
     vmax=1,
     linewidths=0.5,
     linecolor='gray',
-    cbar_kws={'label': 'Coefficiente di Correlazione'}
+    cbar_kws={'label': 'Correlation Coefficient'}
 )
 
-# Aggiungi titolo e formattazione
-plt.title('Heatmap delle Correlazioni tra Variabili dei Picchi\n(Solo matched peaks)', pad=20)
+# Add title and formatting
+plt.title('Correlation Heatmap between Peak Variables\n(Only matched peaks)', pad=20)
 plt.xticks(rotation=45, ha='right')
 plt.yticks(rotation=0)
 plt.tight_layout()
 
-# Salva la figura
+# Save the figure
 plt.savefig(f"models/model_{MODEL_NUM}/correlation_heatmap.png", dpi=300, bbox_inches='tight')
 plt.close()
 plt.tight_layout()

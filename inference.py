@@ -32,6 +32,9 @@ if len(sys.argv) > 1:
             num_views = 2
     if len(sys.argv) > 3:
         seq_len = int(sys.argv[3])
+    if len(sys.argv) > 4:
+        prediction_minutes = int(sys.argv[4])
+print(f"Using {num_views} views, sequence length: {seq_len}, prediction minutes: {prediction_minutes}")
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)

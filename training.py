@@ -20,7 +20,7 @@ print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
 num_views = 1
 seq_len = 3  # Number of timesteps
-prediction_minutes = 120  # Prediction time in minutes
+prediction_minutes = 10  # Prediction time in minutes
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -30,7 +30,9 @@ if len(sys.argv) > 1:
         num_views = int(sys.argv[2])
     if len(sys.argv) > 3:
         seq_len = int(sys.argv[3])
-
+    if len(sys.argv) > 4:
+        prediction_minutes = int(sys.argv[4])
+print(f"Using {num_views} views, sequence length: {seq_len}, prediction minutes: {prediction_minutes}")
 if not os.path.exists(FP_IMAGES):
     print(f"Path {FP_IMAGES} does not exist. Please check the path.")
 else:
