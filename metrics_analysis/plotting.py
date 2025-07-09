@@ -71,11 +71,11 @@ class Plotter:
         days = self.metrics._normalize_days_input(days)
         for day in days:
             day_df = self.metrics._prepare_day_metrics([day])
-       
+    
             if day_df.empty:
                 self.metrics.logger.warning(f"No data found for day {day}")
                 continue
-     
+    
             day_df = day_df.drop_duplicates(subset=["datetime"])
             month = day_df["month"].iloc[0]
             month_dir = os.path.join(self.metrics.save_path, month)
@@ -104,7 +104,7 @@ class Plotter:
                         label=f'Predicted {var.capitalize()}')
 
             ax1.set_title(f"Day Curves - {day} - Prediction in {self.metrics.prediction_minutes} minutes", 
-                         fontsize=self.plot_config.fontsize["title"])
+                        fontsize=self.plot_config.fontsize["title"])
             ax1.set_ylabel("Radiation (W/m²)", fontsize=self.plot_config.fontsize["labels"])
             ax1.set_xlabel("Hours", fontsize=self.plot_config.fontsize["labels"])
             ax1.legend()
@@ -126,7 +126,17 @@ class Plotter:
             for idx in indices:
                 dt = day_datetimes[idx]
                 img = self.metrics.get_image_for_datetime(dt)
-                if img is not None and not (isinstance(img, np.ndarray) and np.all(img == 0)):
+                
+                # Handle case where no image is found (returns empty list)
+                if isinstance(img, list):
+                    continue
+                    
+                # Handle case where image is all zeros
+                if isinstance(img, np.ndarray) and img.size > 0:
+                    if img.max() - img.min() < 1e-3:
+                        img = (img - img.min()) / (img.max() - img.min() + 1e-6)
+                    if img.ndim == 2:
+                        img = np.stack([img] * 3, axis=-1)
                     valid_imgs.append(img)
                     valid_times.append(dt)
                 else:
@@ -136,11 +146,6 @@ class Plotter:
             if num_valid > 0:
                 img_width = 1.0 / num_valid
                 for i, (img, dt) in enumerate(zip(valid_imgs, valid_times)):
-                
-                    if img.max() - img.min() < 1e-3:
-                        img = (img - img.min()) / (img.max() - img.min() + 1e-6)
-                    if img.ndim == 2:
-                        img = np.stack([img] * 3, axis=-1)
                     left = i * img_width
                     ax_img = fig.add_axes([left, -0.1, img_width, 0.25])
                     ax_img.imshow(img)
