@@ -80,9 +80,9 @@ pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz")
 df_to_save = pd.DataFrame()
 # Main inference loop over months
 for year, month in months:
-    if os.path.exists(pred_file):
-        # If predictions already exist, skip computation
-        break
+    # if os.path.exists(pred_file):
+    #     # If predictions already exist, skip computation
+    #     break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
     if month == 12:
