@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Tuple
 
+# PLot configuration for metrics analysis is made with the help of ChatGPT
 @dataclass
 class PlotConfig:
     """Centralized configuration for plotting parameters"""

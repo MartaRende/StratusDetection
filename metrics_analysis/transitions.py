@@ -7,6 +7,9 @@ from collections import defaultdict
 from matplotlib import pyplot as plt
 import os
 
+# This code was adopted to find on which date the stratus cloud dissipation occurs and to calculate the delay between the dissipation in the expected and predicted data
+# Tries to detect peaks using the first derivative, second derivative, and CUSUM, but after some tests, none of the three methods manages to detect all the peaks
+
 class TransitionAnalyzer:
     """Handles critical transition detection and analysis"""
     
@@ -14,45 +17,57 @@ class TransitionAnalyzer:
         self.metrics = metrics
         
     def detect_critical_transitions(
-    self,
-    days: List[str],
-    min_slope: float = 100,
-    min_peak_distance: str = "30min",
-    smooth_window: str = "15min",
-    plot_day: str = "2023-01-27",
-    slope_weight: float = 0.9,
-    accel_weight: float = 0.1,
-    cusum_weight: float = 0.0,
-) -> Dict[str, Optional[pd.DataFrame]]:
+        self,
+        days: List[str],
+        min_slope: float = 100,
+        min_peak_distance: str = "30min",
+        smooth_window: str = "15min",
+        plot_day: str = "2023-01-27",
+        slope_weight: float = 0.9,
+        accel_weight: float = 0.1,
+        cusum_weight: float = 0.0,
+    ) -> Dict[str, Optional[pd.DataFrame]]:
+        """
+        Detects critical transitions (peaks/changes) in the expected and predicted delta series.
+        Uses a combination of derivatives, CUSUM, and rolling statistics.
+        The idea for CUSUM and rolling statistics comes from ChatGPT.
+        Returns a dictionary with detected transitions and auxiliary info.
+        """
+        # Get delta between Geneva and Dole from metrics
         df = self.metrics.get_delta_btw_geneva_dole()
         days = self.metrics._normalize_days_input(days)
         df = df.sort_values("datetime").set_index("datetime")
         df = df[df.index.strftime("%Y-%m-%d").isin(days)].sort_index()
 
+        # Compute delta for expected and predicted
         df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
         df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
         results = {}
 
         for prefix in ["expected", "predicted"]:
+            # Select the series to analyze
             series = df[f"{prefix}_delta"]
+            # Smooth the series
             smoothed = series.rolling(smooth_window, center=True).mean()
+            # Compute first and second derivatives
             first_deriv = smoothed.diff()
             second_deriv = first_deriv.diff()
 
-            z_scores = stats.zscore(series.fillna(0))
-            z_score_peaks = np.where(np.abs(z_scores) > 2.5)[0]
 
+            # Minimum number of samples between peaks
             min_samples = max(1, int(pd.Timedelta(min_peak_distance).total_seconds() /
                                     (df.index[1] - df.index[0]).total_seconds()))
 
+            # Features to analyze for peaks
             features_to_analyze = {
                 'slope': first_deriv.abs().fillna(0).values,
                 'accel': second_deriv.abs().fillna(0).values,
                 'delta': series.abs().values
             }
+            all_peaks = []
 
-            all_peaks = list(z_score_peaks)
 
+            # Find peaks in slope, acceleration, and delta
             for _, values in features_to_analyze.items():
                 try:
                     peaks, _ = find_peaks(values, height=np.percentile(values, 65), distance=min_samples)
@@ -60,18 +75,18 @@ class TransitionAnalyzer:
                 except Exception:
                     continue
 
-            # Grandi salti improvvisi
+            # Find large jumps in delta
             delta_diff = series.diff().abs()
             big_jump_idx = np.where(delta_diff > np.percentile(delta_diff.dropna(), 90))[0]
             all_peaks.extend(big_jump_idx)
 
-            # Variazioni lente (rolling range)
+            # Find slow variations using rolling range
             rolling_range = series.rolling("2H").apply(lambda x: x.max() - x.min())
             if not rolling_range.isna().all():
                 big_cum_idx = np.where(rolling_range > np.percentile(rolling_range.dropna(), 95))[0]
                 all_peaks.extend(big_cum_idx)
 
-            # CUSUM sulla derivata prima
+            # CUSUM on the first derivative to detect change points
             slope_series = first_deriv.fillna(0)
             mean = slope_series.mean()
             std = slope_series.std()
@@ -87,32 +102,35 @@ class TransitionAnalyzer:
             cusum_slope_idx = np.where((pos_cusum > h) | (neg_cusum > h))[0]
             all_peaks.extend(cusum_slope_idx)
 
-            # Unifica e deduplica
+            # Remove duplicates and sort peaks
             unique_peaks = sorted(set(all_peaks))
             peaks_df = df.iloc[unique_peaks].copy() if unique_peaks else pd.DataFrame()
 
             if not peaks_df.empty:
+                # Add features to the peaks dataframe
                 peaks_df["slope_magnitude"] = first_deriv.iloc[unique_peaks].abs().values
                 peaks_df["accel_magnitude"] = second_deriv.iloc[unique_peaks].abs().values
-                peaks_df["z_score"] = z_scores[unique_peaks]
                 peaks_df["delta_magnitude"] = series.iloc[unique_peaks].abs().values
                 peaks_df["cusum_flag"] = [i in cusum_slope_idx for i in unique_peaks]
 
-                # Nuova formula confidence: derivate + CUSUM
+                # Compute confidence score as a weighted sum of features
                 peaks_df["confidence"] = (
                     slope_weight * (peaks_df["slope_magnitude"] / peaks_df["slope_magnitude"].max()) +
                     accel_weight * (peaks_df["accel_magnitude"] / peaks_df["accel_magnitude"].max()) +
                     cusum_weight * peaks_df["cusum_flag"].astype(float)
                 )
 
+                # Sort by confidence and filter low-confidence peaks
                 peaks_df = peaks_df.sort_values("confidence", ascending=False)
                 peaks_df = peaks_df[peaks_df["confidence"] >= 0.2]
 
             results[f"{prefix}_transitions"] = peaks_df
 
+            # Optionally plot the analysis for a specific day
             if plot_day and (pd.to_datetime(plot_day).date() in df.index.date):
-                self._plot_transition_analysis(prefix, df, plot_day, peaks_df, first_deriv, second_deriv, z_scores)
+                self._plot_transition_analysis(prefix, df, plot_day, peaks_df, first_deriv, second_deriv)
 
+        # Count number of datetimes per day for reference
         if not df.empty and "datetime" in df.reset_index().columns:
             df_reset = df.reset_index()
             df_reset["date"] = df_reset["datetime"].dt.date
@@ -129,14 +147,17 @@ class TransitionAnalyzer:
         
         return results
 
-
     def _plot_transition_analysis(self, prefix, df, plot_day, peaks_df, 
-                                first_deriv, second_deriv, z_scores):
-        """Helper method to plot transition analysis"""
+                                 first_deriv, second_deriv):
+        """
+        Helper method to plot transition analysis for a given day.
+        Shows the original series, derivatives, and marks detected peaks.
+        """
         day_data = df[df.index.date == pd.to_datetime(plot_day).date()]
         
-        fig, axs = plt.subplots(3, 1, figsize=(15, 12), sharex=True)
+        fig, axs = plt.subplots(2, 1, figsize=(15, 12), sharex=True)
         
+        # Plot original values and delta
         axs[0].plot(day_data.index, day_data[f"{prefix}_geneva"], label="Geneva")
         axs[0].plot(day_data.index, day_data[f"{prefix}_dole"], label="Dole")
         axs[0].plot(day_data.index, day_data[f"{prefix}_delta"], 
@@ -145,6 +166,7 @@ class TransitionAnalyzer:
         axs[0].legend()
         axs[0].grid()
         
+        # Plot derivatives
         axs[1].plot(day_data.index, first_deriv[day_data.index], 
                    label="1st Derivative (Slope)", color='orange')
         axs[1].plot(day_data.index, second_deriv[day_data.index], 
@@ -153,15 +175,8 @@ class TransitionAnalyzer:
         axs[1].legend()
         axs[1].grid()
         
-        z_scores_series = pd.Series(z_scores, index=df.index)
-        axs[2].plot(day_data.index, z_scores_series.loc[day_data.index], 
-                   label="Z-scores", color='purple')
-        axs[2].axhline(y=2.5, color='r', linestyle='--', label='Threshold')
-        axs[2].axhline(y=-2.5, color='r', linestyle='--')
-        axs[2].set_title("Statistical Change Detection")
-        axs[2].legend()
-        axs[2].grid()
-        
+       
+        # Mark detected peaks on all plots
         day_peaks = peaks_df[peaks_df.index.date == pd.to_datetime(plot_day).date()]
         for ax in axs:
             for idx, row in day_peaks.iterrows():
@@ -185,7 +200,11 @@ class TransitionAnalyzer:
         min_confidence: float = 0.8,
         include_unmatched: bool = True
     ) -> pd.DataFrame:
-        """Enhanced matching of critical transitions"""
+        """
+        Matches the strongest expected and predicted transitions within a time window.
+        Uses confidence, time difference, and optionally delta similarity.
+        Returns a DataFrame with matched and unmatched transitions.
+        """
         exp_peaks = peaks_results.get("expected_transitions", pd.DataFrame()).reset_index()
         pred_peaks = peaks_results.get("predicted_transitions", pd.DataFrame()).reset_index()
 
@@ -194,11 +213,13 @@ class TransitionAnalyzer:
         if exp_peaks.empty or pred_peaks.empty:
             return pd.DataFrame()
 
+        # Ensure datetime column exists
         if "datetime" not in exp_peaks.columns:
             exp_peaks = exp_peaks.rename(columns={exp_peaks.columns[0]: "datetime"})
         if "datetime" not in pred_peaks.columns:
             pred_peaks = pred_peaks.rename(columns={pred_peaks.columns[0]: "datetime"})
 
+        # Normalize confidence for fair comparison
         max_conf = max(exp_peaks["confidence"].max(), pred_peaks["confidence"].max())
         exp_peaks["norm_conf"] = exp_peaks["confidence"] / max_conf
         pred_peaks["norm_conf"] = pred_peaks["confidence"] / max_conf
@@ -208,6 +229,7 @@ class TransitionAnalyzer:
         used_pred_indices = set()
         matched_exp_indices = set()
 
+        # For each expected peak, find the best matching predicted peak within the time window
         for _, exp_row in exp_peaks.iterrows():
             candidates = pred_peaks[
                 (pred_peaks["datetime"].between(
@@ -218,10 +240,12 @@ class TransitionAnalyzer:
             ].copy()
 
             if not candidates.empty:
+                # Compute time and confidence similarity scores
                 candidates["time_diff"] = (candidates["datetime"] - exp_row["datetime"]).abs().dt.total_seconds()
                 candidates["time_score"] = 1 - (candidates["time_diff"] / max_time_diff.total_seconds())
                 candidates["conf_score"] = 1 - abs(candidates["norm_conf"] - exp_row["norm_conf"])
                 
+                # Optionally, compute delta similarity score
                 if "expected_delta" in exp_row and "predicted_delta" in candidates.columns:
                     exp_delta = exp_row["expected_delta"] if not pd.isnull(exp_row["expected_delta"]) else 0
                     candidates["delta_diff"] = (candidates["predicted_delta"] - exp_delta).abs()
@@ -230,12 +254,14 @@ class TransitionAnalyzer:
                 else:
                     candidates["delta_score"] = 1.0
 
+                # Combine scores (weights can be adjusted)
                 candidates["combined_score"] = (
                     0.2* candidates["time_score"] +
                     0.8 * candidates["conf_score"] +
                     0.0 * candidates["delta_score"]
                 )
             
+                # Select the best match above the confidence threshold
                 best_match = candidates.nlargest(1, "combined_score").iloc[0]
 
                 if best_match["combined_score"] >= min_confidence:
@@ -252,12 +278,11 @@ class TransitionAnalyzer:
                         "is_late": best_match["datetime"] > exp_row["datetime"],
                         "expected_slope": exp_row.get("slope_magnitude", None),
                         "predicted_slope": best_match.get("slope_magnitude", None),
-                        "expected_z_score": exp_row.get("z_score", None),
-                        "predicted_z_score": best_match.get("z_score", None)
                     })
                     matched_exp_indices.add(exp_row.name)
                     used_pred_indices.add(best_match.name)
 
+        # Optionally, add unmatched expected and predicted peaks above confidence threshold
         if include_unmatched:
             unmatched_exp = exp_peaks[
                 (~exp_peaks.index.isin(matched_exp_indices)) &
@@ -277,8 +302,7 @@ class TransitionAnalyzer:
                     "is_late": None,
                     "expected_slope": exp_row.get("slope_magnitude", None),
                     "predicted_slope": None,
-                    "expected_z_score": exp_row.get("z_score", None),
-                    "predicted_z_score": None
+                  
                 })
 
         unmatched_pred = pred_peaks[
@@ -299,10 +323,10 @@ class TransitionAnalyzer:
                 "is_late": None,
                 "expected_slope": None,
                 "predicted_slope": pred_row.get("slope_magnitude", None),
-                "expected_z_score": None,
-                "predicted_z_score": pred_row.get("z_score", None)
+              
             })
 
+        # Build result DataFrame and sort
         result_df = pd.DataFrame(matches)
         result_df = result_df.sort_values(
             by=["combined_score", "expected_time"], 
@@ -310,10 +334,12 @@ class TransitionAnalyzer:
             na_position="last"
         )
 
+        # Filter out negative time differences (optional)
         result_df = result_df[
             (result_df["time_difference_sec"].isna()) | (result_df["time_difference_sec"] >= 0)
         ]
      
+        # Add number of datetimes for the expected day
         if not result_df.empty and "expected_time" in result_df.columns:
             result_df["expected_date"] = pd.to_datetime(result_df["expected_time"]).dt.date
             result_df["num_datetimes_for_day"] = result_df["expected_date"].map(num_datetimes_per_day).fillna(0).astype(int)

@@ -74,15 +74,14 @@ non_stratus_days = []
 all_predicted = []
 all_expected = []
 months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
-# months = [(2024, m) for m in range(11, 12)]  # Only March 2023
-# # months = ... # (commented: other months)
+
 pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz")
 df_to_save = pd.DataFrame()
 # Main inference loop over months
 for year, month in months:
-    # if os.path.exists(pred_file):
+    if os.path.exists(pred_file):
     #     # If predictions already exist, skip computation
-    #     break
+         break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
     if month == 12:
@@ -194,22 +193,22 @@ for year, month in months:
 
 
 # Flatten all_expected and all_predicted lists if any predictions were made
-#if len(all_expected) > 0 or len(all_predicted) > 0:
-all_expected = [item for sublist in all_expected for item in sublist]
-all_predicted = [item for sublist in all_predicted for item in sublist]
-# Save predictions and expected values for later use
-np.savez(
-    os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz"),
-    predicted=np.array(all_predicted, dtype=np.float32),
-    expected=np.array(all_expected, dtype=np.float32),
-)
-# else:
-#     # If predictions already exist, load them
-#     with np.load(pred_file, allow_pickle=True) as pred_data:
-#         all_predicted = pred_data["predicted"]
-#         all_expected = pred_data["expected"]
-#         all_expected.astype(float)
-#         all_predicted.astype(float)
+if len(all_expected) > 0 or len(all_predicted) > 0:
+    all_expected = [item for sublist in all_expected for item in sublist]
+    all_predicted = [item for sublist in all_predicted for item in sublist]
+    # Save predictions and expected values for later use
+    np.savez(
+        os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz"),
+        predicted=np.array(all_predicted, dtype=np.float32),
+        expected=np.array(all_expected, dtype=np.float32),
+    )
+else:
+    # If predictions already exist, load them
+    with np.load(pred_file, allow_pickle=True) as pred_data:
+        all_predicted = pred_data["predicted"]
+        all_expected = pred_data["expected"]
+        all_expected.astype(float)
+        all_predicted.astype(float)
 
 # Compute global metrics and plots
 global_metrics = Metrics(
@@ -234,11 +233,10 @@ specific_test_days = [
 global_metrics.save_metrics_report(
     stratus_days=specific_test_days, non_stratus_days=non_stratus_days
 )
-# global_metrics.plotter.plot_residual_errors(specific_test_days)
 # global_metrics.plotter.plot_delta_scatter([], "geneva")
 # global_metrics.plotter.plot_delta_scatter([], "dole")
 # global_metrics.plotter.plot_delta_scatter([])
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
 # global_metrics.plotter.plot_delta_scatter(specific_test_days)
-# global_metrics.plotter.plot_delta_error_heatmap(specific_test_days)
+global_metrics.plotter.plot_delta_error_heatmap(specific_test_days)

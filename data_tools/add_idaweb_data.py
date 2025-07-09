@@ -17,9 +17,8 @@ idaweb_df = pd.DataFrame(idaweb_data)
 # Split the single column into multiple columns using the delimiter ';'
 idaweb_df = idaweb_df[0].str.split(';', expand=True)
 
-# Rename the columns based on the header row (if available)
-idaweb_df.columns = idaweb_df.iloc[2]  # Assuming the third row contains column names
-idaweb_df = idaweb_df.drop(index=2)  # Drop the header row from the data
+idaweb_df.columns = idaweb_df.iloc[2] 
+idaweb_df = idaweb_df.drop(index=2)  
 
 # Reset the index
 idaweb_df = idaweb_df.reset_index(drop=True)
