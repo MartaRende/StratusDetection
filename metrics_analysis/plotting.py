@@ -117,30 +117,28 @@ class Plotter:
             ax1.set_xticklabels([
                 t.strftime("%H:%M") for t in times if pd.Timestamp(t.strftime("%H:%M")).minute % 10 == 0
             ], rotation=45)
-
             ax2 = fig.add_subplot(gs[1])
             ax2.axis('off')
 
-            if num_images > 0:
-                img_width = 1.0 / num_images
-                for i, idx in enumerate(indices):
-                    dt = day_datetimes[idx]
+            # Ensure we have up to 6 images and that each exists
+            valid_imgs = []
+            valid_times = []
+            for idx in indices:
+                dt = day_datetimes[idx]
                 img = self.metrics.get_image_for_datetime(dt)
-                
-                if img is None:
-                    self.metrics.logger.warning(f"No image found for {dt}. Skipping.")
-                    continue
-
-                # Convert to numpy array if not already
-                if isinstance(img, list):
-                    img = np.array(img)
-
-                if np.all(img == 0):
-                    self.metrics.logger.warning(f"Image for {dt} is completely black.")
+                if img is not None and not (isinstance(img, np.ndarray) and np.all(img == 0)):
+                    valid_imgs.append(img)
+                    valid_times.append(dt)
                 else:
+                    self.metrics.logger.warning(f"No valid image found for {dt}. Skipping.")
+
+            num_valid = len(valid_imgs)
+            if num_valid > 0:
+                img_width = 1.0 / num_valid
+                for i, (img, dt) in enumerate(zip(valid_imgs, valid_times)):
+                
                     if img.max() - img.min() < 1e-3:
                         img = (img - img.min()) / (img.max() - img.min() + 1e-6)
-
                     if img.ndim == 2:
                         img = np.stack([img] * 3, axis=-1)
                     left = i * img_width
