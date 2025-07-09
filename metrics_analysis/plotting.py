@@ -11,6 +11,7 @@ from datetime import timedelta
 
 from .config import PlotConfig
 
+# Plots are made with the help of deepseek Ai
 class Plotter:
     """Handles all plotting functionality for the Metrics class"""
     
@@ -229,133 +230,6 @@ class Plotter:
         print(f"Saved delta scatter plot to {output_path}")
         plt.close()
     
-    def plot_residual_errors(self, days, prefix: str = "residual_errors", subdirectory: str = None) -> None:
-        """
-        Plot residual errors for expected vs predicted deltas (Geneva - Dole).
-        
-        Args:
-            days: List of days to include in the plot
-            prefix: Prefix for filename
-            subdirectory: Optional subdirectory to save plot
-        """
-        # Prepare data
-        if not days:
-            # If days is empty, use all available days in the data
-            df = self.metrics_create_comparison_dataframe()
-        else:
-            days = self.metrics._normalize_days_input(days)
-            df = self.metrics._prepare_day_metrics(days)
-        if df.empty:
-            self.logger.warning("No data found for the provided days.")
-            return
-        
-        # Calculate deltas and residuals
-        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
-        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
-        df["residual"] = df["predicted_delta"] - df["expected_delta"]
-        
-        # Create plot
-        plt.figure(figsize=(10, 6))
-        
-        # Residuals scatter plot
-        # Scatter plot of residuals
-        plt.scatter(
-            df["expected_delta"], 
-            df["residual"],
-            alpha=0.6,
-            color='blue',
-            label='Residuals'
-        )
-        # Histogram of residuals on a secondary y-axis
-        ax = plt.gca()
-        ax_hist = ax.twinx()
-        ax_hist.hist(
-            df["residual"],
-            bins=30,
-            color='orange',
-            alpha=0.3,
-            label='Residuals Histogram'
-        )
-        ax_hist.set_ylabel("Count", fontsize=self.plot_config.fontsize["labels"])
-        ax_hist.legend(loc='upper right', fontsize=self.plot_config.fontsize["labels"])
-        
-        # Horizontal line at zero residual
-        plt.axhline(0, color='red', linestyle='--', label='Zero Residual')
-        
-        # Format plot
-        plt.title(f"Residual Errors (Predicted - Expected Delta) - Stratus Days\n", 
-                fontsize=self.plot_config.fontsize["title"])
-        plt.xlabel("Expected Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
-        plt.ylabel("Residual Error (W/m²)", fontsize=self.plot_config.fontsize["labels"])
-        plt.legend(fontsize=self.plot_config.fontsize["labels"])
-        plt.grid(True, linestyle='--', alpha=0.3)
-        
-        # Save plot
-        plt.tight_layout()
-        if self.metrics.save_path:
-            output_path = os.path.join(
-                subdirectory if subdirectory else self.metrics.save_path,
-                f"{prefix}_residuals_all.png"
-            )
-            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
-            print(f"Saved residual errors plot to {output_path}")
-        plt.close()
-
-    def plot_delta_error_heatmap(self, days: List[str], prefix: str = "delta_heatmap", subdirectory: str = None) -> None:
-        """Plot heatmap of absolute delta errors per day and hour"""
-        df = self.metrics._prepare_day_metrics(days)
-        if df.empty:
-            self.metrics.logger.warning("No data found for the provided days.")
-            return
-
-        # Calculate delta error
-        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
-        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
-        df["delta_abs_error"] = (df["predicted_delta"] - df["expected_delta"]).abs()
-
-        # Extract day and hour (as strings)
-        df["date"] = df["datetime"].dt.date.astype(str)
-        df["hour"] = df["datetime"].dt.hour
-
-        # Create pivot table: rows=days, columns=hours
-        heatmap_data = df.pivot_table(
-            index="date",
-            columns="hour",
-            values="delta_abs_error",
-            aggfunc="mean"
-        )
-
-        # Plot heatmap
-        plt.figure(figsize=(14, 6))
-    
-        sns.heatmap(
-            heatmap_data,
-            cmap="YlOrRd",
-            linewidths=0.5,
-            linecolor='gray',
-            vmin=0,
-            vmax=400,
-        )
-        plt.title("Heatmap of Absolute Delta Error (Geneva - Dole) per Day and Hour", fontsize=self.plot_config.fontsize["title"])
-        plt.xlabel("Hour of Day", fontsize=self.plot_config.fontsize["labels"])
-        plt.ylabel("Day", fontsize=self.plot_config.fontsize["labels"])
-        plt.tight_layout()
-        # Plot mean of delta_abs_error across all days and hours
-        mean_error = df["delta_abs_error"].mean()
-        plt.axhline(mean_error, color='gray', linestyle='--', linewidth=1.5, label=f"Mean Delta Error: {mean_error:.2f} W/m²")
-        plt.legend(loc='upper right', fontsize=self.plot_config.fontsize.get("labels", 10))
-        # Save the file
-        if self.metrics.save_path:
-            output_path = os.path.join(
-            subdirectory if subdirectory else self.metrics.save_path,
-            f"{prefix}.png"
-            )
-            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
-            self.metrics.logger.info(f"Saved delta error heatmap to {output_path}")
-        print(f"Saved delta error heatmap to {output_path}")
-        plt.close()
-   
-    
     
     def plot_prediction_curves(self, 
                             expected_values: List[List[float]],
@@ -443,7 +317,6 @@ class Plotter:
                     future_actual = actual_values.get(future_dt, (None, None))
                     has_actual = all(val is not None for val in future_actual)
 
-                    # --- DEBUG block ---
                     expected_future_dt = current_dt + timedelta(minutes=prediction_horizons[j])
                
                     if future_dt != expected_future_dt:

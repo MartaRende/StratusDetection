@@ -4,7 +4,11 @@ from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 
-# Modify your SimpleDataset class to use more efficient loading
+# This dataset class is designed to prepare the dataset for training by loading images and weather data.
+# It supports both single-view and dual-view configurations, applies data augmentation if specified,
+# and precomputes image paths to optimize loading during training.
+# The dataset returns weather data, image tensors, and labels for each sample.
+# It handles missing images by returning a blank tensor, ensuring robustness during training.
 class PrepareDataset(Dataset):
     def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False, prepare_data=None):
         self.weather = torch.tensor(weather, dtype=torch.float32)  
@@ -34,8 +38,6 @@ class PrepareDataset(Dataset):
                 paths.append((view1_paths, view2_paths))
         return paths
 
-   
-    
     def __len__(self):
         return len(self.weather)
     def _load_single_image(self, path):

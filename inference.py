@@ -75,6 +75,7 @@ pred_file_2 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_2.npz")
 pred_file_5 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_5.npz")
 for year, month in months:
     if os.path.exists(pred_file_0) and os.path.exists(pred_file_2) and os.path.exists(pred_file_5):
+        # If the prediction files already exist, load them and skip processing
         break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
@@ -216,8 +217,10 @@ for year, month in months:
                 time_interval_min=10, 
                 prediction_horizons=[10, 30,60]
             )
-   
-# Check if all values in all_expected and all_predicted are None for each time step
+
+# Save predictions and expected values for each time step to speed up plotting
+compute_global_metrics = True
+
 for t in ["t_0", "t_2", "t_5"]:
     if not all(
         (expt is None or all(e is None for e in expt))
@@ -231,6 +234,7 @@ for t in ["t_0", "t_2", "t_5"]:
             predicted=np.array(all_predicted[t], dtype=np.float32),
             expected=np.array(all_expected[t], dtype=np.float32)
         )
+        compute_global_metrics = True
     else:
         with np.load(
             os.path.join(MODEL_PATH, f"predictions_vs_expected_ready_{t}.npz"), 
@@ -238,6 +242,7 @@ for t in ["t_0", "t_2", "t_5"]:
         ) as pred_data:
             all_predicted[t] = pred_data['predicted']
             all_expected[t] = pred_data['expected']
+        compute_global_metrics = False
 
 
 
@@ -253,12 +258,10 @@ for t in prediction:
         all_expected[t], all_predicted[t], data, save_path=MODEL_PATH, 
         start_date="2023-01-01", end_date="2024-12-31", time_key=t,stats_for_month=False
     )
+    if compute_global_metrics:
+        global_metrics.save_metrics_report(
+            stratus_days=specific_test_days, non_stratus_days=non_stratus_days
+        )
 
-    global_metrics.save_metrics_report(
-        stratus_days=specific_test_days, non_stratus_days=non_stratus_days
-    )
-
-import ipdb
-ipdb.set_trace()
 
 
