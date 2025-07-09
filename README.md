@@ -27,6 +27,9 @@ This project analyzes stratus cloud phenomena by processing weather images from 
     - Sufficient computational resources to analyze the data and run the training processes.
 
 Ensure that these datasets are available and organized as described for successful training and inference.
+
+## Project branch
+[TODO]
 ## Project Structure
 
 
@@ -60,15 +63,7 @@ StratusDetection/
 git clone https://github.com/yourusername/StratusDetection.git
 cd StratusDetection
 ```
-2. Create and activate a virtual environnement
-```bash
-uv venv
-source .venv/bin/activate
-```
-3. Install dependencies
-```bash
-uv pip install -e .
-```
+
 
 ### To install on Infrastructure with Apptainer and SLURM
 

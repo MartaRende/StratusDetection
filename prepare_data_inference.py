@@ -161,6 +161,7 @@ class PrepareData:
             x_images_seq.append(np.array(img_sequence))
             y_seq.append(target)
             valid_indices.append(i)
+            
         # Convert to numpy arrays
         x_meteo_seq = np.array(x_meteo_seq)
         x_images_seq = np.array(x_images_seq)

@@ -188,8 +188,7 @@ class TransitionAnalyzer:
         """Enhanced matching of critical transitions"""
         exp_peaks = peaks_results.get("expected_transitions", pd.DataFrame()).reset_index()
         pred_peaks = peaks_results.get("predicted_transitions", pd.DataFrame()).reset_index()
-        import ipdb 
-        ipdb.set_trace()
+
         num_datetimes_per_day = peaks_results.get("num_datetimes_per_day", {})
         
         if exp_peaks.empty or pred_peaks.empty:

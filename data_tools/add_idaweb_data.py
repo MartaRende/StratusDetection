@@ -38,8 +38,7 @@ df = df.merge(idaweb_df.rename(columns={'time': 'datetime', 'prestas0': 'pres'})
 if 'pres_x' in df.columns and 'pres_y' in df.columns:
     df['pres'] = df['pres_y']  # Keep 'pres_y' or choose 'pres_x'
     df = df.drop(columns=['pres_x', 'pres_y'])  # Drop the duplicates
-import ipdb
-ipdb.set_trace()
+
 df['pres'] = pd.to_numeric(df['pres'], errors='coerce')
 npz_file = "data/complete_data_pres.npz"
 np.savez_compressed(npz_file, dole=df.to_dict(orient='records'))

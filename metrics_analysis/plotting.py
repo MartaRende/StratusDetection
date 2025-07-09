@@ -75,7 +75,7 @@ class Plotter:
             if day_df.empty:
                 self.metrics.logger.warning(f"No data found for day {day}")
                 continue
-
+     
             day_df = day_df.drop_duplicates(subset=["datetime"])
             month = day_df["month"].iloc[0]
             month_dir = os.path.join(self.metrics.save_path, month)
@@ -494,8 +494,7 @@ class Plotter:
 
 
         duration_df = pd.DataFrame(daily_durations)
-        import ipdb 
-        ipdb.set_trace()
+       
         global_mean_error = duration_df["duration_error_min"].mean()
         n_invalid = (~duration_df["valid_prediction"]).sum()
 

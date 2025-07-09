@@ -32,7 +32,7 @@ class Metrics:
                  plot_config: Optional[PlotConfig] = None,
                  log_level: int = logging.INFO):
         
-        self._initialize_data(expected, predicted, data)
+        self._initialize_data(expected, predicted, data, )
         self._setup_datetime_filters(start_date, end_date)
         self._setup_paths(save_path)
         self._initialize_configurations(stats_for_month, tolerance, plot_config, log_level)
@@ -51,11 +51,31 @@ class Metrics:
         self.data = pd.json_normalize(pd.DataFrame(data["dole"])[0])
         
         self.data["datetime"] = pd.to_datetime(self.data["datetime"])
-        self.data["gre000z0_geneva"] = pd.to_numeric(self.data["gre000z0_nyon"])
+        self.data["gre000z0_gen"] = pd.to_numeric(self.data["gre000z0_nyon"])
         self.data["gre000z0_dole"] = pd.to_numeric(self.data["gre000z0_dole"])
-       
-        self._geneva_values = self.data["gre000z0_geneva"].to_numpy()
-        self._dole_values = self.data["gre000z0_dole"].to_numpy()
+        complete_data_gen_fp = "data/complete_data_gen.npz"
+        # Add missing datetimes from complete data for corresponding dates
+        complete_data_gen = np.load(complete_data_gen_fp, allow_pickle=True)
+     
+        complete_data_gen = {k: complete_data_gen[k] for k in complete_data_gen.files}
+        complete_df = pd.DataFrame(complete_data_gen['dole'])
+        complete_df = pd.json_normalize(complete_df[0])
+        complete_df['datetime'] = pd.to_datetime(complete_df['datetime'])
+        self.data['datetime'] = pd.to_datetime(self.data['datetime'])
+        # Find intersection of dates (ignore hour) between complete_df and df
+        complete_dates = complete_df['datetime'].dt.date
+        df_dates = self.data['datetime'].dt.date
+        common_dates = np.intersect1d(complete_dates, df_dates)
+        # Filter complete_df to only include rows where the date is in common_dates
+        complete_df = complete_df[complete_df['datetime'].dt.date.isin(common_dates)]
+
+        # Optionally, merge or append missing datetimes to self.data
+        # Here, we ensure self.data contains all datetimes from complete_df for those dates
+        self.data = pd.concat([self.data, complete_df[~complete_df['datetime'].isin(self.data['datetime'])]], ignore_index=True)
+        self.data = self.data.sort_values('datetime').reset_index(drop=True)
+
+        self._geneva_values = self.data["gre000z0_gen"].astype(float).to_numpy()
+        self._dole_values = self.data["gre000z0_dole"].astype(float).to_numpy()
         self._datetime_values = self.data["datetime"].to_numpy()
 
     def _setup_datetime_filters(self, start_date, end_date):
@@ -441,3 +461,4 @@ class Metrics:
             with open(report_path, 'w') as f:
                 f.write("\n".join(report_lines))
             self.logger.info(f"Saved metrics report to {report_path}")
+
