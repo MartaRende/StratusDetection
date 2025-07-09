@@ -29,7 +29,10 @@ This project analyzes stratus cloud phenomena by processing weather images from 
 Ensure that these datasets are available and organized as described for successful training and inference.
 
 ## Project branch
-[TODO]
+The project is mainly developed on two branches:
+- **main**: manages the version of the model that outputs a single prediction (e.g., at 10 min, 30 min, or 1 hour).
+- **multiple_prevision**: manages the version of the model that outputs multiple predictions at once (by default, from 10 minutes up to 1 hour).
+
 ## Project Structure
 
 

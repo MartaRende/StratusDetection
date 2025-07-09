@@ -53,6 +53,8 @@ prepare_data = PrepareData(
 )
 weather_data = prepare_data.data
 weather_data['datetime'] = pd.to_datetime(weather_data['datetime'])
+import ipdb
+ipdb.set_trace()
 weather_data = weather_data[weather_data['datetime'].dt.date.isin(specific_test_days)]
 # [Previous imports and configuration remain the same until the prediction loading section]
 
@@ -86,10 +88,17 @@ for model_name, minutes in dict_models_img.items():
     except Exception as e:
         print(f"Error processing {model_name}: {str(e)}")
         continue
-
+import ipdb 
+ipdb.set_trace()
 # Post-processing
 weather_data = weather_data.sort_values('datetime')
-
+# Print value ranges for Geneva between 07:00 and 16:00 for each specific test day
+for day in specific_test_days:
+    day_data = weather_data[weather_data['datetime'].dt.date == day]
+    time_filtered = day_data.set_index('datetime').between_time('07:00', '16:00')
+    print(f"Value ranges for Geneva on {day}: min={time_filtered['gre000z0_gen'].min()}, max={time_filtered['gre000z0_gen'].max()}")
+import ipdb
+ipdb.set_trace()
 # Verify alignment by checking a specific time point
 sample_time = weather_data['datetime'].iloc[0]
 print(f"\nVerification for {sample_time}:")
@@ -97,57 +106,127 @@ for minutes in dict_models_img.values():
     print(f"{minutes}min prediction:")
     print(f"Pred Geneva: {weather_data.loc[weather_data['datetime'] == sample_time, f'predicted_geneva_{minutes}'].values}")
     print(f"Actual Geneva (shifted): {weather_data.loc[weather_data['datetime'] == sample_time + pd.Timedelta(minutes=minutes), 'expected_geneva_10'].values if sample_time + pd.Timedelta(minutes=minutes) in weather_data['datetime'].values else 'Not available'}")
-    # Example: Filter weather_data by a specific date
-    filter_date = pd.to_datetime("2024-11-16").date()
-    filtered_data = weather_data[weather_data['datetime'].dt.date == filter_date]
+    # Example: Filter weather_data by a specific datetime range
+    start_time = pd.to_datetime("2024-11-16 06:00")
+    end_time = pd.to_datetime("2024-11-16 12:00")
+    filtered_data = weather_data[(weather_data['datetime'] >= start_time) & (weather_data['datetime'] <= end_time)]
 
-    print(f"\nFiltered data for {filter_date}:")
+    print(f"\nFiltered data from {start_time} to {end_time}:")
     print(filtered_data[['datetime'] + [c for c in filtered_data.columns if 'geneva' in c or 'dole' in c]].head())
-    # Plotting with PROPER time alignment
-plot_day = "2024-11-16"
+# Plotting with PROPER time alignment
+# Plotting prediction lines radiating from each observation point
+plot_day = "2024-11-03"
 day_data = weather_data[weather_data['datetime'].dt.date == pd.to_datetime(plot_day).date()]
+# Save the aligned weather_data DataFrame to CSV
+csv_save_path = f"{MODEL_PATH}/aligned_weather_predictions_{plot_day}.csv"
+weather_data.to_csv(csv_save_path, index=False)
+print(f"Aligned data saved to {csv_save_path}")
+print("Value ranges for Geneva:")
+for minutes in dict_models_img.values():
+    pred_col = f'predicted_geneva_{minutes}'
+    actual_col = 'gre000z0_gen'
+    print(f"{minutes}min -> Predicted: min={day_data[pred_col].min()}, max={day_data[pred_col].max()} | Actual: min={day_data[actual_col].min()}, max={day_data[actual_col].max()}")
 
-if len(day_data) == 0:
-    print(f"No data available for {plot_day}")
-else:
-    plt.figure(figsize=(15, 10))
+print("Value ranges for Dole:")
+for minutes in dict_models_img.values():
+    pred_col = f'predicted_dole_{minutes}'
+    actual_col = 'gre000z0_dole'
+    print(f"{minutes}min -> Predicted: min={day_data[pred_col].min()}, max={day_data[pred_col].max()} | Actual: min={day_data[actual_col].min()}, max={day_data[actual_col].max()}")
+
+import ipdb
+ipdb.set_trace()
+def plot_aligned_predictions(weather_data, plot_day="2024-11-03"):
+    """Plot properly aligned prediction lines"""
+    # Filter and prepare data
+    day_data = weather_data[weather_data['datetime'].dt.date == pd.to_datetime(plot_day).date()].copy()
+    if len(day_data) == 0:
+        print(f"No data for {plot_day}")
+        return
     
-    # Plot actual values (using the shortest prediction time as reference)
-    plt.plot(day_data['datetime'], day_data['expected_geneva_10'], 
-             'ko-', label='Actual Geneva', markersize=8)
-    plt.plot(day_data['datetime'], day_data['expected_dole_10'], 
-             'ks--', label='Actual Dole', markersize=8)
+    # Convert to numeric and handle NaNs
+    for m in dict_models_img.values():
+        day_data[f'predicted_geneva_{m}'] = pd.to_numeric(day_data[f'predicted_geneva_{m}'], errors='coerce')
+        day_data[f'predicted_dole_{m}'] = pd.to_numeric(day_data[f'predicted_dole_{m}'], errors='coerce')
     
-    # Plot predictions with proper time alignment
-    colors = ['r', 'g', 'b', 'm']
-    for i, minutes in enumerate(dict_models_img.values()):
-        geneva_col = f'predicted_geneva_{minutes}'
-        dole_col = f'predicted_dole_{minutes}'
+    # Create figure
+    plt.figure(figsize=(18, 10))
+    
+    # Plot actual values
+    plt.plot(day_data['datetime'], day_data['gre000z0_gen'], 
+             'ko-', label='Actual Geneva', markersize=6, linewidth=1.5)
+    plt.plot(day_data['datetime'], day_data['gre000z0_dole'], 
+             'ks--', label='Actual Dole', markersize=6, linewidth=1.5)
+    
+    # Consistent colors for each horizon
+    horizon_colors = {
+        10: '#FF6B6B',  # Red
+        30: '#4ECDC4',   # Teal
+        60: '#45B7D1',   # Blue
+        120: '#A37EBD'   # Purple
+    }
+    
+    # Plot each prediction point with proper alignment
+    for idx, row in day_data.iterrows():
+        base_time = row['datetime']
+        actual_geneva = row['gre000z0_gen']
+        actual_dole = row['gre000z0_dole']
         
-        if geneva_col in day_data.columns:
-            # Plot predictions at their PREDICTION time (base time + horizon)
-            pred_times = day_data['datetime'] + pd.Timedelta(minutes=minutes)
-            plt.plot(pred_times, day_data[geneva_col], 
-                     f'{colors[i]}o--', label=f'{minutes}min Pred Geneva', alpha=0.7)
-            plt.plot(pred_times, day_data[dole_col], 
-                     f'{colors[i]}s--', label=f'{minutes}min Pred Dole', alpha=0.7)
+        for minutes in sorted(dict_models_img.values()):
+            pred_time = base_time + pd.Timedelta(minutes=minutes)
+            pred_geneva = row[f'predicted_geneva_{minutes}']
+            pred_dole = row[f'predicted_dole_{minutes}']
+            
+            if not pd.isna(pred_geneva):
+                # Plot Geneva prediction line
+                plt.plot([base_time, pred_time], [actual_geneva, pred_geneva],
+                         color=horizon_colors[minutes], linestyle='-',
+                         alpha=0.6, linewidth=1)
+                
+                # Plot Geneva marker
+                plt.plot(pred_time, pred_geneva, 'o',
+                         color=horizon_colors[minutes], markersize=6)
+            
+            if not pd.isna(pred_dole):
+                # Plot Dole prediction line
+                plt.plot([base_time, pred_time], [actual_dole, pred_dole],
+                         color=horizon_colors[minutes], linestyle='--',
+                         alpha=0.6, linewidth=1)
+                
+                # Plot Dole marker
+                plt.plot(pred_time, pred_dole, 's',
+                         color=horizon_colors[minutes], markersize=6)
     
-    plt.title(f'Actual vs Predicted Values for {plot_day}\n(Predictions shown at prediction time)')
-    plt.xlabel('Time')
-    plt.ylabel('Value')
-    plt.legend()
-    plt.grid(True)
-    
+    # Formatting
     ax = plt.gca()
     ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     plt.xticks(rotation=45)
+    plt.grid(True, alpha=0.3)
+    
+    # Create legend
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], color='k', marker='o', linestyle='-', label='Actual Geneva'),
+        Line2D([0], [0], color='k', marker='s', linestyle='--', label='Actual Dole')
+    ]
+    for minutes, color in horizon_colors.items():
+        legend_elements.append(
+            Line2D([0], [0], color=color, marker='o', linestyle='None',
+                  label=f'{minutes}min Pred'))
+    
+    plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.title(f'Aligned Predictions for {plot_day}', pad=20)
+    plt.xlabel('Time')
+    plt.ylabel('Radiation (W/m²)')
     plt.tight_layout()
     
-    plot_path = f"{MODEL_PATH}/time_aligned_predictions_{plot_day}.png"
-    plt.savefig(plot_path)
-    print(f"Time-aligned plot saved to {plot_path}")
-    plt.savefig("test.png")
+    plot_path = f"{MODEL_PATH}/aligned_predictions_{plot_day}.png"
+    plt.savefig(plot_path, bbox_inches='tight', dpi=300)
+    print(f"Aligned plot saved to {plot_path}")
+    plt.show()
+
+# Usage
+plot_aligned_predictions(weather_data, "2024-11-03")
 
 # Debug inspection
 print("\nSample of aligned data:")
