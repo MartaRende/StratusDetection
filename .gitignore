@@ -16,3 +16,7 @@ analysis/
 my_project.egg-info/
 
 logs/
+
+report.md
+
+models_backup/
