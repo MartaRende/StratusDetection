@@ -29,7 +29,7 @@ class StratusModel(nn.Module):
         )
 
 
-        self.cnn_output_size = 128 * 16 * 16  # 8192 features after CNN layers
+        self.cnn_output_size = 128 * 16 * 16  # Output size after CNN layers
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
@@ -71,7 +71,6 @@ class StratusModel(nn.Module):
     def forward(self, meteo_seq, image_seq_1, image_seq_2=None):
         batch_size = meteo_seq.size(0)
         
-        # image_seq_1 shape: [batch, seq_len, 3, H, W] -> [batch, 3*seq_len, H, W]
         view1_input = image_seq_1.reshape(batch_size, -1, image_seq_1.size(3), image_seq_1.size(4))
         view1_features = self.cnn_view1(view1_input).reshape(batch_size, -1)
         

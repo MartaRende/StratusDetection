@@ -4,7 +4,7 @@ import glob
 import os
 import matplotlib.pyplot as plt
 
-# --- Models to plot
+# Models to plot
 dict_models_all = {
     "model_6": 10,
     "model_10": 30,
@@ -23,13 +23,14 @@ dict_model_3 = { # with only imgs
 "model_3": 30,
 "model_3": 60,
 }
-dict_model_11 = { # with only imgs
+dict_model_11 = { # with all
 "model_11": 10,
 "model_11": 30,
 "model_11": 60,
 }
+# File parsing was done with the help of ChatGPT
 
-# --- Parsing helpers
+#  Parsing helpers
 def extract_np_float64(value):
     value = re.sub(r'np\.float64\(([^)]+)\)', r'\1', value)
     return float(value)
@@ -39,7 +40,6 @@ def extract_mae_values(text):
         "global": {"geneva": None, "dole": None, "delta": None},
         "stratus": {"geneva": None, "dole": None, "delta": None}
     }
-
     # Global
     m_global = re.search(r"Mean Absolute Error:\s*\{[^}]*'geneva': ([^,}]+),\s*'dole': ([^}]+)\}", text)
     m_delta = re.search(r"=== Global Delta geneva-Dole Stats ===.*?'mae': (np\.float64\([^)]+\)|[0-9.]+)", text, re.DOTALL)
@@ -97,25 +97,8 @@ def collect_all_mae(model_dict):
 
     return data
 
-# --- Plot separate MAE
-def plot_mae_components(data, title, filename):
-    plt.figure(figsize=(9, 5))
-    plt.plot(data["horizons"], data["geneva_global"], marker='o', label="Geneva Global", color="blue")
-    plt.plot(data["horizons"], data["dole_global"], marker='s', label="Dole Global", color="green")
-    plt.plot(data["horizons"], data["geneva_stratus"], marker='o', linestyle='--', label="Geneva Stratus", color="deepskyblue")
-    plt.plot(data["horizons"], data["dole_stratus"], marker='s', linestyle='--', label="Dole Stratus", color="limegreen")
 
-    plt.xlabel("Horizon (minutes)")
-    plt.ylabel("MAE")
-    plt.title(title)
-    plt.grid(True, linestyle='--', alpha=0.5)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(filename)
-    plt.show()
-    print(f"✅ Saved: {filename}")
 
-# --- Run
 data_all = collect_all_mae(dict_models_all)
 data_img = collect_all_mae(dict_models_img)
 def collect_all_mae_v2(model_dict):

@@ -12,7 +12,7 @@ from datetime import datetime as dt
 import matplotlib.image as mpimg
 import xarray as xr
 
-
+# Interactive map was created with the help of deepseek
 def get_map(datetime, var="CT"):
     # 1. Define polygon and coordinate transformations
     polygon_points = [

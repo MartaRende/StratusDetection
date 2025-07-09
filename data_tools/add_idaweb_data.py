@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 
+# helper file to add pressure data from idaweb to the dole dataset
+# This script reads pressure data from a text file, processes it, and merges it with the dole dataset.
+# This script was also used to read geneva radiation data
 def read_txt_file(filepath):
     with open(filepath, 'r') as file:
         lines = file.readlines()

@@ -80,7 +80,7 @@ df_to_save = pd.DataFrame()
 # Main inference loop over months
 for year, month in months:
     if os.path.exists(pred_file):
-    #     # If predictions already exist, skip computation
+        # If predictions already exist, skip computation
          break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
@@ -191,8 +191,8 @@ for year, month in months:
         metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
         metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
 
-
-# Flatten all_expected and all_predicted lists if any predictions were made
+compute_global_metrics = True
+# Save prediction to compute faster graphs later
 if len(all_expected) > 0 or len(all_predicted) > 0:
     all_expected = [item for sublist in all_expected for item in sublist]
     all_predicted = [item for sublist in all_predicted for item in sublist]
@@ -202,6 +202,7 @@ if len(all_expected) > 0 or len(all_predicted) > 0:
         predicted=np.array(all_predicted, dtype=np.float32),
         expected=np.array(all_expected, dtype=np.float32),
     )
+    compute_global_metrics = True
 else:
     # If predictions already exist, load them
     with np.load(pred_file, allow_pickle=True) as pred_data:
@@ -209,19 +210,14 @@ else:
         all_expected = pred_data["expected"]
         all_expected.astype(float)
         all_predicted.astype(float)
+    compute_global_metrics = False
 
 # Compute global metrics and plots
 global_metrics = Metrics(
     all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", prediction_minutes=prediction_minutes, stats_for_month=False,
 )
 
-df_to_save = global_metrics._create_comparison_dataframe()
-# Save df_to_save to a CSV file if the model path exists
-csv_path = os.path.join(MODEL_PATH, "comparison_dataframe.csv")
-if not  os.path.exists(csv_path):
-    df_to_save.to_csv(csv_path, index=False)
-else:
-    print(f"File alraedy saved")
+
 
 specific_test_days = [
     "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
@@ -230,9 +226,11 @@ specific_test_days = [
 ]
 
 # Various plots and analyses for specific days
-global_metrics.save_metrics_report(
-    stratus_days=specific_test_days, non_stratus_days=non_stratus_days
-)
+if compute_global_metrics:
+    global_metrics.save_metrics_report(
+        stratus_days=specific_test_days, non_stratus_days=non_stratus_days
+    )
+# Compute desired graphs here
 # global_metrics.plotter.plot_delta_scatter([], "geneva")
 # global_metrics.plotter.plot_delta_scatter([], "dole")
 # global_metrics.plotter.plot_delta_scatter([])

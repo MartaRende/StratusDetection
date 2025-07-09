@@ -24,7 +24,7 @@ class PrepareData:
         self.desired_prediction = prediction_minutes  # minutes for prediction
 
     def _load_weather_data(self):
-        # load data test of npz file
+        """Load weather data from the .npz file and filter it to match the complete data"""
         complete_data_gen_fp = f"data/complete_data_gen.npz"
         complete_data_gen = np.load(complete_data_gen_fp, allow_pickle=True)
         npz_file = np.load(self.fp_weather, allow_pickle=True)
@@ -47,8 +47,7 @@ class PrepareData:
     def get_image_path(self, dt, view=2):
         """Get the path for an image without loading it"""
         if isinstance(dt, np.datetime64):
-            dt = pd.Timestamp(dt)  # Convert to pandas Timestamp, which supports strftime
-
+            dt = pd.Timestamp(dt)  
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
         img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
@@ -65,8 +64,6 @@ class PrepareData:
     def image_exists(self, dt, view=2):
         """Check if image exists without loading it"""
         return os.path.exists(self.get_image_path(dt, view))
-
-
 
 
     def get_image_for_datetime(self, dt, view=2):
