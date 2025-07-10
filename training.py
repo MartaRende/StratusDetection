@@ -264,7 +264,7 @@ def saveResults():
     # Save normalization statistics
     stats_save_path = os.path.join(currPath, "stats.npz")
     np.savez(stats_save_path, stats_input=stats_input, stats_label=stats_label)
-    # Save stratus days statistics
+    # Save stratus days statistics of z-score modified data
     stratus_days_stats = prepare_data.stats_stratus_days
     print("Stratus days stats:", stratus_days_stats)
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)

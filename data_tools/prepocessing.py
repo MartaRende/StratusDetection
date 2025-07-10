@@ -116,7 +116,8 @@ class PreProcessData:
 
         # Define points of interest (currently only 'dole')
         self.points = {"dole": (46.424797, 6.099136)}
-        # Coordinate transformer from WGS84 to Swiss grid
+        # Coordinate transformer from WGS84 (EPSG:4326) to CH1903 (EPSG:21781)
+        # This is used to convert latitude/longitude to Swiss grid coordinates
         self.transformer = Transformer.from_crs("EPSG:4326", "EPSG:21781")
         self.coordinates = {
             name: self.transformer.transform(lat, lon)
