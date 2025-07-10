@@ -29,11 +29,15 @@ class PrepareDataset(Dataset):
         """Precompute all image paths to avoid repeated disk access during training."""
         paths = []
         for seq_info in self.seq_infos:
-            view_paths = []
-            for view in range(1, self.num_views + 1):
-                seq_paths = [self.get_image_path(dt, 2) for dt in seq_info]
-                view_paths.append(seq_paths)
-            paths.append(view_paths if self.num_views > 1 else view_paths[0])
+            if self.num_views == 2:
+                # For two views, get both view 1 and view 2 paths
+                view1_paths = [self.prepare_data.get_image_path(dt, view=1) for dt in seq_info]
+                view2_paths = [self.prepare_data.get_image_path(dt, view=2) for dt in seq_info]
+                paths.append((view1_paths, view2_paths))
+            else:
+                # For one view, only get view 2 paths
+                view2_paths = [self.prepare_data.get_image_path(dt, view=2) for dt in seq_info]
+                paths.append(view2_paths)
         return paths
 
     def get_image_path(self, dt, view=2):

@@ -356,12 +356,7 @@ class Metrics:
     def get_delta_metrics_for_days(self, days: List[str]) -> Dict[str, Dict[str, float]]:
         """
         Compute delta metrics (geneva-dole differences) for specific days.
-        
-        Args:
-            days: List of days in format 'YYYY-MM-DD'
-            
-        Returns:
-            Dictionary with delta metrics for each day and globally
+    
         """
         day_df = self._prepare_day_metrics(days)
         if day_df.empty:
