@@ -12,7 +12,8 @@ import functools
 
 class PrepareData:
     def __init__(self, fp_images, fp_weather, num_views=1, seq_length=3, prediction_time=6):
-        
+        """
+        Initialize the PrepareData class with paths to images and weather data."""
         self.image_base_folder = fp_images
         self.fp_weather = fp_weather
         if fp_weather.endswith('.npz'):
@@ -39,7 +40,7 @@ class PrepareData:
     def get_image_path(self, dt,   view=2):
         """Get the path for an image without loading it"""
         if isinstance(dt, np.datetime64):
-            dt = pd.Timestamp(dt)  # Convert to pandas Timestamp, which supports strftime
+            dt = pd.Timestamp(dt) 
 
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
@@ -61,6 +62,7 @@ class PrepareData:
 
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
+        """Filter data based on date range and seasons"""
         months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
 
         mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
@@ -68,6 +70,7 @@ class PrepareData:
                (self.data['datetime'].dt.month.isin(months_to_take))
         self.data = self.data[mask].copy()
         return self.data
+    
     def get_image_for_datetime(self, dt, view=2):
         """Get the image for a specific datetime without loading it into memory"""
         if isinstance(dt, np.datetime64):
@@ -80,6 +83,7 @@ class PrepareData:
         else:
             print(f"Image not found for datetime {dt} at view {view}. Returning empty image.")
             return np.zeros((512, 512, 3), dtype=np.uint8)
+        
     def prepare_data(self, df):
         df = df.sort_values('datetime').reset_index(drop=True)
         
@@ -104,20 +108,14 @@ class PrepareData:
             next_t_end = next_t_start + self.prediction_time  # prediction_time is the number of output points
             if next_t_end > len(df):
                 break
-            next_points = df.iloc[next_t_start:next_t_end]
+            next_points = df.iloc[next_t_start:next_t_end]  # Get the next points for prediction
 
-            # if len(next_points) < 3:
-            #     print(f"Skipping sequence starting at index {i} due to insufficient next points.")
-            #     continue
+         
             # Ensure next_points have 10-minute intervals
             next_time_diffs = np.diff(next_points['datetime'].values) / np.timedelta64(1, 'm')
             if not all(d == 10 for d in next_time_diffs):
             
                 print(f"Skipping sequence starting at index {i} due to non-10-minute intervals in next_points.at datetime {next_points['datetime'].values[0]}.")
-                # Interpolate missing values in next_points
-                # next_points = next_points.interpolate(method='linear', limit_direction='both')
-                # import ipdb
-                # ipdb.set_trace()
                 continue
             # Use the three next points as the target
             target = next_points[["gre000z0_nyon", "gre000z0_dole"]].values
@@ -167,10 +165,7 @@ class PrepareData:
                 print(f"Skipping sequence starting at index {i} due to missing images.")
                 continue
                 
-            # Prepare target (next time step after sequence)
-            
-          
-            # Use pd.isnull to handle all types safely
+         
             if pd.isnull(target).any():
                 print(f"Skipping sequence starting at index {i} due to NaN values in target data. at datetime {seq_window['datetime'].values[0]}.")
                 continue
@@ -193,15 +188,12 @@ class PrepareData:
         return x_meteo_seq, x_images_seq, y_seq
 
 
-    
-
     def find_stratus_days(self, df=None, median_gap=None, mad_gap=None):
+        """Identify stratus days based on gap statistics between two sensors made with z-score modified"""
         if df is None:
             df = self.data
         df = df.copy()
-        
         weather_df = df.reset_index()[['datetime', 'gre000z0_dole', 'gre000z0_nyon']].copy()
-        # Suppose we have a DataFrame 'weather_df' with columns 'gre000z0_dole' and 'gre000z0_nyon'
         # Calculate the absolute difference between the two columns
         weather_df['gap_abs'] = weather_df['gre000z0_dole'] - weather_df['gre000z0_nyon']
 
@@ -213,14 +205,13 @@ class PrepareData:
         # Calculate the Modified Z-Score
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 
-        # Define a threshold to identify outliers
-        threshold = 3
+  
+        threshold = 3 # 3 is a common threshold for outlier detection
         weather_df['large_gap_mod_zscore'] = weather_df['gap_abs_mod_zscore'] > threshold
 
         # Filter the data considered outliers
         large_gap_data = weather_df[weather_df['large_gap_mod_zscore']]
-        # Print the results
-        # Find sequences where there are more than 5 consecutive large differences
+        # Find sequences where there are more than 2 consecutive large differences
         large_gap_data = weather_df[weather_df['large_gap_mod_zscore']].copy()
         large_gap_data = large_gap_data.sort_values('datetime')
 
@@ -228,7 +219,6 @@ class PrepareData:
         mask = weather_df['large_gap_mod_zscore'].values
 
         # Find runs of consecutive True values
-
         indices = np.where(mask)[0]
         groups = []
         for k, g in groupby(enumerate(indices), lambda ix: ix[0] - ix[1]):
@@ -244,22 +234,20 @@ class PrepareData:
 
         consecutive_large_diff_dates = np.unique(consecutive_large_diff_dates)
 
-
-        # Find days with at least 8 large differences in total
+        # Find days with at least 3 large differences in total
         counts = large_gap_data['datetime'].dt.date.value_counts()
-        days_with_8_or_more = counts[counts >= 3].index
+        days_with_3_or_more = counts[counts >= 3].index
 
-            # Find intersection of days with >5 consecutive large differences and days with at least 8 large differences
+        # Find intersection of days with >2 consecutive large differences and days with at least 3 large differences
         days_consecutive = set(consecutive_large_diff_dates)
-        days_8_or_more = set(days_with_8_or_more)
-        stratus_days = sorted(days_consecutive & days_8_or_more)
+        days_3_or_more = set(days_with_3_or_more)
+        stratus_days = sorted(days_consecutive & days_3_or_more)
         stratus_days = [str(d) for d in stratus_days]
         non_stratus_days = sorted(set(df['datetime'].dt.strftime('%Y-%m-%d').unique()) - set(stratus_days))
-  
-        
         return stratus_days,non_stratus_days, (median_gap, mad_gap)
     
     def normalize_data_test(self, data, var_order=None, stats=None):
+        """Normalize data for inference using precomputed statistics"""
         arr = np.array(data)
         original_ndim = arr.ndim
 
@@ -268,7 +256,7 @@ class PrepareData:
 
         N, T, F = arr.shape
         flat = arr.reshape(N, T * F)
-     
+        # Reshape was made with the help of github Copilot
         df = pd.DataFrame(flat, columns=var_order)
         df_out = pd.DataFrame()
 
@@ -293,6 +281,7 @@ class PrepareData:
 
 
     def load_data_test(self, start_date="2023-01-01", end_date="2024-12-31", take_all_seasons=False):
+        """Load and prepare data for inference"""
         filtered_df = self.filter_data(start_date, end_date, take_all_seasons)
         print(f"Filtered data shape: {filtered_df.shape}")
         x_meteo, x_images, y = self.prepare_data(filtered_df)

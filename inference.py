@@ -1,3 +1,4 @@
+# Import necessary libraries and modules
 from prepare_data_inference import PrepareData
 import torch
 import netCDF4
@@ -13,15 +14,22 @@ import random
 import matplotlib.pyplot as plt
 import json
 
+# Set device for torch (GPU if available, else CPU)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
-MODEL_NUM = 3 # or any number you want
 
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
+# Model configuration
+MODEL_NUM = 3 # Model version/number
 
+# Default path to images
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159" # Change this path to your images folder
+
+# Default parameters
 num_views = 1
 seq_len = 3  # Number of time steps in the sequence
-prediction_times =6
+prediction_times = 6
+
+# Parse command line arguments for custom settings
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
@@ -34,32 +42,36 @@ if len(sys.argv) > 1:
             num_views = 2
     if len(sys.argv) > 3:
         seq_len = int(sys.argv[3])
+
+# Model and data paths
 MODEL_PATH = f"models/model_{MODEL_NUM}"
 module_path = f"models.model_{MODEL_NUM}.model"
 module = importlib.import_module(module_path)
 StratusModel = getattr(module, "StratusModel")
 npz_file = f"{MODEL_PATH}/test_data.npz"
 fp_stats_stratus_days = f"{MODEL_PATH}/stratus_days_stats.npz"
+
+# Load stratus days statistics
 loaded = np.load(fp_stats_stratus_days, allow_pickle=True)
 stratus_days_stats_loaded = loaded["stratus_days_stats"]
+
+# Load model and set to evaluation mode
 model = StratusModel(15, 12, num_views, seq_len)
 model.load_state_dict(torch.load(f"{MODEL_PATH}/model.pth", map_location=device))
 model = model.to(device)
 model.eval()
 
-# load data test of npz file
+# Load test data and normalization stats
 data = np.load(npz_file, allow_pickle=True)
 stats = np.load(f"{MODEL_PATH}/stats.npz", allow_pickle=True)
-
 stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
-
 print(f"Stats keys: {stats}")
 
-# Define prediction times from t_0 to t_5
-prediction= [f"t_{i}" for i in range(prediction_times)]
+# Define prediction time keys (t_0 to t_5)
+prediction = [f"t_{i}" for i in range(prediction_times)]
 
-# Loop over months from September (9) to March (3) of the next year
+# Initialize result containers
 results = {}
 start_year = 2023
 end_year = 2024
@@ -68,17 +80,27 @@ non_stratus_days = []
 all_predicted = {t: [] for t in prediction}
 all_expected = {t: [] for t in prediction}
 
-months = [(2023, m) for m in range(1, 4)]+ [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
-#months = [(2023, m) for m in range(2, 3)]
+# List of months to process (Jan-Mar, Sep-Dec for 2023 and 2024)
+months = (
+    [(2023, m) for m in range(1, 4)] +
+    [(2023, m) for m in range(9, 13)] +
+    [(2024, m) for m in range(1, 4)] +
+    [(2024, m) for m in range(9, 13)]
+)
+
+# Prediction files for caching
 pred_file_0 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_0.npz")
 pred_file_2 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_2.npz")
 pred_file_5 = os.path.join(MODEL_PATH, "predictions_vs_expected_ready_t_5.npz")
+
+# Loop over each month for inference
 for year, month in months:
+    # If prediction files exist, skip processing
     if os.path.exists(pred_file_0) and os.path.exists(pred_file_2) and os.path.exists(pred_file_5):
-        # If the prediction files already exist, load them and skip processing
         break
+
+    # Define start and end dates for the month
     start_date = f"{year}-{month:02d}-01"
-    # Calculate last day of the month
     if month == 12:
         next_month = datetime(year + 1, 1, 1)
     elif month == 3:
@@ -89,19 +111,29 @@ for year, month in months:
     print(f"\nProcessing from {start_date} to {end_date}")
 
     with torch.no_grad():
-        prepare_data = PrepareData(fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views, seq_length=seq_len,prediction_time=prediction_times)   
-        x_meteo, x_images, y_expected = prepare_data.load_data_test(start_date=start_date, end_date=end_date)
+        # Prepare data for the current month
+        prepare_data = PrepareData(
+            fp_images=FP_IMAGES, fp_weather=npz_file, num_views=num_views,
+            seq_length=seq_len, prediction_time=prediction_times
+        )
+        x_meteo, x_images, y_expected = prepare_data.load_data_test(
+            start_date=start_date, end_date=end_date
+        )
         x_meteo_not_norm = x_meteo
+
+        # Skip if no data found
         if len(x_meteo) == 0 or len(x_images) == 0 or len(y_expected) == 0:
             print(f"No data found for {start_date} to {end_date}. Skipping this month.")
             continue
-            
+
+        # Find stratus and non-stratus days for the month
         stratus_days_for_month, non_stratus_days_for_month, _ = prepare_data.find_stratus_days(
-            median_gap=stratus_days_stats_loaded[0], 
+            median_gap=stratus_days_stats_loaded[0],
             mad_gap=stratus_days_stats_loaded[1]
         )
         print(f"Stratus days: {stratus_days_for_month}, non-stratus days: {non_stratus_days_for_month}")
-        
+
+        # Build variable order for normalization
         var_order = []
         for i in range(seq_len):
             var_order.append("gre000z0_nyon_t" + str(i))
@@ -119,7 +151,8 @@ for year, month in months:
             var_order.append("SU_t" + str(i))
             var_order.append("DD_t" + str(i))
             var_order.append("pres_t" + str(i))
-        #var_order = ["gre000z0", "RR", "TD", "WG", "TT", "CT", "FF", "RS", "TG", "Z0", "ZS", "SU", "DD", "pres"] 
+
+        # Normalize meteorological data
         x_meteo = prepare_data.normalize_data_test(
             x_meteo,
             var_order=var_order,
@@ -128,25 +161,30 @@ for year, month in months:
 
         total_predictions = len(x_meteo)
         print(f"Total predictions: {total_predictions}")
-        
+
+        # Containers for predictions and expected values
         y_predicted = {t: [] for t in prediction}
         final_expected = {t: [] for t in prediction}
 
+        # Convert data to torch tensors
         x_meteo_tensor = torch.tensor(x_meteo, dtype=torch.float32).to(device)
         x_images_tensor1 = None
         x_images_tensor2 = None
-        
+
+        # Prepare image tensors based on number of views
         if num_views == 2:
             x_images_tensor1 = torch.tensor(x_images[:, :, 0], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
             x_images_tensor2 = torch.tensor(x_images[:, :, 1], dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
-            
+
+        # Loop over all samples for prediction
         for i in range(int(total_predictions)):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
             y = None
-            
+
+            # Run model prediction
             if num_views == 2:
                 img_seq1 = x_images_tensor1[i].unsqueeze(0)
                 img_seq2 = x_images_tensor2[i].unsqueeze(0)
@@ -154,34 +192,35 @@ for year, month in months:
             else:
                 img_seq = x_images_tensor[i].unsqueeze(0)
                 y = model(x_meteo_sample, img_seq)
-                
+
             y = y.squeeze(0).cpu().numpy()
             expected = y_expected[idx_test]
-            
+
             # Process all prediction times from t_0 to t_5
-            for t in range(6):  # 0-5 corresponds to t_0 to t_5
+            for t in range(prediction_times):  # 0-5 corresponds to t_0 to t_5
                 time_key = f"t_{t}"
-                
+
                 # Get normalization parameters for this time step
                 min_nyon = stats_label[f"gre000z0"]["min"]
                 max_nyon = stats_label[f"gre000z0"]["max"]
                 min_dole = stats_label[f"gre000z0"]["min"]
                 max_dole = stats_label[f"gre000z0"]["max"]
-                
-                # Assuming the output is structured as [nyon_t0, dole_t0, nyon_t1, dole_t1, ...]
+
+                # Output structure: [nyon_t0, dole_t0, nyon_t1, dole_t1, ...]
                 nyon_idx = 2 * t
                 dole_idx = 2 * t + 1
-                
+
                 # Denormalize predictions
                 y[nyon_idx] = y[nyon_idx] * (max_nyon - min_nyon) + min_nyon
                 y[dole_idx] = y[dole_idx] * (max_dole - min_dole) + min_dole
-                
+
                 y_predicted[time_key].append([y[nyon_idx], y[dole_idx]])
                 final_expected[time_key].append([expected[t][0], expected[t][1]])
-           
+
+        # Collect stratus and non-stratus days
         stratus_days.append(stratus_days_for_month)
         non_stratus_days.append(non_stratus_days_for_month)
-       
+
         # Plot curves for random non-stratus days
         num_days_to_plot = min(3, len(non_stratus_days_for_month))
         random_non_stratus_days = []
@@ -192,30 +231,31 @@ for year, month in months:
             print("No non-stratus days to select for plotting.")
         end_date = next_month.strftime("%Y-%m-%d")
 
-        metrics = Metrics(final_expected[prediction[0]], y_predicted[prediction[0]], data, save_path=MODEL_PATH,
-                            fp_images=FP_IMAGES, start_date=start_date, end_date= end_date, time_key=0)
+        # Create metrics object for plotting and analysis
+        metrics = Metrics(
+            final_expected[prediction[0]], y_predicted[prediction[0]], data, save_path=MODEL_PATH,
+            fp_images=FP_IMAGES, start_date=start_date, end_date=end_date, time_key=0
+        )
 
+        # Aggregate predictions and expected values for all time steps
         for t in prediction:
-
             all_predicted[t].extend(y_predicted[t])
             all_expected[t].extend(final_expected[t])
 
-       
-           
+        # Plot prediction curves for stratus and non-stratus days
         if stratus_days_for_month:
-            # Plot prediction curves for stratus days
             metrics.plotter.plot_prediction_curves(
-                x_meteo_not_norm, y_predicted, 
+                x_meteo_not_norm, y_predicted,
                 stratus_days_for_month,
-                time_interval_min=10, 
-                prediction_horizons=[10,30, 60]
+                time_interval_min=10,
+                prediction_horizons=[10, 30, 60]
             )
         if random_non_stratus_days:
             metrics.plotter.plot_prediction_curves(
-                x_meteo_not_norm, y_predicted, 
+                x_meteo_not_norm, y_predicted,
                 non_stratus_days_for_month,
-                time_interval_min=10, 
-                prediction_horizons=[10, 30,60]
+                time_interval_min=10,
+                prediction_horizons=[10, 30, 60]
             )
 
 # Save predictions and expected values for each time step to speed up plotting
@@ -229,6 +269,7 @@ for t in ["t_0", "t_2", "t_5"]:
         (pred is None or all(p is None for p in pred))
         for pred in all_predicted[t]
     ):
+        # Save predictions and expected values to .npz file
         np.savez(
             os.path.join(MODEL_PATH, f"predictions_vs_expected_ready_{t}.npz"),
             predicted=np.array(all_predicted[t], dtype=np.float32),
@@ -236,32 +277,30 @@ for t in ["t_0", "t_2", "t_5"]:
         )
         compute_global_metrics = True
     else:
+        # Load predictions and expected values from .npz file if already saved
         with np.load(
-            os.path.join(MODEL_PATH, f"predictions_vs_expected_ready_{t}.npz"), 
+            os.path.join(MODEL_PATH, f"predictions_vs_expected_ready_{t}.npz"),
             allow_pickle=True
         ) as pred_data:
             all_predicted[t] = pred_data['predicted']
             all_expected[t] = pred_data['expected']
         compute_global_metrics = False
 
-
-
+# List of specific test days for metrics reporting
 specific_test_days = [
-            "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
-            "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
-            "2024-11-09", "2024-10-19", "2024-11-16"
-        ]
+    "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03",
+    "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
+    "2024-11-09", "2024-10-19", "2024-11-16"
+]
+
+# Compute and save global metrics for each prediction time
 for t in prediction:
-    
-# Create global metrics instance
+    # Create global metrics instance
     global_metrics = Metrics(
-        all_expected[t], all_predicted[t], data, save_path=MODEL_PATH, 
-        start_date="2023-01-01", end_date="2024-12-31", time_key=t,stats_for_month=False
+        all_expected[t], all_predicted[t], data, save_path=MODEL_PATH,
+        start_date="2023-01-01", end_date="2024-12-31", time_key=t, stats_for_month=False
     )
     if compute_global_metrics:
         global_metrics.save_metrics_report(
             stratus_days=specific_test_days, non_stratus_days=non_stratus_days
         )
-
-
-

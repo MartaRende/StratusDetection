@@ -48,4 +48,4 @@ if __name__ == "__main__":
     img = random_color_jitter(img)
     img = random_blur(img)
 
-    img.save("analysis/augmented/augmented_image.jpeg")  # Save the augmented image
+    img.save("analysis/augmented/augmented_image.jpeg")  # Save the augmented image to check the result

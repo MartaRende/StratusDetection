@@ -23,14 +23,14 @@ print(os.system("whoami"))
 print(f"Script UID/GID: {os.getuid()}/{os.getgid()}")
 
 # Set image folder path and views based on script args
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159" # Change this path to your images folder
 num_views = 1
 seq_len = 3  # Number of timesteps
 prediction_time = 6  # Number of 10-minute intervals to predict ahead (default is 6 for 60 minutes)
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159" # Change this path to your images folder
         FP_IMAGES = os.path.normpath(FP_IMAGES)
     if len(sys.argv) > 2:
         num_views = int(sys.argv[2])
@@ -45,14 +45,14 @@ else:
 print("FP_IMAGES:", FP_IMAGES)
 FP_WEATHER_DATA = "data/complete_data_gen.npz"
 
-# Initialize data loader
+# Initialize data 
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
 x_meteo, x_images, y = prepare_data.load_data()
 print("Data after filter:", x_meteo.shape, y.shape)
 
-# Concatenate all data if multiple sources (your code suggests potential multiple)
+# Concatenate all data if multiple sources 
 all_weatherX = x_meteo
 all_imagesX = x_images
 allY = y
@@ -62,13 +62,11 @@ weather_train, images_train, y_train, weather_test, images_test, y_test, train_d
     all_weatherX, all_imagesX, allY
 )
 
-
-
 # Further split train into train/validation sets
 weather_train, images_train, y_train, weather_validation, images_validation, y_validation, train_datetimes, val_datetimes = prepare_data.split_train_validation(
     weather_train, images_train, y_train
 )
-
+# Variables order for normalization
 var_order = []
 for i in range(seq_len):
     var_order.append("gre000z0_nyon_t" + str(i))
@@ -92,21 +90,18 @@ weather_train, weather_validation, weather_test, stats_input = prepare_data.norm
     weather_train, weather_validation, weather_test, var_order=var_order
    )
 
+# Prepare labels for normalization
 label_names =[
     f"{feat}_t{t}" for t in range(prediction_time) for feat in
     ["gre000z0_nyon", "gre000z0_dole"]
 
 ]
-
 # Normalize labels
 y_train, y_validation, y_test, stats_label = prepare_data.normalize_data(
     y_train, y_validation, y_test,
     var_order= label_names
 )
-
-
 # Create datasets and loaders
-
 
 train_dataset = PrepareDataset(weather_train, FP_IMAGES, train_datetimes, y_train, num_views=num_views, seq_len=seq_len, data_augmentation=False, prepare_data=prepare_data)
 validation_dataset = PrepareDataset(weather_validation, FP_IMAGES, val_datetimes, y_validation, num_views=num_views, seq_len=seq_len, data_augmentation=False, prepare_data=prepare_data)
@@ -186,7 +181,7 @@ for epoch in range(num_epochs):
           f"Validation Loss: {losses['eval'][-1]:.4f}, Test Loss: {losses['test'][-1]:.4f}")
 
 
-#
+
 MODEL_BASE_PATH = "./models/"
 
 
@@ -205,7 +200,7 @@ def saveResults():
     torch.save(model.state_dict(), currPath + "/model.pth")
     print("Saved model to ", currPath)
 
-    # Plot global loss (all epochs, log scale)
+    # Plot global loss 
     plt.figure()
     for key in losses:
         if key == "test":
@@ -217,7 +212,7 @@ def saveResults():
     plt.savefig(currPath + "/loss_log_all.png")
     plt.clf()
 
-    # Plot first 15 epochs (log scale)
+    # Plot first 15 epochs
     plt.figure()
     for key in losses:
         if key == "test":
@@ -229,7 +224,7 @@ def saveResults():
     plt.savefig(currPath + "/loss_log_first15.png")
     plt.clf()
 
-    # Plot from epoch 15 to the end (log scale)
+    # Plot from epoch 15 to the end 
     plt.figure()
     for key in losses:
         if key == "test":
@@ -259,10 +254,10 @@ def saveResults():
     # save test data taken from test_dataset
     test_save_path = os.path.join(currPath, "test_data.npz")
     np.savez(test_save_path, dole=prepare_data.test_data)
-    # save the stats
+    # save the stats for normalization
     stats_save_path = os.path.join(currPath, "stats.npz")
     np.savez(stats_save_path, stats_input=stats_input, stats_label=stats_label)
-    # Save a tuple using numpy
+    # Save a tuple for stats of z-score modified stratus days
     stratus_days_stats = prepare_data.stats_stratus_days
     print("Stratus days stats:", stratus_days_stats)
     np.savez(os.path.join(currPath, "stratus_days_stats.npz"), stratus_days_stats=stratus_days_stats)

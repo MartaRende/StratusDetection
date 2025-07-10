@@ -29,7 +29,7 @@ class PrepareData:
         ]
     
     def _load_weather_data(self):
-        # Load weather data from .npz file and normalize to DataFrame
+        """Load weather data from .npz file and convert to DataFrame"""
         npz_file = np.load(self.fp_weather, allow_pickle=True)
         data_all = {k: npz_file[k] for k in npz_file.files}
         df = pd.DataFrame(data_all['dole'])
@@ -44,7 +44,7 @@ class PrepareData:
     def get_image_path(self, dt, view=2):
         """Get the path for an image without loading it"""
         if isinstance(dt, np.datetime64):
-            dt = pd.Timestamp(dt)  # Convert to pandas Timestamp, which supports strftime
+            dt = pd.Timestamp(dt)  
 
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
@@ -59,7 +59,7 @@ class PrepareData:
         )
 
     def get_valid_sequences(self):
-        """Identify valid sequences without modifying self.data during iteration"""
+        """Identify valid sequences"""
         df = self.data.sort_values("datetime").reset_index(drop=True)
         valid_seqs = []
         valid_indices = []
@@ -161,7 +161,6 @@ class PrepareData:
         return x_meteo, valid_seqs, y
 
     def _load_single_image(self, path):
-        """Helper function to load a single image"""
         if os.path.exists(path):
             img = Image.open(path).convert("RGB")
             # img = img.crop((0, 0, 512, 200))  # Crop to 512x200
@@ -170,9 +169,7 @@ class PrepareData:
             return np.zeros((512, 512, 3), dtype=np.uint8)
 
     def normalize_data(self, train_df, validation_df, test_df, var_order=None):
-        # Normalize data using min-max scaling, optionally by variable groups
-        log_vars = ["RR", "RS"]
-        angle_var = "DD"
+        """Normalize data based on the provided variable order with min-max scaling"""      
         stats = {}
         
         if var_order is None:
@@ -212,7 +209,7 @@ class PrepareData:
         return train_norm.values, validation_norm.values, test_norm.values, stats
 
     def filter_data(self, start_date, end_date, take_all_seasons=True):
-        # Filter data by date and optionally by season
+        """Filter data based on date range and optionally seasons"""
         months_to_take = list(range(1, 13)) if take_all_seasons else [1, 2, 3, 9, 10, 11, 12]        
         mask = (self.data['datetime'].dt.date >= pd.to_datetime(start_date).date()) & \
                (self.data['datetime'].dt.date <= pd.to_datetime(end_date).date()) & \
@@ -221,7 +218,7 @@ class PrepareData:
         return self.data
     
     def find_stratus_days(self, df=None, median_gap=None, mad_gap=None):
-        # Identify stratus days based on gap statistics between two sensors
+        """Identify stratus days based on gap statistics between two sensors made with z-score modified"""
         if df is None:
             df = self.data
         df = df.copy()
@@ -237,13 +234,13 @@ class PrepareData:
         # Calculate the Modified Z-Score
         weather_df['gap_abs_mod_zscore'] = 0.6745 * (weather_df['gap_abs'] - median_gap) / mad_gap
 
-        # Define a threshold to identify outliers
-        threshold = 3
+  
+        threshold = 3 # 3 is a common threshold for outlier detection
         weather_df['large_gap_mod_zscore'] = weather_df['gap_abs_mod_zscore'] > threshold
 
         # Filter the data considered outliers
         large_gap_data = weather_df[weather_df['large_gap_mod_zscore']]
-        # Find sequences where there are more than 5 consecutive large differences
+        # Find sequences where there are more than 2 consecutive large differences
         large_gap_data = weather_df[weather_df['large_gap_mod_zscore']].copy()
         large_gap_data = large_gap_data.sort_values('datetime')
 
@@ -270,7 +267,7 @@ class PrepareData:
         counts = large_gap_data['datetime'].dt.date.value_counts()
         days_with_3_or_more = counts[counts >= 3].index
 
-        # Find intersection of days with >5 consecutive large differences and days with at least 3 large differences
+        # Find intersection of days with >2 consecutive large differences and days with at least 3 large differences
         days_consecutive = set(consecutive_large_diff_dates)
         days_3_or_more = set(days_with_3_or_more)
         stratus_days = sorted(days_consecutive & days_3_or_more)
@@ -279,7 +276,7 @@ class PrepareData:
         return stratus_days,non_stratus_days, (median_gap, mad_gap)
     
     def get_train_validation_days(self, train_days, split_ratio=0.2):
-        # Split train days into train and validation sets, stratified by stratus days
+        """Split train days into train and validation sets, ensuring stratus days are included in validation"""
         train_days = list(train_days)
         stratus_days,_,_= self.find_stratus_days(self.data[self.data['date_str'].isin(train_days)])
         print("Stratus days found:", len(stratus_days))
@@ -298,11 +295,11 @@ class PrepareData:
         return train_days, test_days
     
     def get_test_train_days(self, split_ratio=0.8):
-        # Split all days into train and test sets, ensuring specific test days are included
+        """Get train and test days, ensuring specific test days are included and stratus days are handled"""
         stratus_days, non_stratus_days, self.stats_stratus_days = self.find_stratus_days()
         all_days = sorted(self.data['datetime'].dt.strftime('%Y-%m-%d').unique().tolist())
         
-        # Specific test days to always include (including some stratus days)
+        # Specific test days to always include 
         specific_test_days = [
             "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
             "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
@@ -349,7 +346,7 @@ class PrepareData:
         return train_days, test_days
 
     def split_data(self, x_meteo, x_images, y):
-        # Split data into train and test sets based on days, and prepare sequences
+        """Split data into train and test sets, ensuring sequences are valid"""
         train_days, test_days = self.get_test_train_days()
         self.data = self.data.reset_index(drop=True)
         self.data['date_str'] = self.data['datetime'].dt.strftime('%Y-%m-%d')
@@ -358,7 +355,7 @@ class PrepareData:
         self.test_data = test_rows
         self.test_data = self.test_data.to_dict('records')
        
-        # Get train and test indices based on date_str
+        # Get train and test indices 
         train_indices = self.data[self.data['date_str'].isin(train_days)].index
         test_indices = self.data[self.data['date_str'].isin(test_days)].index
         
@@ -390,7 +387,7 @@ class PrepareData:
             ]]
         self.datetime_next = pd.Series(self.datetime_next)
 
-        # Use the sequence index's last element to select the correct sample (not the whole sequence)
+        # Use the sequence index's last element to select the correct sample 
         x_meteo_train = np.array([x_meteo[indices[-1]] for indices in train_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         x_meteo_test = np.array([x_meteo[indices[-1]] for indices in test_sequences]).reshape(-1, self.seq_length * len(column_names) // self.seq_length)
         feature_columns = [col for col in column_names if col not in ['gre000z0_nyon_t0', 'gre000z0_dole_t0', 'gre000z0_nyon_t1', 'gre000z0_dole_t1', 'gre000z0_nyon_t2', 'gre000z0_dole_t2']]
@@ -406,7 +403,8 @@ class PrepareData:
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_test_df = pd.DataFrame(y_test, columns=label_names)
 
-        # Prepare train and test arrays for x_images
+        # The images are loaded later in the correct sequence,
+        # so it is not necessary to handle the image sequence here.
         x_images_train = np.array([x_images[indices[-1]] for indices in train_sequences])
         x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
    
@@ -443,7 +441,7 @@ class PrepareData:
         return x_meteo_train_df, x_images_train, y_train_df, x_meteo_test_df, x_images_test, y_test_df, train_datetime_seq, test_datetime_seq
 
     def split_train_validation(self, x_meteo_seq, x_images_seq, y_seq, validation_ratio=0.2):
-        # Split data into train and validation sets, stratified by stratus days
+        """Split sequences into train and validation sets, ensuring valid sequences"""
         if 'date_str' not in x_meteo_seq.columns:
             x_meteo_seq['date_str'] = x_meteo_seq['datetime'].dt.strftime('%Y-%m-%d')
         
@@ -472,12 +470,12 @@ class PrepareData:
         # Prepare features and labels
         column_names = [col for col in x_meteo_seq.columns if col not in ['datetime_t0','datetiem_t1','datetime_t2' 'date_str_t0', 'date_str_t2', 'date_str_t1']]
         
-        # Use iloc for positional indexing
         x_meteo_train = np.array([x_meteo_seq.loc[indices[0], column_names].values
                          for indices in train_sequences])
         x_meteo_val = np.array([x_meteo_seq.loc[indices[0], column_names].values
                          for indices in val_sequences])
-   
+        # The images are loaded later in the correct sequence,
+        # so it is not necessary to handle the image sequence here.
         x_images_train = np.array([x_images_seq[indices[0]] for indices in train_sequences])
         x_images_val = np.array([x_images_seq[indices[0]] for indices in val_sequences])
     
