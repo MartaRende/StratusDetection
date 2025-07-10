@@ -10,6 +10,7 @@ A project aimed at predicting the appearance and disappearance of stratus clouds
 - [Installation](#installation)
 - [Code Overview](#code_overview)
 - [Usage](#usage)
+- [Results](#results)
 - [Data Sources and Attribution](#data-sources-and-attribution)
 
 ## Overview
@@ -43,7 +44,6 @@ StratusDetection/
 ├── models/                   # Saved trained models and related outputs
 ├── data_tools/               # Utilities for data preprocessing, augmentation
 ├── metrics_analysis/         # Scripts for evaluation metrics and analysis of results
-├── docs/                     # Project documentation and research notes
 ├── data_loader.py            # Module for loading and preparing datasets for training
 ├── data_analysis.ipynb       # Jupyter notebook for exploratory data analysis
 ├── training.py               # Script to train the machine learning model
@@ -61,6 +61,8 @@ StratusDetection/
 
 
 ## Installation
+
+
 ### To install locally
 1. Clone project
 ```bash
@@ -125,8 +127,6 @@ The repository is organized into several key scripts and folders:
     - The `preprocessing.py` script is used to filter INCA data for La Dôle and solar radiation data for Nyon and La Dôle, saving them in a `.npz` file for use in `training.py`.
     - The `CT_exam.py` file is used for visual analysis of INCA data.
 
-- **docs/**  
-    Project documentation, research notes and progress updates.
 
 - **data/**  
     Directory for input data files (not included in the repository to preserve data privacy but essential for running training). 
@@ -196,6 +196,9 @@ sbatch ./inference_sbatch.sh
 This setup allows you to leverage advanced computational resources and ensures experiment reproducibility.
 > **Note:** Before running inference, you must open the `inference.py` file and set the desired model number in the `MODEL_NUM` variable.
 
+## Results
+
+At this [link](https://hessoit-my.sharepoint.com/:f:/g/personal/marta_rende_hes-so_ch/Ei7cAxxt579HpS-7PsgkQPwBJIRN-cogo30t1gYbsprMyA?e=XAvgat), you will find several trained models, each containing the model weights, architecture, some results, and the metrics obtained on the test data. Unfortunately, the test data and other file used in the inference cannot be shared due to privacy restrictions. To understand what each model predicts, refer to the `model_description.txt` file included in each model's folder. The plots found in models with multiple outputs may be somewhat difficult to interpret, but they have allowed for comparison with single-output models.
 
 ## Data Sources and Attribution
 The project was made possible thanks to the availability of the following data:

@@ -8,7 +8,6 @@ data/
 
 uv.lock
 
-models/
 .data_cache/
 
 analysis/
@@ -20,3 +19,11 @@ logs/
 report.md
 
 models_backup/
+
+models_final/
+
+models_final_with_all/
+
+models/
+
+docs/
