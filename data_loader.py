@@ -57,6 +57,7 @@ class PrepareDataset(Dataset):
             return torch.zeros((3, 512, 512), dtype=torch.float32)  # Return a blank tensor for missing images
         
     def __getitem__(self, idx):
+        """Get a single item from the dataset."""
         weather_data = self.weather[idx]
         labels = self.labels[idx]
         

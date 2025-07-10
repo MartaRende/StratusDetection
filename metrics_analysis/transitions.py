@@ -9,7 +9,7 @@ import os
 
 # This code was adopted to find on which date the stratus cloud dissipation occurs and to calculate the delay between the dissipation in the expected and predicted data
 # Tries to detect peaks using the first derivative, second derivative, and CUSUM, but after some tests, none of the three methods manages to detect all the peaks
-
+# so this file is not used in the final version of the code
 class TransitionAnalyzer:
     """Handles critical transition detection and analysis"""
     
@@ -23,9 +23,9 @@ class TransitionAnalyzer:
         min_peak_distance: str = "30min",
         smooth_window: str = "15min",
         plot_day: str = "2023-01-27",
-        slope_weight: float = 0.9,
+        slope_weight: float = 0.7,
         accel_weight: float = 0.1,
-        cusum_weight: float = 0.0,
+        cusum_weight: float = 0.2,
     ) -> Dict[str, Optional[pd.DataFrame]]:
         """
         Detects critical transitions (peaks/changes) in the expected and predicted delta series.

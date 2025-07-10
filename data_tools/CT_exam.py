@@ -14,7 +14,7 @@ import xarray as xr
 
 # Interactive map was created with the help of deepseek
 def get_map(datetime, var="CT"):
-    # 1. Define polygon and coordinate transformations
+    # Define polygon and coordinate transformations
     polygon_points = [
          (46.15, 5.90),  # SW corner
         (46.15, 6.48),  # SE corner
@@ -24,7 +24,7 @@ def get_map(datetime, var="CT"):
     transformer_to_proj = Transformer.from_crs("EPSG:4326", "EPSG:21781", always_xy=True)
     transformer_to_latlon = Transformer.from_crs("EPSG:21781", "EPSG:4326", always_xy=True)
 
-    # 2. Load NetCDF data for the given datetime
+    # Load NetCDF data for the given datetime
     dt_obj = dt.fromisoformat(datetime)
     year = dt_obj.year
     month = f"{dt_obj.month:02d}"
@@ -32,7 +32,7 @@ def get_map(datetime, var="CT"):
     nc_path = f"/home/marta/Projects/tb/data/weather/inca/{year}/{year}{month}{day}.nc"
     nc = Dataset(nc_path)
 
-    # 3. Prepare grid and mask for the polygon area
+    # Prepare grid and mask for the polygon area
     x_vals = nc.variables['x'][:]
     y_vals = nc.variables['y'][:]
     xx, yy = np.meshgrid(x_vals, y_vals)
@@ -43,20 +43,20 @@ def get_map(datetime, var="CT"):
     mask = Path(poly_xy).contains_points(points_xy).reshape(xx.shape)
     print(f"Mask created with {np.sum(mask)} points inside the polygon.")
 
-    # 4. Get coordinates and time data from NetCDF
+    # Get coordinates and time data from NetCDF
     lon_flat, lat_flat = transformer_to_latlon.transform(xx.ravel(), yy.ravel())
     time_var = nc.variables['datetime']
     datetimes = num2date(time_var[:], units=time_var.units)
     datetimes_str = np.array([dt.isoformat() for dt in datetimes])
     print(len(lon_flat), "points in the grid")
 
-    # 5. Sample data for performance (reduce number of points)
+    # Sample data for performance (reduce number of points)
     sample_rate = 4
     sample_indices = np.arange(len(lon_flat))[::sample_rate]
     print(f"Sampling {len(sample_indices)} points from {len(lon_flat)} total points.")
     ct_var = nc.variables[var][:]
 
-    # 6. Prepare colormap based on data range
+    # Prepare colormap based on data range
     valid_ct = ct_var[np.isfinite(ct_var)]  
     if len(valid_ct) == 0:
         raise ValueError("No valid data found in the dataset.")
@@ -67,7 +67,7 @@ def get_map(datetime, var="CT"):
         vmax=float(max_ct)  
     )
 
-    # 7. Create GeoJSON features for folium map (animated)
+    # Create GeoJSON features for folium map (animated)
     features = []
     time_step = 2
     for t in range(0, ct_var.shape[0], time_step):
@@ -99,7 +99,7 @@ def get_map(datetime, var="CT"):
                     print(f"Warning:  {e} for value {val} at index {i}, skipping point.")
                     continue
 
-    # 8. Create and configure folium map
+    # Create and configure folium map
     m = folium.Map(location=[np.mean(lat_flat), np.mean(lon_flat)], zoom_start=9, tiles='CartoDB positron')
     # Add polygon corner markers
     for i, (lat, lon) in enumerate(polygon_points):
@@ -142,7 +142,7 @@ def get_map(datetime, var="CT"):
         transition_time=300
     ).add_to(m)
 
-    # 9. Save static plot for the requested timestamp
+    #  Save static plot for the requested timestamp
     target_time_str = datetime
     output_dir = "analysis/single_timestamp_maps"
     os.makedirs(output_dir, exist_ok=True)
@@ -243,12 +243,11 @@ def get_map(datetime, var="CT"):
     plt.close()
     print(f"Map saved: {output_path}")
 
-    # 10. Add title to folium map
+    #  Add title to folium map
     title_html = f'''
         <h3 align="center" style="font-size:16px"><b>{var} Values - {var}</b></h3>
     '''.format(datetimes[0].strftime('%Y-%m-%d'))
     m.get_root().html.add_child(folium.Element(title_html))
-    # 11. Save folium map (currently commented out)
     # m.save(f"{var}_interactive_map_optimized.html")
     print(f"Interactive map saved as '{var}_interactive_map_optimized.html'")
 

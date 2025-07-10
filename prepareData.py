@@ -25,6 +25,7 @@ class PrepareData:
         self.desired_prediction = prediction_minutes  # minutes for prediction
 
     def _load_weather_data(self):
+        """Load weather data from a .npz file and return as a DataFrame."""
         npz_file = np.load(self.fp_weather, allow_pickle=True)
         data_all = {k: npz_file[k] for k in npz_file.files}
         df = pd.DataFrame(data_all['dole'])
@@ -393,7 +394,7 @@ class PrepareData:
         y_train_df = pd.DataFrame(y_train, columns=label_names)
         y_test_df = pd.DataFrame(y_test, columns=label_names)
 
-        # Prepare train and test arrays for x_images
+        # prepare image here is optionnaly beacuse are prepared in tesnsor creation
         
         x_images_train = np.array([x_images[indices[-1]] for indices in train_sequences])
         x_images_test = np.array([x_images[indices[-1]] for indices in test_sequences])
@@ -468,7 +469,8 @@ class PrepareData:
                          for indices in train_sequences])
         x_meteo_val = np.array([x_meteo_seq.loc[indices[0], column_names].values
                          for indices in val_sequences])
-   
+        # prepare image here is optionnaly beacuse are prepared in tesnsor creation
+
         x_images_train = np.array([x_images_seq[indices[0]] for indices in train_sequences])
         x_images_val = np.array([x_images_seq[indices[0]] for indices in val_sequences])
     

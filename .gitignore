@@ -16,6 +16,8 @@ my_project.egg-info/
 
 logs/
 
+documentation/
+
 report.md
 
 models_backup/
@@ -26,4 +28,3 @@ models_final_with_all/
 
 models/
 
-docs/

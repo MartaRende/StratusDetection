@@ -6,6 +6,7 @@ A project aimed at predicting the appearance and disappearance of stratus clouds
 
 - [Overview](#overview)
 - [Requirements](#requirements)
+- [Project branch](#project-branch)
 - [Project Structure](#project-structure)
 - [Installation](#installation)
 - [Code Overview](#code_overview)
@@ -15,46 +16,48 @@ A project aimed at predicting the appearance and disappearance of stratus clouds
 
 ## Overview
 
-This project analyzes stratus cloud phenomena by processing weather images from La Dôle and meteorological data from INCA and Idaweb provided by MeteoSwiss. It uses a deep learning model to predict the appearance and disappearance of this meteorological phenomenon. Finally, it provides statistics to evaluate model performance and analyze the results.
+This project focuses on detecting and forecasting stratus cloud events in the plains of the Canton of Vaud. It leverages weather images from the La Dôle camera and meteorological data from INCA and Idaweb, for Geneva, La Dôle and Nyon points all provided by MeteoSwiss. Using a deep learning approach, the model predicts the behavior of the stratus. The project also includes tools for evaluating model performance and analyzing prediction results.
+
 
 ## Requirements
 
-- This project requires to install [uv](https://pypi.org/project/uv/)
-- To ensure the project functions correctly and achieves high-quality training, you will need the following data:
+- **Install [uv](https://pypi.org/project/uv/):**  
+    This project uses [uv](https://pypi.org/project/uv/), a fast Python package installer and resolver, to manage dependencies and run scripts.  
+- **To ensure the project functions correctly and achieves high-quality training, you will need the following data:**
 
     - **2 years of MeteoSwiss images (2023-2024)** in 512x512 format, with file paths such as `./images/mch/1159/2/2023/01/01/1159_2024-11-16_0000.jpeg`, where `1159` refers to the La Dôle camera. Images should be spaced 10 minutes apart.
-    The original images were in panorama format. Two 512x512 crops were taken from each panorama at significant points of the view. When referring to "view 1" and "view 2," these correspond to the first and second crops, respectively. "View 2" allows observation of Geneva, while "view 1" shows the opposite direction from Geneva.
+    The original images were in panorama format. Two 512x512 crops were taken from panorama at significant points of the view. When referring to "view 1" and "view 2," these correspond to the first and second crops, respectively. "View 2" allows observation of Geneva, while "view 1" shows the opposite direction from Geneva.
     - **2 years of INCA meteorological data (2023-2024)** in binary files, with paths like `./weather/inca/2023/20230101.nc`. Inca data hould be spaced 10 minutes apart.
     - **2 years of Idaweb data (2023-2024)**, specifically solar radiation measurements, available from the Idaweb platform. Idaweb data should be spaced 10 minutes apart.
-    - Sufficient computational resources to analyze the data and run the training processes.
+- **Sufficient computational resources to analyze the data and run the training processes**.
 
 Ensure that these datasets are available and organized as described for successful training and inference of models.
 
 ## Project branch
 The project is mainly developed on two branches:
 - **main**: manages the version of the model that outputs a single prediction (e.g., at 10 min, 30 min, or 1 hour). This branch contains all the data analyses and most of the computed statistics.
-- **multiple_prevision**: manages the version of the model that outputs multiple predictions at once (by default, from 10 minutes up to 1 hour).
+- **multiple_prevision**: manages the version of the model that outputs multiple predictions at once (by default, from 10 minutes up to 1 hour, spaced at 10-minute intervals).
 
 ## Project Structure
 
 
 ```
 StratusDetection/
-├── data/                     # Directory for input data files (not included in the repository)
-├── models/                   # Saved trained models and related outputs
-├── data_tools/               # Utilities for data preprocessing, augmentation
+├── data/                     # Directory for input data files (not included in the repository to preserve data privacy but essential for running training)
+├── models/                   # Saved trained models and related outputs (not included in the repository)
+├── data_tools/               # Utilities for data preprocessing and augmentation
 ├── metrics_analysis/         # Scripts for evaluation metrics and analysis of results
 ├── data_loader.py            # Module for loading and preparing datasets for training
 ├── data_analysis.ipynb       # Jupyter notebook for exploratory data analysis
-├── training.py               # Script to train the machine learning model
+├── training.py               # Script to train the deep learning model
 ├── inference.py              # Script to run inference and evaluate model predictions
-├── inference_sbatch.sh       # SLURM batch script for inference on HPC infrastructure
+├── inference_sbatch.sh       # SLURM batch script for inference on infrastructure
 ├── model.py                  # Defines the model architecture
 ├── prepare_data_inference.py # Prepares data specifically for inference
 ├── prepareData.py            # Prepares and validates input data for training
 ├── pyproject.toml            # Project dependencies and build configuration
 ├── rules.def                 # Apptainer definition file for containerized environments
-├── train_sbatch.sh           # SLURM batch script for training on HPC infrastructure
+├── train_sbatch.sh           # SLURM batch script for training on infrastructure
 └── README.md                 # Project overview and usage instructions
 
 ```
@@ -64,7 +67,7 @@ StratusDetection/
 
 
 ### To install locally
-1. Clone project
+**Clone project**
 ```bash
 git clone https://github.com/MartaRende/StratusDetection.git
 cd StratusDetection
@@ -75,9 +78,11 @@ After running a script for the first time (as described in the [Usage](#usage) s
 
 In the context of this project, due to the large volume of data to be processed and the need to run extensive model training, I had access to more powerful computational infrastructure. This allowed me to properly submit jobs using SLURM for large-scale training.
 
-The infrastructure uses Apptainer to execute jobs in isolated and reproducible environments. To set up this environment:
+The infrastructure uses Apptainer to execute jobs in isolated and reproducible environments. 
 
-Build an Apptainer image that includes all project dependencies using the `rules.def` definition file.
+**To set up this environment:**
+
+**Build an Apptainer image** that includes all project dependencies using the `rules.def` definition file.
 The image definition is provided in `rules.def`.
 You can build the image directly with:
 
@@ -95,7 +100,7 @@ The repository is organized into several key scripts and folders:
 
 - **training.py**  
     Manages the training process, including data preparation, splitting into train/validation/test sets, and transforming data into tensors (made in  `data_loader.py`).  
-    At the end of training, this script creates a subfolder inside the `models/` directory named `model_n`, where `n` is the next available model number. This folder contains the trained model (`model.pth`), the model architecture (`model.py`), the test data used, loss graph, and several files useful for inference.
+    At the end of training, this script creates a subfolder inside the `models/` directory named `model_n`, where `n` is the next available model number. This folder contains the trained model weights (`model.pth`), the model architecture (`model.py`), the test data used, loss graph, and several files useful for inference.
 
 - **prepareData.py**  
     Contains classes and functions for preparing and validating input data (images and meteorological data) for training.
@@ -119,7 +124,7 @@ The repository is organized into several key scripts and folders:
 ### Folders
 
 - **metrics_analysis/**  
-    Scripts for generating evaluation metrics, creating plots, and analyzing stratus dissipation delays.
+    Scripts for generating evaluation metrics and reating plots.
 
 - **data_tools/**  
     Utilities for filtering, augmenting, and visualizing study data, including scripts for image cropping and data augmentation.
@@ -127,9 +132,6 @@ The repository is organized into several key scripts and folders:
     - The `preprocessing.py` script is used to filter INCA data for La Dôle and solar radiation data for Nyon and La Dôle, saving them in a `.npz` file for use in `training.py`.
     - The `CT_exam.py` file is used for visual analysis of INCA data.
 
-
-- **data/**  
-    Directory for input data files (not included in the repository to preserve data privacy but essential for running training). 
 
 Each script and module includes inline comments and docstrings for further details.
 > **Note:** In some files, you may encounter variables referring to "_nyon". This is because, at the beginning of the project, the two reference points were La Dôle and Nyon. Later, the reference point for the plains was changed to use solar radiation data from Geneva instead of Nyon. However, the final results remain correct even if the variable names do not exactly correspond to the current location—the data used is still correct.
@@ -141,35 +143,38 @@ Before starting training, run the `preprocessing.py` script to filter out all nu
 
 To run the preprocessing step, execute:
 ```bash
-uv run data_tools.preprocessing
+uv run data_tools/preprocessing.py
 ```
 
 The processed file will be saved as `data/complete_data.npz`.
-### To run locally
+
+## To run locally
+
 To run training or inference locally, use:
 
 ```bash
-uv run training
-uv run inference
+uv run training.py
+uv run inference.py
 ```
 
-By default, these commands will launch training or inference locally (ensure the images are available locally with the correct file paths), using one camera view from La Dôle, three temporal sequences of images/meteorological data, and the default forecast time.
+By default, these commands will launch training or inference locally (ensure the images are available locally with the correct file paths), using one camera view from La Dôle, three temporal input sequences of images/meteorological data, and the default forecast time (10 minutes).
 
 You can customize the inputs by passing the following arguments:
 
-1. **First argument:** `0` for local execution, `1` for infrastructure execution (changes the image paths).
+1. **First argument:** `0` for local execution, `1` for infrastructure execution.
 2. **Second argument:** Number of views to use (`1` for one camera view from La Dôle, `2` for both views).
 3. **Third argument:** Number of temporal data points in the past (images + meteorological data) to use as input.
 4. **Fourth argument** (only for the `main` branch; in the `multiple_prevision` branch, the number of prediction steps is fixed at 6, up to 1 hour): desired prediction time in minutes.
 
 Example usage:
 ```bash
-uv run training 0 2 3 30
-uv run inference 0 2 3 30
+uv run training.py 0 2 3 30
+uv run inference.py 0 2 3 30
 ```
 This command runs training or inference locally, using two views, three temporal sequences, and a 30-minute forecast.
 
-### Run on infrastructure
+## Run on infrastructure
+
 ### Running on Infrastructure with Apptainer and SLURM
 
 To run training and inference on the infrastructure, use the SLURM scripts (`train_sbatch.sh` and `inference_sbatch.sh`) to submit jobs to the computing platform.
@@ -193,12 +198,14 @@ sbatch ./train_sbatch.sh
 sbatch ./inference_sbatch.sh
 ```
 
-This setup allows you to leverage advanced computational resources and ensures experiment reproducibility.
+This usage applies to both the `main` branch and the `multiple_prevision` branch.
+
 > **Note:** Before running inference, you must open the `inference.py` file and set the desired model number in the `MODEL_NUM` variable.
+
 
 ## Results
 
-At this [link](https://hessoit-my.sharepoint.com/:f:/g/personal/marta_rende_hes-so_ch/Ei7cAxxt579HpS-7PsgkQPwBJIRN-cogo30t1gYbsprMyA?e=XAvgat), you will find several trained models, each containing the model weights, architecture, some results, and the metrics obtained on the test data. Unfortunately, the test data and other file used in the inference cannot be shared due to privacy restrictions. To understand what each model predicts, refer to the `model_description.txt` file included in each model's folder. The plots found in models with multiple outputs may be somewhat difficult to interpret, but they have allowed for comparison with single-output models.
+You can access several trained models at this [link](https://hessoit-my.sharepoint.com/:f:/g/personal/marta_rende_hes-so_ch/Ei7cAxxt579HpS-7PsgkQPwBJIRN-cogo30t1gYbsprMyA?e=XAvgat). Each folder contains the model weights, architecture, result files, and evaluation metrics on the test set. Please note that the test data and certain files used for inference cannot be shared due to privacy constraints. For details about each model’s predictions, consult the `model_description.txt` file included in each model directory. Models with multiple outputs include plots that may be less straightforward to interpret, but these visualizations support comparison with single-output models.
 
 ## Data Sources and Attribution
 The project was made possible thanks to the availability of the following data:

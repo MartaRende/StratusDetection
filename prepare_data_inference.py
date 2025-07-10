@@ -79,7 +79,7 @@ class PrepareData:
             print(f"Image not found for datetime {dt} at view {view}. Returning empty image.")
             return np.zeros((512, 512, 3), dtype=np.uint8)
     def prepare_data(self, df):
-        """Prepare data fortesting"""
+        """Prepare data for testing"""
         df = df.sort_values('datetime').reset_index(drop=True)
         
         # Create sequences

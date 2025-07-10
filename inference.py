@@ -16,7 +16,7 @@ print("Device is :", device)
 
 MODEL_NUM = 0   # Model version number
 
-FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"  # Default image path
+FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"  # Default image path change as needed
 
 # Default parameters
 num_views = 1
@@ -27,7 +27,7 @@ prediction_minutes = 60  # Prediction interval in minutes
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159" # Change to your path
         FP_IMAGES = os.path.normpath(FP_IMAGES)
     if len(sys.argv) > 2:
         if sys.argv[2] == "1":
@@ -65,7 +65,7 @@ stats_input = stats["stats_input"].item()
 stats_label = stats["stats_label"].item()
 print(f"Stats keys: {stats}")
 
-# Prepare to loop over months (example: March 2023)
+# Prepare to loop over months
 results = {}
 start_year = 2023
 end_year = 2024
@@ -146,7 +146,7 @@ for year, month in months:
         else:
             x_images_tensor = torch.tensor(x_images, dtype=torch.float32).permute(0, 1, 4, 2, 3).to(device)
 
-        # Run inference for each sample (using only a quarter of the data)
+        # Run inference for each sample 
         for i in range(int(total_predictions)):
             idx_test = i
             x_meteo_sample = x_meteo_tensor[idx_test].unsqueeze(0).to(device)
