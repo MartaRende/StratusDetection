@@ -30,6 +30,7 @@ class PrepareData:
         ]
     
     def _load_weather_data(self):
+        """Load weather data from a .npz file and convert it to a DataFrame"""
         npz_file = np.load(self.fp_weather, allow_pickle=True)
         data_all = {k: npz_file[k] for k in npz_file.files}
         df = pd.DataFrame(data_all['dole'])
@@ -85,6 +86,7 @@ class PrepareData:
             return np.zeros((512, 512, 3), dtype=np.uint8)
         
     def prepare_data(self, df):
+        """Prepare data for inference"""
         df = df.sort_values('datetime').reset_index(drop=True)
         
         # Create sequences

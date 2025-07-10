@@ -161,6 +161,7 @@ class PrepareData:
         return x_meteo, valid_seqs, y
 
     def _load_single_image(self, path):
+        """Load a single image from the given path, or return a blank image if it doesn't exist"""
         if os.path.exists(path):
             img = Image.open(path).convert("RGB")
             # img = img.crop((0, 0, 512, 200))  # Crop to 512x200

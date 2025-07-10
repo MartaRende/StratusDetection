@@ -3,14 +3,16 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
-
+import pandas as pd
+import os
+from data_tools.data_augmentation import random_brightness, random_color_jitter, random_blur
 # This dataset class is designed to prepare the dataset for training by loading images and weather data.
 # It supports both single-view and dual-view configurations, applies data augmentation if specified,
 # and precomputes image paths to optimize loading during training.
 # The dataset returns weather data, image tensors, and labels for each sample.
 # It handles missing images by returning a blank tensor, ensuring robustness during training.
 class PrepareDataset(Dataset):
-    def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False, prepare_data=None):
+    def __init__(self, weather, image_base_folder, seq_infos, labels, num_views=1, seq_len=3, data_augmentation=False,prepare_data=None):
         self.weather = torch.tensor(weather, dtype=torch.float32)  
         self.labels = torch.tensor(labels, dtype=torch.float32)
         self.image_base_folder = image_base_folder
@@ -19,7 +21,7 @@ class PrepareDataset(Dataset):
         self.seq_len = seq_len
         self.data_augmentation = data_augmentation
         self.prepare_data = prepare_data
-
+        
         # Precompute image paths
         self.image_paths = self._precompute_image_paths()
 
@@ -27,17 +29,31 @@ class PrepareDataset(Dataset):
         """Precompute all image paths to avoid repeated disk access during training."""
         paths = []
         for seq_info in self.seq_infos:
-            if self.num_views == 1:
-                # Only get view=2 for single view
-                seq_paths = [self.prepare_data.get_image_path(dt, 2) for dt in seq_info]
-                paths.append(seq_paths)
-            else:
-            # Get both view=1 and view=2
-                view1_paths = [self.prepare_data.get_image_path(dt, 1) for dt in seq_info]
-                view2_paths = [self.prepare_data.get_image_path(dt, 2) for dt in seq_info]
-                paths.append((view1_paths, view2_paths))
+            view_paths = []
+            for view in range(1, self.num_views + 1):
+                seq_paths = [self.get_image_path(dt, 2) for dt in seq_info]
+                view_paths.append(seq_paths)
+            paths.append(view_paths if self.num_views > 1 else view_paths[0])
         return paths
 
+    def get_image_path(self, dt, view=2):
+        """Generate the image path based on the datetime and view."""
+        if isinstance(dt, np.datetime64):
+            dt = pd.Timestamp(dt)
+            
+        date_str = dt.strftime('%Y-%m-%d')
+        time_str = dt.strftime('%H%M')
+        img_filename = f"1159_{view}_{date_str}_{time_str}.jpeg"
+        
+        return os.path.join(
+            self.image_base_folder,
+            str(view),
+            dt.strftime('%Y'),
+            dt.strftime('%m'),
+            dt.strftime('%d'),
+            img_filename
+        )
+    
     def __len__(self):
         return len(self.weather)
     def _load_single_image(self, path):

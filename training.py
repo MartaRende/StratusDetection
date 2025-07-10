@@ -7,11 +7,9 @@ import torch
 import matplotlib.pyplot as plt
 from model import StratusModel
 from prepareData import PrepareData
-from metrics import Metrics
 from torch.utils.data import Dataset
 from PIL import Image
 
-from data_tools.data_augmentation import random_flip, random_rotate, random_brightness, random_contrast, random_color_jitter, random_blur
 
 # Import PrepareDataset
 from data_loader import PrepareDataset
@@ -49,7 +47,7 @@ FP_WEATHER_DATA = "data/complete_data_gen.npz"
 prepare_data = PrepareData(FP_IMAGES, FP_WEATHER_DATA, num_views=num_views,seq_length=seq_len)
 
 # Load filtered data
-x_meteo, x_images, y = prepare_data.load_data()
+x_meteo, x_images, y = prepare_data.load_data(end_date="2023-01-07")
 print("Data after filter:", x_meteo.shape, y.shape)
 
 # Concatenate all data if multiple sources 

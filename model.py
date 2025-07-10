@@ -28,9 +28,9 @@ class StratusModel(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 32x32 -> 16x16
         )
-        
-        
-        self.cnn_output_size = 64 * 16 * 16  # numer of cnn output
+
+
+        self.cnn_output_size = 64 * 16 * 16  # number of cnn output
 
         # MLP for weather data
         self.mlp_meteo = nn.Sequential(
