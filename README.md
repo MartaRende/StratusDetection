@@ -57,9 +57,7 @@ StratusDetection/
 ├── prepareData.py            # Prepares and validates input data for training
 ├── pyproject.toml            # Project dependencies and build configuration
 ├── rules.def                 # Apptainer definition file for containerized environments
-├── train_sbatch.sh           # SLURM batch script for training on infrastructure
-└── README.md                 # Project overview and usage instructions
-
+└──train_sbatch.sh           # SLURM batch script for training on infrastructure
 ```
 
 
