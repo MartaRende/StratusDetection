@@ -57,15 +57,20 @@ class PrepareDataset(Dataset):
     def __len__(self):
         return len(self.weather)
     def _load_single_image(self, path):
+        """Load a single image from the given path and apply data augmentation if specified."""
         try:
             with Image.open(path) as img:
                 # img = img.crop((0, 0, 512, 200))  
-                img_array = np.array(img) 
-                img_tensor = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1)  # Convert to (C, H, W)
+                img = img.convert("RGB")  # Ensure image is in RGB format
+                if self.data_augmentation:
+                    img = random_brightness(img)
+                    img = random_color_jitter(img)
+                    img = random_blur(img)
+                img_tensor = torch.tensor(np.array(img), dtype=torch.float32).permute(2, 0, 1)  # Convert to (C, H, W)
                 return img_tensor
         except:
             print(f"Warning: Could not load image at {path}. Returning blank tensor.")
-            return torch.zeros((3, 512, 512), dtype=torch.float32)  # Return a blank tensor for missing images
+            return torch.zeros((3, 512, 512), dtype=torch.float32)  # Return a blank tensor for missing image
         
     def __getitem__(self, idx):
         weather_data = self.weather[idx]
