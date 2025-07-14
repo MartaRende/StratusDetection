@@ -14,7 +14,7 @@ from metrics_analysis.metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
 
-MODEL_NUM = 0   # Model version number
+MODEL_NUM = 8   # Model version number
 
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"  # Default image path
 
@@ -80,9 +80,9 @@ pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz")
 df_to_save = pd.DataFrame()
 # Main inference loop over months
 for year, month in months:
-    # if os.path.exists(pred_file):
-    #     # If predictions already exist, skip computation
-    #     break
+    if os.path.exists(pred_file):
+        # If predictions already exist, skip computation
+        break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
     if month == 12:
@@ -194,22 +194,22 @@ for year, month in months:
 
 
 # Flatten all_expected and all_predicted lists if any predictions were made
-#if len(all_expected) > 0 or len(all_predicted) > 0:
-all_expected = [item for sublist in all_expected for item in sublist]
-all_predicted = [item for sublist in all_predicted for item in sublist]
-# Save predictions and expected values for later use
-np.savez(
-    os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz"),
-    predicted=np.array(all_predicted, dtype=np.float32),
-    expected=np.array(all_expected, dtype=np.float32),
-)
-# else:
-#     # If predictions already exist, load them
-#     with np.load(pred_file, allow_pickle=True) as pred_data:
-#         all_predicted = pred_data["predicted"]
-#         all_expected = pred_data["expected"]
-#         all_expected.astype(float)
-#         all_predicted.astype(float)
+if len(all_expected) > 0 or len(all_predicted) > 0:
+    all_expected = [item for sublist in all_expected for item in sublist]
+    all_predicted = [item for sublist in all_predicted for item in sublist]
+    # Save predictions and expected values for later use
+    np.savez(
+        os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz"),
+        predicted=np.array(all_predicted, dtype=np.float32),
+        expected=np.array(all_expected, dtype=np.float32),
+    )
+else:
+    # If predictions already exist, load them
+    with np.load(pred_file, allow_pickle=True) as pred_data:
+        all_predicted = pred_data["predicted"]
+        all_expected = pred_data["expected"]
+        all_expected.astype(float)
+        all_predicted.astype(float)
 
 # Compute global metrics and plots
 global_metrics = Metrics(

@@ -20,3 +20,6 @@ logs/
 report.md
 
 models_backup/
+models_final/
+
+documentation/
