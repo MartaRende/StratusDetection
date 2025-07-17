@@ -14,20 +14,19 @@ from metrics_analysis.metrics import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device is :", device)
 
-MODEL_NUM = 8   # Model version number
-
+MODEL_NUM = 2  # Model version number
 FP_IMAGES = "/home/marta/Projects/tb/data/images/mch/1159"  # Default image path
 
 # Default parameters
 num_views = 1
 seq_len = 3  # Sequence length (number of time steps)
-prediction_minutes = 60  # Prediction interval in minutes
-
+prediction_minutes = 10  # Prediction interval in minutes
+all_datetimes = []
 # Parse command-line arguments to override defaults
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159"
+        FP_IMAGES = "/home/marta.rmodels/model_2/predictions_vs_expected_ready.npzende/local_photocast/photocastv1_5/data/images/mch/1159"
         FP_IMAGES = os.path.normpath(FP_IMAGES)
     if len(sys.argv) > 2:
         if sys.argv[2] == "1":
@@ -74,15 +73,15 @@ non_stratus_days = []
 all_predicted = []
 all_expected = []
 months = [(2023, m) for m in range(1, 4)] + [(2023, m) for m in range(9, 13)] + [(2024, m) for m in range(1, 4)] + [(2024, m) for m in range(9, 13)]
-# months = [(2024, m) for m in range(11, 12)]  # Only March 2023
+# months = [(2024, m) for m in range(10, 11)]  # Only March 2023
 # # months = ... # (commented: other months)
 pred_file = os.path.join(MODEL_PATH, "predictions_vs_expected_ready.npz")
 df_to_save = pd.DataFrame()
 # Main inference loop over months
 for year, month in months:
-    if os.path.exists(pred_file):
-        # If predictions already exist, skip computation
-        break
+    # if os.path.exists(pred_file):
+    #     # If predictions already exist, skip computation
+    #     break
     start_date = f"{year}-{month:02d}-01"
     # Calculate last day of the month
     if month == 12:
@@ -180,17 +179,20 @@ for year, month in months:
 
         # Compute and plot metrics for the month
         metrics = Metrics(final_expected, y_predicted, data, save_path=MODEL_PATH, fp_images=FP_IMAGES, start_date=start_date, end_date=end_date, prediction_minutes=prediction_minutes)
-        metrics.plotter.plot_day_curves(stratus_days_for_month)
-        # Plot up to 3 random non-stratus days
-        num_days_to_plot = min(3, len(non_stratus_days_for_month))
-        if num_days_to_plot > 0:
-            random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
-            print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
-            metrics.plotter.plot_day_curves(random_non_stratus_days)
-        else:
-            print("No non-stratus days to select for plotting.")
-        metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
-        metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
+        comp_df = metrics._create_comparison_dataframe()
+        df_to_save = pd.concat([df_to_save, comp_df], ignore_index=True)
+        # import ipdb; ipdb.set_trace()
+        # metrics.plotter.plot_day_curves(stratus_days_for_month)
+        # # Plot up to 3 random non-stratus days
+        # num_days_to_plot = min(3, len(non_stratus_days_for_month))
+        # if num_days_to_plot > 0:
+        #     # random_non_stratus_days = random.sample(non_stratus_days_for_month, num_days_to_plot)
+        #     print(f"Random non-stratus days selected for plotting: {random_non_stratus_days}")
+        #     # metrics.plotter.plot_day_curves(random_non_stratus_days)
+        # else:
+        #     print("No non-stratus days to select for plotting.")
+        # metrics.compute_and_save_metrics_by_month(stratus_days_for_month)
+        # metrics.compute_and_save_metrics_by_month(non_stratus_days_for_month, label="non_stratus_days")
 
 
 # Flatten all_expected and all_predicted lists if any predictions were made
@@ -215,8 +217,17 @@ else:
 global_metrics = Metrics(
     all_expected, all_predicted, data, save_path=MODEL_PATH, start_date="2023-01-01", end_date="2024-12-31", prediction_minutes=prediction_minutes, stats_for_month=False,
 )
+specific_test_days = [
+    "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
+    "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
+    "2024-11-09", "2024-10-19", "2024-11-16"
+]
 
-df_to_save = global_metrics._create_comparison_dataframe()
+
+
+
+# df_to_save = global_metrics._prepare_day_metrics(specific_test_days)
+import ipdb; ipdb.set_trace()
 # Save df_to_save to a CSV file if the model path exists
 csv_path = os.path.join(MODEL_PATH, "comparison_dataframe.csv")
 if not  os.path.exists(csv_path):
@@ -224,11 +235,6 @@ if not  os.path.exists(csv_path):
 else:
     print(f"File alraedy saved")
 
-specific_test_days = [
-    "2023-03-02", "2024-12-26", "2023-02-13", "2024-10-25", "2024-11-03", 
-    "2024-11-08", "2023-01-27", "2023-01-25", "2023-02-09", "2024-10-30",
-    "2024-11-09", "2024-10-19", "2024-11-16"
-]
 
 # Various plots and analyses for specific days
 global_metrics.save_metrics_report(
@@ -241,4 +247,4 @@ global_metrics.save_metrics_report(
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "geneva")
 # global_metrics.plotter.plot_delta_scatter(specific_test_days, "dole")
 # global_metrics.plotter.plot_delta_scatter(specific_test_days)
-# global_metrics.plotter.plot_delta_error_heatmap(specific_test_days)
+global_metrics.plotter.plot_delta_error_heatmap(specific_test_days)

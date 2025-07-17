@@ -69,7 +69,6 @@ class Metrics:
         # Filter complete_df to only include rows where the date is in common_dates
         complete_df = complete_df[complete_df['datetime'].dt.date.isin(common_dates)]
 
-        # Optionally, merge or append missing datetimes to self.data
         # Here, we ensure self.data contains all datetimes from complete_df for those dates
         self.data = pd.concat([self.data, complete_df[~complete_df['datetime'].isin(self.data['datetime'])]], ignore_index=True)
         self.data = self.data.sort_values('datetime').reset_index(drop=True)
@@ -110,7 +109,7 @@ class Metrics:
         return self._datetime_cache
         
     def _compute_datetime_list(self):
-        """Compute datetime list with vectorized operations"""
+        """Compute datetime list based on expected and predicted values"""
         datetimes = []
         exp_geneva = self.expected["geneva"].to_numpy()
         exp_dole = self.expected["dole"].to_numpy()

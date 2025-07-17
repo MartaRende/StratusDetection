@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from typing import List, Optional, Dict
 from PIL import Image
 from scipy import stats
-#import seaborn as sns
+import seaborn as sns
 
 from .config import PlotConfig
 # Plotting utilities are implemented with the help of Deepseek AI
@@ -236,9 +236,7 @@ class Plotter:
             outlier_threshold = 2.5 * np.std(residuals)
             df["is_outlier"] = np.abs(residuals) > outlier_threshold
 
-        slope, intercept, r_value, p_value, std_err = stats.linregress(
-            df["expected_delta"], df["predicted_delta"]
-        )
+    
         mae = np.mean(np.abs(residuals))
         
         plt.figure(figsize=(12, 10))
@@ -289,7 +287,7 @@ class Plotter:
         
         stats_text = (
             f"MAE: {mae:.2f}\n"
-            f"Outliers: ({len(outliers)/len(df)*100:.1f}%)\n"
+            f"Big errors in measurements: ({len(outliers)/len(df)*100:.1f}%)\n"
         )
         plt.annotate(
             stats_text,
@@ -319,80 +317,9 @@ class Plotter:
         print(f"Saved delta scatter plot to {output_path}")
         plt.close()
     
-    def plot_residual_errors(self, days, prefix: str = "residual_errors", subdirectory: str = None) -> None:
-        """
-        Plot residual errors for expected vs predicted deltas (Geneva - Dole).
-        
-        Args:
-            days: List of days to include in the plot
-            prefix: Prefix for filename
-            subdirectory: Optional subdirectory to save plot
-        """
-        # Prepare data
-        if not days:
-            # If days is empty, use all available days in the data
-            df = self.metrics_create_comparison_dataframe()
-        else:
-            days = self.metrics._normalize_days_input(days)
-            df = self.metrics._prepare_day_metrics(days)
-        if df.empty:
-            self.logger.warning("No data found for the provided days.")
-            return
-        
-        # Calculate deltas and residuals
-        df["expected_delta"] = df["expected_geneva"] - df["expected_dole"]
-        df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
-        df["residual"] = df["predicted_delta"] - df["expected_delta"]
-        
-        # Create plot
-        plt.figure(figsize=(10, 6))
-        
-        # Residuals scatter plot
-        # Scatter plot of residuals
-        plt.scatter(
-            df["expected_delta"], 
-            df["residual"],
-            alpha=0.6,
-            color='blue',
-            label='Residuals'
-        )
-        # Histogram of residuals on a secondary y-axis
-        ax = plt.gca()
-        ax_hist = ax.twinx()
-        ax_hist.hist(
-            df["residual"],
-            bins=30,
-            color='orange',
-            alpha=0.3,
-            label='Residuals Histogram'
-        )
-        ax_hist.set_ylabel("Count", fontsize=self.plot_config.fontsize["labels"])
-        ax_hist.legend(loc='upper right', fontsize=self.plot_config.fontsize["labels"])
-        
-        # Horizontal line at zero residual
-        plt.axhline(0, color='red', linestyle='--', label='Zero Residual')
-        
-        # Format plot
-        plt.title(f"Residual Errors (Predicted - Expected Delta) - Stratus Days\n", 
-                fontsize=self.plot_config.fontsize["title"])
-        plt.xlabel("Expected Delta (W/m²)", fontsize=self.plot_config.fontsize["labels"])
-        plt.ylabel("Residual Error (W/m²)", fontsize=self.plot_config.fontsize["labels"])
-        plt.legend(fontsize=self.plot_config.fontsize["labels"])
-        plt.grid(True, linestyle='--', alpha=0.3)
-        
-        # Save plot
-        plt.tight_layout()
-        if self.metrics.save_path:
-            output_path = os.path.join(
-                subdirectory if subdirectory else self.metrics.save_path,
-                f"{prefix}_residuals_all.png"
-            )
-            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
-            print(f"Saved residual errors plot to {output_path}")
-        plt.close()
 
     def plot_delta_error_heatmap(self, days: List[str], prefix: str = "delta_heatmap", subdirectory: str = None) -> None:
-        """Plot heatmap of absolute delta errors per day and hour"""
+        """Plot heatmap of absolute delta errors per day and 10-minute intervals"""
         df = self.metrics._prepare_day_metrics(days)
         if df.empty:
             self.metrics.logger.warning("No data found for the provided days.")
@@ -403,21 +330,24 @@ class Plotter:
         df["predicted_delta"] = df["predicted_geneva"] - df["predicted_dole"]
         df["delta_abs_error"] = (df["predicted_delta"] - df["expected_delta"]).abs()
 
-        # Extract day and hour (as strings)
+        # Extract day and 10-min interval
         df["date"] = df["datetime"].dt.date.astype(str)
-        df["hour"] = df["datetime"].dt.hour
+        df["ten_min"] = df["datetime"].dt.strftime("%H:%M")
+ 
 
-        # Create pivot table: rows=days, columns=hours
+        # Create pivot table: rows=days, columns=10-min intervals
         heatmap_data = df.pivot_table(
             index="date",
-            columns="hour",
+            columns="ten_min",
             values="delta_abs_error",
             aggfunc="mean"
         )
 
+        # Sort columns (time) for better visualization
+        heatmap_data = heatmap_data.reindex(sorted(heatmap_data.columns, key=lambda x: int(x[:2])*60 + int(x[3:])), axis=1)
+
         # Plot heatmap
-        plt.figure(figsize=(14, 6))
-    
+        plt.figure(figsize=(18, 6))
         sns.heatmap(
             heatmap_data,
             cmap="YlOrRd",
@@ -426,120 +356,18 @@ class Plotter:
             vmin=0,
             vmax=400,
         )
-        plt.title("Heatmap of Absolute Delta Error (Geneva - Dole) per Day and Hour", fontsize=self.plot_config.fontsize["title"])
-        plt.xlabel("Hour of Day", fontsize=self.plot_config.fontsize["labels"])
+        plt.title("Heatmap of Absolute Delta Error (Geneva - Dole) per Day and 10-min Interval", fontsize=self.plot_config.fontsize["title"])
+        plt.xlabel("Time (10-min intervals)", fontsize=self.plot_config.fontsize["labels"])
         plt.ylabel("Day", fontsize=self.plot_config.fontsize["labels"])
         plt.tight_layout()
-        # Plot mean of delta_abs_error across all days and hours
-        mean_error = df["delta_abs_error"].mean()
-        plt.axhline(mean_error, color='gray', linestyle='--', linewidth=1.5, label=f"Mean Delta Error: {mean_error:.2f} W/m²")
-        plt.legend(loc='upper right', fontsize=self.plot_config.fontsize.get("labels", 10))
         # Save the file
-        if self.metrics.save_path:
-            output_path = os.path.join(
-            subdirectory if subdirectory else self.metrics.save_path,
-            f"{prefix}.png"
-            )
-            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
-            self.metrics.logger.info(f"Saved delta error heatmap to {output_path}")
-        print(f"Saved delta error heatmap to {output_path}")
-        plt.close()
-    def plot_max_delta_jump_delay(self, days: List[str], prefix: str = "delta_jump_delay", subdirectory: str = None) -> None:
-        """
-        Plot the delay (in minutes) between the largest delta change (jump) time
-        in expected vs predicted radiation deltas.
-            """
-
-            
-        df = self.metrics._prepare_day_metrics(days)
-        if df.empty:
-            self.metrics.logger.warning("No data found for the provided days.")
-            return
-
-        df["expected_delta"] = df["expected_dole"] - df["expected_geneva"]
-        df["predicted_delta"] = df["predicted_dole"] - df["predicted_geneva"]
-        df["date"] = df["datetime"].dt.date
-
-        daily_durations = []
-
-        for day, group in df.groupby("date"):
-            if group.empty:
-                continue
-            group = group.sort_values("datetime").reset_index(drop=True)
-
-            # --- Expected
-            exp_max_idx = group["expected_delta"].idxmax()
-            exp_max_time = group.loc[exp_max_idx, "datetime"]
-            expected_after_max = group[group["datetime"] > exp_max_time]
-            if expected_after_max.empty:
-                continue
-            exp_min_idx = expected_after_max["expected_delta"].idxmin()
-            exp_min_time = group.loc[exp_min_idx, "datetime"]
-            exp_duration = (exp_min_time - exp_max_time).total_seconds() / 60
-
-            # --- Predicted
-            pred_max_idx = group["predicted_delta"].idxmax()
-            pred_max_time = group.loc[pred_max_idx, "datetime"]
-            predicted_after_max = group[group["datetime"] > pred_max_time]
-            if predicted_after_max.empty:
-                continue
-            pred_min_idx = predicted_after_max["predicted_delta"].idxmin()
-            pred_min_time = group.loc[pred_min_idx, "datetime"]
-            pred_duration = (pred_min_time - pred_max_time).total_seconds() / 60
-
-            # --- Error
-            duration_error = pred_duration - exp_duration
-            valid = pred_duration >= 0 and exp_duration >= 0
-
-            daily_durations.append({
-                "date": day,
-                "expected_duration_min": exp_duration,
-                "predicted_duration_min": pred_duration,
-                "duration_error_min": duration_error,
-                "expected_max_time": exp_max_time,
-                "expected_min_time": exp_min_time,
-                "predicted_max_time": pred_max_time,
-                "predicted_min_time": pred_min_time,
-                "valid_prediction": valid
-            })
-
-
-        duration_df = pd.DataFrame(daily_durations)
-       
-        global_mean_error = duration_df["duration_error_min"].mean()
-        n_invalid = (~duration_df["valid_prediction"]).sum()
-
-        print("Daily duration errors:")
-        print(duration_df)
-        print(f"\nGlobal mean error: {global_mean_error:.2f} min — Invalid matches: {n_invalid}")
-
-        # --- Plot
-        plt.figure(figsize=(14, 6))
-        sns.barplot(
-            data=duration_df,
-            x="date",
-            y="duration_error_min",
-            hue="valid_prediction",
-            palette={True: "skyblue", False: "salmon"},
-            edgecolor="black"
-        )
-        plt.axhline(0, color="gray", linestyle="--", linewidth=1.5)
-        plt.axhline(global_mean_error, color="blue", linestyle="--", linewidth=1.5,
-                    label=f"Global Mean Error: {global_mean_error:.2f} min")
-
-        plt.title("Peak-Valley Duration Error (Predicted - Expected)", fontsize=self.plot_config.fontsize["title"])
-        plt.xlabel("Day", fontsize=self.plot_config.fontsize["labels"])
-        plt.ylabel("Duration Error (min)", fontsize=self.plot_config.fontsize["labels"])
-        plt.xticks(rotation=45)
-        plt.legend(title="Valid Prediction")
-        plt.tight_layout()
-
-        # Save
         if self.metrics.save_path:
             output_path = os.path.join(
                 subdirectory if subdirectory else self.metrics.save_path,
                 f"{prefix}.png"
             )
-            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches="tight")
-            print(f"Saved plot to {output_path}")
+            plt.savefig(output_path, dpi=self.plot_config.dpi, bbox_inches='tight')
+            self.metrics.logger.info(f"Saved delta error heatmap to {output_path}")
+        print(f"Saved delta error heatmap to {output_path}")
         plt.close()
+   
