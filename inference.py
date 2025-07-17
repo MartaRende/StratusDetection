@@ -26,7 +26,8 @@ all_datetimes = []
 if len(sys.argv) > 1:
     if sys.argv[1] == "1":
         print("Train on chacha")
-        FP_IMAGES = "/home/marta.rmodels/model_2/predictions_vs_expected_ready.npzende/local_photocast/photocastv1_5/data/images/mch/1159"
+        FP_IMAGES = "/home/marta.rende/local_photocast/photocastv1_5/data/images/mch/1159" # Change to your path
+
         FP_IMAGES = os.path.normpath(FP_IMAGES)
     if len(sys.argv) > 2:
         if sys.argv[2] == "1":
