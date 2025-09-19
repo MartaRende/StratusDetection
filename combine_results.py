@@ -1,3 +1,6 @@
+from typing import List
+
+from matplotlib.lines import Line2D
 from metrics_analysis.config import PlotConfig
 from metrics_analysis.metrics import Metrics
 import numpy as np
@@ -8,10 +11,19 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import os
 from PIL import Image
-# Model configuration
-dict_models_img = {
+#import seaborn as sns
+# # Model configuration
+# dict_models = {
+#     "model_6": 10,  # minutes
+#     "model_7": 30,
+#     "model_0": 60,
+#     "model_9": 120
+# }
+
+# Plots for the report
+dict_models= {
     "model_2": 10,  # minutes
-    "model_7": 30,
+    "model_10": 30,
     "model_1": 60,
     "model_8": 120
 }
@@ -56,12 +68,11 @@ prepare_data = PrepareData(
 )
 weather_data = prepare_data.data
 weather_data['datetime'] = pd.to_datetime(weather_data['datetime'])
-import ipdb
-ipdb.set_trace()
+
 weather_data = weather_data[weather_data['datetime'].dt.date.isin(specific_test_days)]
 # [Previous imports and configuration remain the same until the prediction loading section]
 # Load all model predictions and PROPERLY align with base timestamps
-for model_name, minutes in dict_models_img.items():
+for model_name, minutes in dict_models.items():
     try:
         csv_path = f"models/{model_name}/comparison_dataframe.csv"
         datetime_col, expected, predicted = read_results_from_csv(csv_path)
@@ -96,8 +107,7 @@ for model_name, minutes in dict_models_img.items():
     except Exception as e:
         print(f"Error processing {model_name}: {str(e)}")
         continue
-import ipdb 
-ipdb.set_trace()
+
 # Post-processing
 weather_data = weather_data.sort_values('datetime')
 # Print value ranges for Geneva between 07:00 and 16:00 for each specific test day
@@ -105,12 +115,11 @@ for day in specific_test_days:
     day_data = weather_data[weather_data['datetime'].dt.date == day]
     time_filtered = day_data.set_index('datetime').between_time('07:00', '16:00')
     print(f"Value ranges for Geneva on {day}: min={time_filtered['gre000z0_gen'].min()}, max={time_filtered['gre000z0_gen'].max()}")
-import ipdb
-ipdb.set_trace()
+
 # Verify alignment by checking a specific time point
 sample_time = weather_data['datetime'].iloc[0]
 print(f"\nVerification for {sample_time}:")
-for minutes in dict_models_img.values():
+for minutes in dict_models.values():
     print(f"{minutes}min prediction:")
     print(f"Pred Geneva: {weather_data.loc[weather_data['datetime'] == sample_time, f'predicted_geneva_{minutes}'].values}")
     print(f"Actual Geneva (shifted): {weather_data.loc[weather_data['datetime'] == sample_time + pd.Timedelta(minutes=minutes), 'expected_geneva_10'].values if sample_time + pd.Timedelta(minutes=minutes) in weather_data['datetime'].values else 'Not available'}")
@@ -125,36 +134,24 @@ for minutes in dict_models_img.values():
 # Plotting prediction lines radiating from each observation point
 plot_day = "2024-11-03"
 day_data = weather_data[weather_data['datetime'].dt.date == pd.to_datetime(plot_day).date()]
-import ipdb
-ipdb.set_trace()
+
 # Save the aligned weather_data DataFrame to CSV
 csv_save_path = f"{MODEL_PATH}/aligned_weather_predictions_{plot_day}.csv"
 weather_data.to_csv(csv_save_path, index=False)
 print(f"Aligned data saved to {csv_save_path}")
 print("Value ranges for Geneva:")
-for minutes in dict_models_img.values():
+for minutes in dict_models.values():
     pred_col = f'predicted_geneva_{minutes}'
     actual_col = 'gre000z0_gen'
     print(f"{minutes}min -> Predicted: min={day_data[pred_col].min()}, max={day_data[pred_col].max()} | Actual: min={day_data[actual_col].min()}, max={day_data[actual_col].max()}")
 
 print("Value ranges for Dole:")
-for minutes in dict_models_img.values():
+for minutes in dict_models.values():
     pred_col = f'predicted_dole_{minutes}'
     actual_col = 'gre000z0_dole'
     print(f"{minutes}min -> Predicted: min={day_data[pred_col].min()}, max={day_data[pred_col].max()} | Actual: min={day_data[actual_col].min()}, max={day_data[actual_col].max()}")
 
-import ipdb
-ipdb.set_trace()
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.lines import Line2D
 
-
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.lines import Line2D
 
 
 def plot_aligned_predictions(weather_data, plot_day="2024-11-03"):
@@ -167,7 +164,7 @@ def plot_aligned_predictions(weather_data, plot_day="2024-11-03"):
         return
 
     # Converto colonne predizione in numerico
-    for m in dict_models_img.values():
+    for m in dict_models.values():
         day_data[f'predicted_geneva_{m}'] = pd.to_numeric(day_data[f'predicted_geneva_{m}'], errors='coerce')
         day_data[f'predicted_dole_{m}'] = pd.to_numeric(day_data[f'predicted_dole_{m}'], errors='coerce')
     
@@ -195,7 +192,7 @@ def plot_aligned_predictions(weather_data, plot_day="2024-11-03"):
 
         # --- Geneva ---
         geneva_series = [(base_time, row['gre000z0_gen'])]
-        for m in sorted(dict_models_img.values()):
+        for m in sorted(dict_models.values()):
             pred_value = row.get(f'predicted_geneva_{m}', None)
             if not pd.isna(pred_value):
                 pred_time = base_time + pd.Timedelta(minutes=m)
@@ -211,7 +208,7 @@ def plot_aligned_predictions(weather_data, plot_day="2024-11-03"):
 
         # --- Dole ---
         dole_series = [(base_time, row['gre000z0_dole'])]
-        for m in sorted(dict_models_img.values()):
+        for m in sorted(dict_models.values()):
             pred_value = row.get(f'predicted_dole_{m}', None)
             if not pd.isna(pred_value):
                 pred_time = base_time + pd.Timedelta(minutes=m)
@@ -234,12 +231,11 @@ def plot_aligned_predictions(weather_data, plot_day="2024-11-03"):
 
     # Legenda
     legend_elements = [
-        Line2D([0], [0], color='k', marker='o', linestyle='-', label='Actual Geneva'),
-        Line2D([0], [0], color='k', marker='s', linestyle='--', label='Actual Dole')
+        Line2D([0], [0], color='k', marker='o', linestyle='-', label='Actual Delta'),
     ]
     for h, c in horizon_colors.items():
-        legend_elements.append(Line2D([0], [0], color=c, linestyle='-', marker='o', label=f'Geneva +{h}min'))
-        legend_elements.append(Line2D([0], [0], color=c, linestyle='--', marker='s', label=f'Dole +{h}min'))
+        legend_elements.append(Line2D([0], [0], color=c, linestyle='-', marker='o', label=f'Delta +{h}min'))
+
 
     plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.title(f'Sequenced Predictions from t → t+h ({plot_day})', pad=20)
@@ -253,11 +249,8 @@ def plot_aligned_predictions(weather_data, plot_day="2024-11-03"):
     print(f"Plot salvato in: {plot_path}")
     plt.show()
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 
-dict_models_img = {10: 10, 30: 30, 60: 60, 120: 120}
+dict_models = {10: 10, 30: 30, 60: 60, 120: 120}
 MODEL_PATH = "."  # cambia se vuoi salvare altrove
 def interpolate_internal_nans(series):
     """
@@ -293,62 +286,85 @@ def get_image_for_datetime(dt, view=2):
     else:
         return []
 plot_config = PlotConfig()
-def plot_horizon_curves(weather_data, plot_day="2024-11-03"):
-    """Plot curves of actual values and predicted values at each horizon over the day, interpolating internal NaNs."""
-
+def plot_horizon_curves_delta(weather_data, plot_day="2024-11-03"):
+    """Plot curves of actual and predicted delta values, showing 'x' markers only on original (non-interpolated) values."""
+    
     day_data = weather_data[weather_data['datetime'].dt.date == pd.to_datetime(plot_day).date()].copy()
     if day_data.empty:
         return
 
-    # Normalize and interpolate data
+    # Normalize and track original (non-NaN) values
     for col in ["gre000z0_gen", "gre000z0_dole"]:
         day_data[col] = pd.to_numeric(day_data[col], errors='coerce')
 
-    for horizon in dict_models_img.values():
+    original_non_nan = {}  # Track original valid values before interpolation
+    for horizon in dict_models.values():
         for loc in ['geneva', 'dole']:
             col = f'predicted_{loc}_{horizon}'
             day_data[col] = pd.to_numeric(day_data[col], errors='coerce')
+            original_non_nan[col] = day_data[col].notna()
             day_data[col] = interpolate_internal_nans(day_data[col])
 
-    # Setup figure with 2 rows (curves + image timeline)
+    # Setup figure with extra space for image timeline
     fig = plt.figure(figsize=(plot_config.figsize[0], plot_config.figsize[1] * 1.5))
     gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
     ax1 = fig.add_subplot(gs[0])
 
-    # Actual values
-    ax1.plot(day_data["datetime"], day_data["gre000z0_gen"],
-             label="Actual Geneva", color="black", linewidth=2)
-    ax1.plot(day_data["datetime"], day_data["gre000z0_dole"],
-             label="Actual Dole", color="black", linestyle="--", linewidth=2)
+    # Plot actual delta
+    delta_actual = day_data["gre000z0_dole"] - day_data["gre000z0_gen"]
+    ax1.plot(day_data["datetime"], delta_actual, label="Actual Delta (Dole - Geneva)", color="black", linewidth=2)
+    ax1.plot(day_data["datetime"], delta_actual, marker='x', linestyle='None', color="black", markersize=7, alpha=0.8)
 
-    # Predicted values
+    # Plot predicted deltas at each horizon
     horizon_colors = {10: '#FF6F61', 30: "#64E40F", 60: '#45B7D1', 120: '#A37EBD'}
-    for horizon in dict_models_img.values():
-        for loc, style in zip(["geneva", "dole"], ["-", "--"]):
-            ax1.plot(
-                day_data["datetime"] + pd.Timedelta(minutes=horizon),
-                day_data[f"predicted_{loc}_{horizon}"],
-                label=f"{loc.capitalize()} +{horizon}min",
-                color=horizon_colors[horizon],
-                linestyle=style
-            )
+    pred_handles = []
 
-    # Format axis
-    ax1.set_title(f"Actual vs Predicted Radiation – {plot_day}", fontsize=plot_config.fontsize["title"])
+    for horizon in dict_models.values():
+        x_vals = day_data["datetime"] + pd.Timedelta(minutes=horizon)
+        y_vals = (
+            day_data[f"predicted_dole_{horizon}"] -
+            day_data[f"predicted_geneva_{horizon}"]
+        )
+
+        # Main line
+        line, = ax1.plot(x_vals, y_vals, label=f"Predicted Delta +{horizon}min",
+                         color=horizon_colors[horizon], linestyle="-")
+        pred_handles.append(line)
+
+        # Markers only on original (non-interpolated) points
+        mask = (
+            original_non_nan[f"predicted_dole_{horizon}"] &
+            original_non_nan[f"predicted_geneva_{horizon}"]
+        )
+        ax1.plot(x_vals[mask], y_vals[mask], marker='x', linestyle='None',
+                 color=horizon_colors[horizon], markersize=7, alpha=0.8)
+
+    # Axis formatting
+    ax1.set_title(f"Actual vs Predicted Delta Radiation (Dole - Geneva) – {plot_day}",
+                  fontsize=plot_config.fontsize["title"])
     ax1.set_xlabel("Time", fontsize=plot_config.fontsize["labels"])
     ax1.set_ylabel("Radiation (W/m²)", fontsize=plot_config.fontsize["labels"])
-    for label in ax1.get_xticklabels():
-        label.set_rotation(45)
-        label.set_horizontalalignment('right')
-    first_valid = day_data["datetime"].min()
-    last_valid = day_data["datetime"].max()
-    ax1.set_xlim(first_valid, last_valid)
+    ax1.set_xlim(day_data["datetime"].min(), day_data["datetime"].max())
     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     ax1.xaxis.set_major_locator(mdates.MinuteLocator(interval=10))
     ax1.grid(True, alpha=0.3)
-    ax1.legend(loc="upper left", bbox_to_anchor=(1.02, 1))
+    for label in ax1.get_xticklabels():
+        label.set_rotation(45)
+        label.set_horizontalalignment('right')
 
-    # Select times for image thumbnails
+    # Custom legend
+    legend_elements = [
+        Line2D([0], [0], color="black", linestyle="-", marker='x',
+               label="Actual Delta (Dole - Geneva)")
+    ]
+    for horizon in dict_models.values():
+        legend_elements.append(
+            Line2D([0], [0], color=horizon_colors[horizon], linestyle="-", marker='x',
+                   label=f"Predicted Delta +{horizon}min")
+        )
+    ax1.legend(handles=legend_elements, loc="upper left", bbox_to_anchor=(1.02, 1))
+
+    # Select timestamps for image thumbnails
     day_datetimes = day_data["datetime"].tolist()
     num_images = min(6, len(day_datetimes))
     indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int) if num_images > 1 else [0]
@@ -358,7 +374,6 @@ def plot_horizon_curves(weather_data, plot_day="2024-11-03"):
     for idx in indices:
         dt = day_datetimes[idx]
         img = get_image_for_datetime(dt)
-
         if isinstance(img, list):
             continue
         if isinstance(img, np.ndarray) and img.size > 0:
@@ -375,15 +390,208 @@ def plot_horizon_curves(weather_data, plot_day="2024-11-03"):
         img_width = 1.0 / num_valid
         for i, (img, dt) in enumerate(zip(valid_imgs, valid_times)):
             left = i * img_width
-            ax_img = fig.add_axes([left/1.1, 0.02, img_width, 0.2])  # relative position
+            ax_img = fig.add_axes([left / 1.1, 0.02, img_width, 0.2])
             ax_img.imshow(img)
             ax_img.set_title(dt.strftime("%H:%M"), fontsize=8)
             ax_img.axis('off')
 
     # Save and close
-    plot_filename = f"horizon_curves_{plot_day}.png"
+    plot_filename = f"horizon_curves_{plot_day}_delta_img.png"
     plot_path = os.path.join(MODEL_PATH, plot_filename)
     plt.tight_layout()
     plt.savefig(plot_path, dpi=plot_config.dpi, bbox_inches="tight")
     plt.close()
-plot_horizon_curves(weather_data, plot_day="2024-10-25")
+
+plot_horizon_curves_delta(weather_data, plot_day="2024-10-25")
+
+# import os
+# import numpy as np
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# from matplotlib.lines import Line2D
+
+# def plot_mae_all_horizons_heatmap(weather_data, horizons=[10,30,60,120], days=None, save_dir="."):
+#     df = weather_data.copy()
+#     if days:
+#         df = df[df['datetime'].dt.date.isin(days)]
+#     df_list = []
+
+#     for h in horizons:
+#         for loc in ['geneva', 'dole']:
+#             pred_col = f'predicted_{loc}_{h}'
+#             exp_col = f'expected_{loc}_{h}'
+#             if pred_col in df.columns and exp_col in df.columns:
+#                 tmp = df[['datetime', pred_col, exp_col]].dropna()
+#                 tmp = tmp.assign(
+#                     horizon=h,
+#                     loc=loc,
+#                     mae=(tmp[pred_col] - tmp[exp_col]).abs()
+#                 )[['datetime', 'horizon', 'loc', 'mae']]
+#                 df_list.append(tmp)
+
+#     if not df_list:
+#         print("No data available for the requested horizons.")
+#         return
+
+#     long_df = pd.concat(df_list, ignore_index=True)
+#     long_df['date'] = long_df['datetime'].dt.date.astype(str)
+#     long_df['time'] = long_df['datetime'].dt.strftime('%H:%M')
+
+#     # Calcola media MAE aggregata su tutti gli orizzonti e location
+#     heatmap_df = (long_df
+#                   .groupby(['date','time'])['mae']
+#                   .mean()
+#                   .unstack(fill_value=np.nan))
+
+#     heatmap_df = heatmap_df.reindex(
+#         sorted(heatmap_df.columns, key=lambda t: int(t[:2])*60 + int(t[3:])),
+#         axis=1
+#     )
+
+#     # Compute global mean MAE
+#     global_mean = np.nanmean(heatmap_df.values)
+
+#     plt.figure(figsize=(20, max(4, len(heatmap_df)*0.5)))
+#     ax = plt.gca()
+#     sns.heatmap(
+#         heatmap_df,
+#         cmap='YlGnBu',
+#         linewidths=0.5,
+#         linecolor='gray',
+#         vmin=0,
+#         vmax=250,
+#         ax=ax
+#     )
+
+#     # Add global mean MAE to the legend as a dummy line
+#     legend_elements = [
+#         Line2D([0], [0], color='orange', linestyle='--', linewidth=2, label=f'Global Mean: {global_mean:.2f}')
+#     ]
+#     ax.legend(handles=legend_elements, loc='lower left')
+
+#     plt.title(f"Mean Delta MAE across all predictions model with all data")
+#     plt.xlabel("Time", fontsize=12)
+#     plt.ylabel("Date", fontsize=12)
+#     plt.xticks(rotation=45, ha='right')
+#     plt.yticks(rotation=0)
+#     plt.tight_layout()
+
+#     out = os.path.join(save_dir, "mae_all_horizons_heatmap.png")
+#     plt.savefig(out, dpi=200, bbox_inches='tight')
+#     plt.close()
+#     print("Heatmap salvata:", out)
+
+# plot_mae_all_horizons_heatmap(weather_data, horizons=[10,30,60,120], days=specific_test_days, save_dir=MODEL_PATH)
+
+# def plot_horizon_curves(weather_data, plot_day="2024-11-03"):
+#     """Plot curves of actual values and predicted values at each horizon over the day, interpolating internal NaNs."""
+
+#     day_data = weather_data[weather_data['datetime'].dt.date == pd.to_datetime(plot_day).date()].copy()
+#     if day_data.empty:
+#         return
+
+#     # Normalize and interpolate data
+#     for col in ["gre000z0_gen", "gre000z0_dole"]:
+#         day_data[col] = pd.to_numeric(day_data[col], errors='coerce')
+
+#     for horizon in dict_models.values():
+#         for loc in ['geneva', 'dole']:
+#             col = f'predicted_{loc}_{horizon}'
+#             day_data[col] = pd.to_numeric(day_data[col], errors='coerce')
+#             day_data[col] = interpolate_internal_nans(day_data[col])
+
+#     # Setup figure with 2 rows (curves + image timeline)
+#     fig = plt.figure(figsize=(plot_config.figsize[0], plot_config.figsize[1] * 1.5))
+#     gs = fig.add_gridspec(2, 1, height_ratios=[3, 1])
+#     ax1 = fig.add_subplot(gs[0])
+
+#     # Actual values
+#     ax1.plot(day_data["datetime"], day_data["gre000z0_gen"],
+#              label="Actual Geneva", color="black", linewidth=2)
+#     ax1.plot(day_data["datetime"], day_data["gre000z0_dole"],
+#              label="Actual Dole", color="black", linestyle="--", linewidth=2)
+#     # Add 'x' markers to actual curves
+#     ax1.plot(day_data["datetime"], day_data["gre000z0_gen"],
+#              marker='x', linestyle='None', color="black", markersize=7, alpha=0.8)
+#     ax1.plot(day_data["datetime"], day_data["gre000z0_dole"],
+#              marker='x', linestyle='None', color="black", markersize=7, alpha=0.8)
+
+#     # Predicted values
+#     horizon_colors = {10: '#FF6F61', 30: "#64E40F", 60: '#45B7D1', 120: '#A37EBD'}
+#     for horizon in dict_models.values():
+#         for loc, style in zip(["geneva", "dole"], ["-", "--"]):
+#             x_vals = day_data["datetime"] + pd.Timedelta(minutes=horizon)
+#             y_vals = day_data[f"predicted_{loc}_{horizon}"]
+#             ax1.plot(
+#                 x_vals,
+#                 y_vals,
+#                 label=f"{loc.capitalize()} +{horizon}min",
+#                 color=horizon_colors[horizon],
+#                 linestyle=style
+#             )
+#             # Put 'x' marker on each predicted point
+#             ax1.plot(
+#                 x_vals,
+#                 y_vals,
+#                 marker='x',
+#                 linestyle='None',
+#                 color=horizon_colors[horizon],
+#                 markersize=7,
+#                 alpha=0.8
+#             )
+
+#     # Format axis
+#     ax1.set_title(f"Actual vs Predicted Radiation – {plot_day}", fontsize=plot_config.fontsize["title"])
+#     ax1.set_xlabel("Time", fontsize=plot_config.fontsize["labels"])
+#     ax1.set_ylabel("Radiation (W/m²)", fontsize=plot_config.fontsize["labels"])
+#     for label in ax1.get_xticklabels():
+#         label.set_rotation(45)
+#         label.set_horizontalalignment('right')
+#     first_valid = day_data["datetime"].min()
+#     last_valid = day_data["datetime"].max()
+#     ax1.set_xlim(first_valid, last_valid)
+#     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+#     ax1.xaxis.set_major_locator(mdates.MinuteLocator(interval=10))
+#     ax1.grid(True, alpha=0.3)
+#     ax1.legend(loc="upper left", bbox_to_anchor=(1.02, 1))
+
+#     # Select times for image thumbnails
+#     day_datetimes = day_data["datetime"].tolist()
+#     num_images = min(6, len(day_datetimes))
+#     indices = np.linspace(0, len(day_datetimes) - 1, num_images, dtype=int) if num_images > 1 else [0]
+
+#     # Load and normalize images
+#     valid_imgs, valid_times = [], []
+#     for idx in indices:
+#         dt = day_datetimes[idx]
+#         img = get_image_for_datetime(dt)
+
+#         if isinstance(img, list):
+#             continue
+#         if isinstance(img, np.ndarray) and img.size > 0:
+#             if img.max() - img.min() < 1e-3:
+#                 img = (img - img.min()) / (img.max() - img.min() + 1e-6)
+#             if img.ndim == 2:
+#                 img = np.stack([img] * 3, axis=-1)
+#             valid_imgs.append(img)
+#             valid_times.append(dt)
+
+#     # Draw image timeline
+#     if valid_imgs:
+#         num_valid = len(valid_imgs)
+#         img_width = 1.0 / num_valid
+#         for i, (img, dt) in enumerate(zip(valid_imgs, valid_times)):
+#             left = i * img_width
+#             ax_img = fig.add_axes([left/1.1, 0.02, img_width, 0.2])  # relative position
+#             ax_img.imshow(img)
+#             ax_img.set_title(dt.strftime("%H:%M"), fontsize=8)
+#             ax_img.axis('off')
+
+#     # Save and close
+#     plot_filename = f"horizon_curves_{plot_day}.png"
+#     plot_path = os.path.join(MODEL_PATH, plot_filename)
+#     plt.tight_layout()
+#     plt.savefig(plot_path, dpi=plot_config.dpi, bbox_inches="tight")
+#     plt.close()
+# plot_horizon_curves(weather_data, plot_day="2024-11-09")
